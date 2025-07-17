@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import Icon from '../../../components/AppIcon';
 
 const HabitTracking = ({ data }) => {
-  if (!data || typeof data !== 'object') {
-    return <div className="mb-4 p-2 bg-error/10 border border-error/20 rounded text-error">Habit tracking data is missing or malformed.</div>;
+  if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning text-center">No habit data yet. Start tracking habits to see your progress!</div>;
   }
   const [selectedHabit, setSelectedHabit] = useState(null);
 

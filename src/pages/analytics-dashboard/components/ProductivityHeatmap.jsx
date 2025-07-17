@@ -82,7 +82,7 @@ const ProductivityHeatmap = ({ data = [] }) => {
   const selectedDayData = selectedDate ? data.find(d => d.date === selectedDate) : null;
 
   if (!data || data.length === 0) {
-    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning">No heatmap data available.</div>;
+    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning text-center">No activity data yet. Start using the app to see your heatmap!</div>;
   }
 
   return (

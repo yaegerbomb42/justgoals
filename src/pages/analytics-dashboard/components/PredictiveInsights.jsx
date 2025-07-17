@@ -3,7 +3,7 @@ import Icon from '../../../components/AppIcon';
 
 const PredictiveInsights = ({ data }) => {
   if (!data || data.length === 0) {
-    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning">No predictive insights available.</div>;
+    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning text-center">No predictive insights yet. Use the app more to unlock AI-powered predictions!</div>;
   }
   const [selectedInsight, setSelectedInsight] = useState(null);
 

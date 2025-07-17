@@ -13,6 +13,7 @@ import FilterSortControls from './components/FilterSortControls';
 import GoalCard from './components/GoalCard';
 import EmptyState from './components/EmptyState';
 import Icon from '../../components/AppIcon';
+import GoalCreationModal from './components/GoalCreationModal';
 
 // Onboarding Modal Component
 function OnboardingModal({ open, onClose }) {
@@ -155,9 +156,21 @@ const GoalsDashboard = () => {
     setFilteredGoals(filtered);
   }, [goals, activeFilter, activeSort]);
 
-  // Change: Always route to full-featured goal creation page
-  const handleCreateGoal = () => {
-    navigate('/goal-creation-management');
+  // Classic modal-based goal creation handler
+  const handleCreateGoal = (goalData) => {
+    if (!user || !user.id) {
+      alert('You must be logged in to create a goal.');
+      return;
+    }
+    entityService.createGoal(user, goalData).then((createdGoal) => {
+      if (createdGoal) {
+        setGoals((prev) => [...prev, createdGoal]);
+      } else {
+        alert('Failed to create goal. Please try again.');
+      }
+    }).catch((e) => {
+      alert('Failed to create goal. Please try again.');
+    });
   };
 
   const handleDeleteGoal = (goalId) => {
@@ -231,7 +244,7 @@ const GoalsDashboard = () => {
             <div className="text-center py-16">
               <h1 className="text-2xl font-heading-bold text-text-primary mb-4">No Goals Yet</h1>
               <p className="text-text-secondary mb-8">Start by creating your first goal to unlock achievements and progress tracking.</p>
-              <button onClick={() => navigate('/goal-creation-management')} className="btn btn-primary">Create Goal</button>
+              <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary">Create Goal</button>
             </div>
           </div>
         </main>
@@ -251,32 +264,27 @@ const GoalsDashboard = () => {
       
       <main className="pt-20 pb-24 md:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Welcome Hero Section */}
+          {/* Welcome Hero Section - always show */}
           <WelcomeHero
             userName={displayUserStats.name}
             overallProgress={displayUserStats.totalGoals > 0 ? (displayUserStats.completedGoals / displayUserStats.totalGoals) * 100 : 0}
             totalGoals={displayUserStats.totalGoals}
             completedGoals={displayUserStats.completedGoals}
-            streakDays={displayUserStats.streakDays} // Streak still placeholder
+            streakDays={displayUserStats.streakDays}
           />
-
-          {/* Quick Actions */}
+          {/* Quick Actions - always show */}
           <QuickActions
-            onCreateGoal={handleCreateGoal}
+            onCreateGoal={() => setIsCreateModalOpen(true)}
             onOpenDrift={handleOpenDrift}
           />
-
-          {/* Filter and Sort Controls */}
-          {safeGoals.length > 0 && (
-            <FilterSortControls
-              onFilterChange={handleFilterChange}
-              onSortChange={handleSortChange}
-              activeFilter={activeFilter}
-              activeSort={activeSort}
-            />
-          )}
-
-          {/* Goals Grid */}
+          {/* Filter and Sort Controls - always show */}
+          <FilterSortControls
+            onFilterChange={handleFilterChange}
+            onSortChange={handleSortChange}
+            activeFilter={activeFilter}
+            activeSort={activeSort}
+          />
+          {/* Goals Grid or Empty State */}
           {Array.isArray(filteredGoals) && filteredGoals.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredGoals.map((goal) => (
@@ -296,16 +304,14 @@ const GoalsDashboard = () => {
           )}
         </div>
       </main>
-
       {/* Floating Action Button */}
       <FloatingActionButton />
-
-      {/* Goal Creation Modal */}
-      {/* GoalCreationModal
+      {/* Classic Goal Creation Modal */}
+      <GoalCreationModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreateGoal={handleCreateGoal}
-      /> */}
+      />
     </div>
   );
 };

@@ -1,10 +1,10 @@
 import React from 'react';
 
 const GoalDependencyGraph = ({ data = {} }) => {
-  if (!data.categories || Object.keys(data.categories).length === 0) {
+  if (!data || !data.categories || Object.keys(data.categories).length === 0) {
     return (
       <div className="text-center py-8 text-text-secondary">
-        <p>No goal data available for dependency analysis.</p>
+        <p>No goal dependency data yet. Create and complete goals to see dependencies!</p>
       </div>
     );
   }

@@ -1,8 +1,8 @@
 import React from 'react';
 
 const ProductivityTrends = ({ data }) => {
-  if (!data || data.length === 0) {
-    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning">No trends data available.</div>;
+  if (!data || !data.productivity || data.productivity.length === 0) {
+    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning text-center">No productivity data yet. Start using the app to see your trends!</div>;
   }
 
   const maxValue = Math.max(...data.productivity.map(d => d.value));

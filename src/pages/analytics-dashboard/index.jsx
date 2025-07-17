@@ -117,7 +117,7 @@ const AnalyticsDashboard = () => {
   const safeAchievements = Array.isArray(achievements) ? achievements : [];
 
   const renderOverview = () => (
-    <div className="space-y-6">
+    <>
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface rounded-lg p-4 border border-border">
@@ -204,6 +204,9 @@ const AnalyticsDashboard = () => {
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Activity Heatmap</h3>
         <ProductivityHeatmap data={safeAnalyticsData.heatmap} />
+        {(!safeAnalyticsData.heatmap || safeAnalyticsData.heatmap.length === 0) && (
+          <div className="text-center text-text-secondary mt-4">No activity data yet. Start using the app to see your heatmap!</div>
+        )}
       </div>
       {/* Next Achievements */}
       <div className="bg-surface rounded-lg p-6 border border-border">
@@ -228,7 +231,7 @@ const AnalyticsDashboard = () => {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 
   const renderProductivity = () => (
@@ -236,38 +239,49 @@ const AnalyticsDashboard = () => {
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Productivity Trends</h3>
         <ProductivityTrends data={safeAnalyticsData.trends} />
+        {(!safeAnalyticsData.trends || safeAnalyticsData.trends.length === 0) && (
+          <div className="text-center text-text-secondary mt-4">No productivity data yet. Start using the app to see your trends!</div>
+        )}
       </div>
-
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Optimal Focus Times</h3>
         <OptimalFocusTimes data={safeAnalyticsData.focusTimes} />
+        {(!safeAnalyticsData.focusTimes || safeAnalyticsData.focusTimes.length === 0) && (
+          <div className="text-center text-text-secondary mt-4">No focus time data yet. Start using the app to see your optimal times!</div>
+        )}
       </div>
     </div>
   );
-
   const renderGoals = () => (
     <div className="space-y-6">
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Goal Dependencies</h3>
         <GoalDependencyGraph data={safeAnalyticsData.goalDependencies} />
+        {(!safeAnalyticsData.goalDependencies || Object.keys(safeAnalyticsData.goalDependencies).length === 0) && (
+          <div className="text-center text-text-secondary mt-4">No goal dependency data yet. Create and complete goals to see dependencies!</div>
+        )}
       </div>
     </div>
   );
-
   const renderHabits = () => (
     <div className="space-y-6">
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Habit Tracking</h3>
         <HabitTracking data={safeAnalyticsData.habits} />
+        {(!safeAnalyticsData.habits || Object.keys(safeAnalyticsData.habits).length === 0) && (
+          <div className="text-center text-text-secondary mt-4">No habit data yet. Start tracking habits to see your progress!</div>
+        )}
       </div>
     </div>
   );
-
   const renderPredictions = () => (
     <div className="space-y-6">
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Predictive Insights</h3>
         <PredictiveInsights data={safeAnalyticsData.insights} />
+        {(!safeAnalyticsData.insights || safeAnalyticsData.insights.length === 0) && (
+          <div className="text-center text-text-secondary mt-4">No predictive insights yet. Use the app more to unlock AI-powered predictions!</div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAchievements } from '../../context/AchievementContext';
@@ -32,6 +32,37 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const downloadMenuRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        downloadMenuRef.current &&
+        !downloadMenuRef.current.contains(event.target) &&
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target)
+      ) {
+        setShowDownloadMenu && setShowDownloadMenu(false);
+        setIsMenuOpen(false);
+      } else if (
+        downloadMenuRef.current &&
+        !downloadMenuRef.current.contains(event.target)
+      ) {
+        setShowDownloadMenu && setShowDownloadMenu(false);
+      } else if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [setShowDownloadMenu]);
 
   const handleLogout = () => {
     logout();
@@ -65,18 +96,18 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/goals-dashboard" className="flex items-center space-x-2">
+          <Link to="/goals-dashboard" className="flex items-center space-x-4 md:space-x-6 lg:space-x-8 pr-4 md:pr-8">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
               <Icon name="Target" size={20} color="#FFFFFF" />
             </div>
-            <span className="text-xl font-heading-bold text-text-primary">JustGoals</span>
+            <span className="text-xl font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
           </Link>
 
           {/* Sync Status */}
           {/* Remove sync status display from header */}
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden md:flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
             {navigationItems.map((item) => (
               <Link
                 key={item.path}
@@ -88,9 +119,10 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
                     : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
                   }
                 `}
+                style={item.label === 'Drift AI' ? { whiteSpace: 'nowrap', minWidth: 0 } : {}}
               >
                 <Icon name={item.icon} size={16} />
-                <span>{item.label}</span>
+                <span className={item.label === 'Drift AI' ? 'whitespace-nowrap' : ''}>{item.label}</span>
               </Link>
             ))}
           </nav>
@@ -104,9 +136,14 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
             </div>
 
             {/* Download Icon */}
-            <div className="relative">
+            <div className="relative" ref={downloadMenuRef}>
               <button
-                onClick={() => setShowDownloadMenu && setShowDownloadMenu(v => !v)}
+                onClick={() => {
+                  setShowDownloadMenu && setShowDownloadMenu(v => {
+                    if (!v) setIsMenuOpen(false); // Close user menu when opening download
+                    return !v;
+                  });
+                }}
                 className="p-2 rounded-full hover:bg-surface-700 transition"
                 aria-label="Download App"
               >
@@ -125,9 +162,14 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
             </div>
 
             {/* User Menu */}
-            <div className="relative">
+            <div className="relative" ref={userMenuRef}>
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => {
+                  setIsMenuOpen(v => {
+                    if (!v) setShowDownloadMenu && setShowDownloadMenu(false); // Close download menu when opening user menu
+                    return !v;
+                  });
+                }}
                 className="flex items-center space-x-2 p-2 rounded-lg hover:bg-surface-700 transition-colors"
               >
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
@@ -145,15 +187,7 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
                     <p className="text-sm font-body-medium text-text-primary truncate max-w-[140px] md:max-w-[200px] lg:max-w-[300px]" title={user?.name}>{user?.name}</p>
                     <p className="text-xs text-text-secondary">{user?.email}</p>
                   </div>
-                  
-                  <button
-                    onClick={showAllAchievementsModal}
-                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
-                  >
-                    <Icon name="Trophy" size={16} />
-                    <span>View Achievements</span>
-                  </button>
-                  
+                  {/* Remove View Achievements button here, Achievements is now a main tab */}
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"

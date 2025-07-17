@@ -1,10 +1,10 @@
 import React from 'react';
 
 const OptimalFocusTimes = ({ data = {} }) => {
-  if (!data.hourlyData) {
+  if (!data || !data.hourlyData || data.hourlyData.length === 0) {
     return (
       <div className="text-center py-8 text-text-secondary">
-        <p>No focus session data available.</p>
+        <p>No focus session data yet. Start using the app to see your optimal times!</p>
       </div>
     );
   }
