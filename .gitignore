@@ -1,0 +1,62 @@
+# Node
+node_modules/
+
+# Build output
+/dist/
+/out/
+/build/
+
+# Electron Forge/Packager
+*.dmg
+*.exe
+*.app
+*.deb
+*.rpm
+*.zip
+*.tar.gz
+*.snap
+
+# Vite
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.*
+
+# Misc
+*.log
+*.tgz
+
+# VSCode
+.vscode/
+
+# Firebase
+firebase-debug.log
+
+# Coverage
+coverage/
+
+# Mac system files
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Local config
+*.local
+
+# Ignore generated assets
+public/assets/sounds/
+public/assets/images/ChatGPT Image*.png
+goals-d50ab-firebase-adminsdk-fbsvc-4f737e36b3.json

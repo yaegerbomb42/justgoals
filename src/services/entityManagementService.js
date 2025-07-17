@@ -1,0 +1,458 @@
+// entityManagementService.js
+
+/**
+ * Service for managing goals, milestones, and journal entries.
+ * Uses Firestore for cross-device sync with localStorage fallback.
+ */
+
+import firestoreService from './firestoreService';
+import { firestore } from './firebaseClient';
+
+// Helper function to get items from localStorage
+const getItems = (storageKey) => {
+  if (!storageKey) return [];
+  const itemsJson = localStorage.getItem(storageKey);
+  try {
+    return itemsJson ? JSON.parse(itemsJson) : [];
+  } catch (e) {
+    console.error(`Error parsing items from localStorage key ${storageKey}:`, e);
+    return []; // Return empty array on error
+  }
+};
+
+// Helper function to save items to localStorage
+const saveItems = (storageKey, items) => {
+  if (!storageKey) return;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(items));
+  } catch (e) {
+    console.error(`Error saving items to localStorage key ${storageKey}:`, e);
+  }
+};
+
+// Defensive: ensure all returned values are arrays and log if not
+const ensureArray = (val, label) => {
+  if (!Array.isArray(val)) {
+    console.error(`Expected array for ${label}, got:`, val);
+    return [];
+  }
+  return val;
+};
+
+// --- Goal Management ---
+
+const getGoalStorageKey = (userId) => userId ? `goals_data_${userId}` : null;
+
+export const createGoal = async (user, goalData) => {
+  if (!user || !user.id) {
+    console.error("User object with ID is required to create a goal.");
+    return null;
+  }
+
+  try {
+    // Save to Firestore for cross-device sync
+    const savedGoal = await firestoreService.saveGoal(user.id, goalData);
+    
+    // Also save to localStorage for offline fallback
+    const storageKey = getGoalStorageKey(user.id);
+    const goals = getItems(storageKey);
+    const updatedGoals = [...goals, savedGoal];
+    saveItems(storageKey, updatedGoals);
+    
+    return savedGoal;
+  } catch (error) {
+    console.error("Error creating goal:", error);
+    
+    // Fallback to localStorage only
+    const storageKey = getGoalStorageKey(user.id);
+    const goals = getItems(storageKey);
+
+    const newGoal = {
+      id: Date.now().toString(),
+      ...goalData,
+      progress: goalData.progress || 0,
+      createdAt: new Date().toISOString(),
+      userId: user.id,
+    };
+
+    const updatedGoals = [...goals, newGoal];
+    saveItems(storageKey, updatedGoals);
+    return newGoal;
+  }
+};
+
+export const getGoals = async (user) => {
+  if (!user || !user.id) return [];
+
+  try {
+    // Try to get from Firestore first
+    const goals = await firestoreService.getGoals(user.id);
+    
+    // Update localStorage with latest data
+    const storageKey = getGoalStorageKey(user.id);
+    saveItems(storageKey, goals);
+    
+    return ensureArray(goals, 'goals');
+  } catch (error) {
+    console.error("Error getting goals from Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getGoalStorageKey(user.id);
+    return ensureArray(getItems(storageKey), 'goals');
+  }
+};
+
+export const getGoalById = (user, goalId) => {
+  if (!user || !user.id) return null;
+  const goals = getGoals(user);
+  return goals.find(goal => goal.id === goalId) || null;
+};
+
+export const updateGoal = async (user, goalId, updateData) => {
+  if (!user || !user.id) return null;
+
+  try {
+    // Update in Firestore
+    const updatedGoal = await firestoreService.updateGoal(user.id, goalId, updateData);
+    
+    // Update localStorage
+    const storageKey = getGoalStorageKey(user.id);
+    let goals = getItems(storageKey);
+    goals = goals.map(goal => goal.id === goalId ? updatedGoal : goal);
+    saveItems(storageKey, goals);
+    
+    return updatedGoal;
+  } catch (error) {
+    console.error("Error updating goal in Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage only
+    const storageKey = getGoalStorageKey(user.id);
+    let goals = getItems(storageKey);
+    let updatedGoal = null;
+
+    goals = goals.map(goal => {
+      if (goal.id === goalId) {
+        updatedGoal = { ...goal, ...updateData, updatedAt: new Date().toISOString() };
+        return updatedGoal;
+      }
+      return goal;
+    });
+
+    if (updatedGoal) {
+      saveItems(storageKey, goals);
+    }
+    return updatedGoal;
+  }
+};
+
+export const deleteGoal = async (user, goalId) => {
+  if (!user || !user.id) return false;
+
+  try {
+    // Delete from Firestore
+    await firestoreService.deleteGoal(user.id, goalId);
+    
+    // Delete from localStorage
+    const storageKey = getGoalStorageKey(user.id);
+    let goals = getItems(storageKey);
+    goals = goals.filter(goal => goal.id !== goalId);
+    saveItems(storageKey, goals);
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting goal from Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage only
+    const storageKey = getGoalStorageKey(user.id);
+    let goals = getItems(storageKey);
+    goals = goals.filter(goal => goal.id !== goalId);
+    saveItems(storageKey, goals);
+    
+    return true;
+  }
+};
+
+export const saveGoalCalendarEventId = async (userId, goalId, eventId) => {
+  await firestore.collection('users').doc(userId).collection('goals').doc(goalId).update({
+    googleCalendarEventId: eventId,
+  });
+};
+
+export const getGoalCalendarEventId = async (userId, goalId) => {
+  const doc = await firestore.collection('users').doc(userId).collection('goals').doc(goalId).get();
+  return doc.exists ? doc.data().googleCalendarEventId : null;
+};
+
+// --- Milestone Management ---
+
+const getMilestoneStorageKey = (userId) => userId ? `milestones_data_${userId}` : null;
+
+export const createMilestone = async (user, milestoneData) => {
+  if (!user || !user.id) {
+    console.error("User object with ID is required to create a milestone.");
+    return null;
+  }
+
+  try {
+    // Save to Firestore
+    const savedMilestone = await firestoreService.saveMilestone(user.id, milestoneData);
+    
+    // Save to localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    const milestones = getItems(storageKey);
+    const updatedMilestones = [...milestones, savedMilestone];
+    saveItems(storageKey, updatedMilestones);
+    
+    return savedMilestone;
+  } catch (error) {
+    console.error("Error creating milestone:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    const milestones = getItems(storageKey);
+
+    const newMilestone = {
+      id: Date.now().toString(),
+      ...milestoneData,
+      createdAt: new Date().toISOString(),
+      userId: user.id,
+    };
+
+    const updatedMilestones = [...milestones, newMilestone];
+    saveItems(storageKey, updatedMilestones);
+    return newMilestone;
+  }
+};
+
+export const getMilestones = async (user) => {
+  if (!user || !user.id) return [];
+
+  try {
+    // Get from Firestore
+    const milestones = await firestoreService.getMilestones(user.id);
+    
+    // Update localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    saveItems(storageKey, milestones);
+    
+    return ensureArray(milestones, 'milestones');
+  } catch (error) {
+    console.error("Error getting milestones from Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    return ensureArray(getItems(storageKey), 'milestones');
+  }
+};
+
+export const getMilestoneById = (user, milestoneId) => {
+  if (!user || !user.id) return null;
+  const milestones = getMilestones(user);
+  return milestones.find(m => m.id === milestoneId) || null;
+};
+
+export const updateMilestone = async (user, milestoneId, updateData) => {
+  if (!user || !user.id) return null;
+
+  try {
+    // Update in Firestore
+    const updatedMilestone = await firestoreService.updateMilestone(user.id, milestoneId, updateData);
+    
+    // Update localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    let milestones = getItems(storageKey);
+    milestones = milestones.map(milestone => milestone.id === milestoneId ? updatedMilestone : milestone);
+    saveItems(storageKey, milestones);
+    
+    return updatedMilestone;
+  } catch (error) {
+    console.error("Error updating milestone in Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    let milestones = getItems(storageKey);
+    let updatedMilestone = null;
+
+    milestones = milestones.map(milestone => {
+      if (milestone.id === milestoneId) {
+        updatedMilestone = { ...milestone, ...updateData, updatedAt: new Date().toISOString() };
+        return updatedMilestone;
+      }
+      return milestone;
+    });
+
+    if (updatedMilestone) {
+      saveItems(storageKey, milestones);
+    }
+    return updatedMilestone;
+  }
+};
+
+export const deleteMilestone = async (user, milestoneId) => {
+  if (!user || !user.id) return false;
+
+  try {
+    // Delete from Firestore
+    await firestoreService.deleteMilestone(user.id, milestoneId);
+    
+    // Delete from localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    let milestones = getItems(storageKey);
+    milestones = milestones.filter(milestone => milestone.id !== milestoneId);
+    saveItems(storageKey, milestones);
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting milestone from Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getMilestoneStorageKey(user.id);
+    let milestones = getItems(storageKey);
+    milestones = milestones.filter(milestone => milestone.id !== milestoneId);
+    saveItems(storageKey, milestones);
+    
+    return true;
+  }
+};
+
+// --- Journal Entry Management ---
+
+const getJournalStorageKey = (userId) => userId ? `journal_entries_${userId}` : null;
+
+export const createJournalEntry = async (user, entryData) => {
+  if (!user || !user.id) {
+    console.error("User object with ID is required to create a journal entry.");
+    return null;
+  }
+
+  try {
+    // Save to Firestore
+    const savedEntry = await firestoreService.saveJournalEntry(user.id, entryData);
+    
+    // Save to localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    const entries = getItems(storageKey);
+    const updatedEntries = [savedEntry, ...entries]; // Prepend new entries
+    saveItems(storageKey, updatedEntries);
+    
+    return savedEntry;
+  } catch (error) {
+    console.error("Error creating journal entry:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    const entries = getItems(storageKey);
+
+    const newEntry = {
+      id: Date.now().toString(),
+      ...entryData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      userId: user.id,
+    };
+
+    const updatedEntries = [newEntry, ...entries];
+    saveItems(storageKey, updatedEntries);
+    return newEntry;
+  }
+};
+
+export const getJournalEntries = async (user) => {
+  if (!user || !user.id) return [];
+
+  try {
+    // Get from Firestore
+    const entries = await firestoreService.getJournalEntries(user.id);
+    
+    // Update localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    saveItems(storageKey, entries);
+    
+    return ensureArray(entries, 'journal entries');
+  } catch (error) {
+    console.error("Error getting journal entries from Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    return ensureArray(getItems(storageKey), 'journal entries');
+  }
+};
+
+export const getJournalEntryById = (user, entryId) => {
+  if (!user || !user.id) return null;
+  const entries = getJournalEntries(user);
+  return entries.find(e => e.id === entryId) || null;
+};
+
+export const updateJournalEntry = async (user, entryId, updateData) => {
+  if (!user || !user.id) return null;
+
+  try {
+    // Update in Firestore
+    const updatedEntry = await firestoreService.updateJournalEntry(user.id, entryId, updateData);
+    
+    // Update localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    let entries = getItems(storageKey);
+    entries = entries.map(entry => entry.id === entryId ? updatedEntry : entry);
+    saveItems(storageKey, entries);
+    
+    return updatedEntry;
+  } catch (error) {
+    console.error("Error updating journal entry in Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    let entries = getItems(storageKey);
+    let updatedEntry = null;
+
+    entries = entries.map(entry => {
+      if (entry.id === entryId) {
+        updatedEntry = { ...entry, ...updateData, updatedAt: new Date().toISOString() };
+        return updatedEntry;
+      }
+      return entry;
+    });
+
+    if (updatedEntry) {
+      saveItems(storageKey, entries);
+    }
+    return updatedEntry;
+  }
+};
+
+export const deleteJournalEntry = async (user, entryId) => {
+  if (!user || !user.id) return false;
+
+  try {
+    // Delete from Firestore
+    await firestoreService.deleteJournalEntry(user.id, entryId);
+    
+    // Delete from localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    let entries = getItems(storageKey);
+    entries = entries.filter(entry => entry.id !== entryId);
+    saveItems(storageKey, entries);
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting journal entry from Firestore, falling back to localStorage:", error);
+    
+    // Fallback to localStorage
+    const storageKey = getJournalStorageKey(user.id);
+    let entries = getItems(storageKey);
+    entries = entries.filter(entry => entry.id !== entryId);
+    saveItems(storageKey, entries);
+    
+    return true;
+  }
+};
+
+// Example of how a component would get the user (e.g., using useAuth hook)
+// This service itself does not manage auth state, it expects a user object.
+//
+// import { useAuth } from '../context/AuthContext';
+// const { user } = useAuth();
+// if (user) {
+//   const userGoals = getGoals(user);
+// }

@@ -1,0 +1,445 @@
+/* Import Tailwind CSS */
+@import './tailwind.css';
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+/* CSS Variables for theming */
+:root {
+  /* Default accent colors (Indigo) */
+  --chosen-accent-light: #6366f1;
+  --chosen-accent-dark: #818cf8;
+  --chosen-accent-foreground: #ffffff;
+
+  /* Light Theme Defaults */
+  --color-primary: var(--chosen-accent-light);
+  --color-primary-foreground: var(--chosen-accent-foreground);
+  --color-secondary: #8b5cf6; /* Violet-500 - Can also be made dynamic if needed */
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #10b981; /* Emerald-500 - Can also be made dynamic if needed */
+  --color-accent-foreground: #ffffff;
+  
+  --color-background: #f8fafc;    /* slate-50 */
+  --color-surface: #ffffff;       /* white */
+  --color-surface-50: #f8fafc;    /* slate-50 */
+  --color-surface-100: #f1f5f9;   /* slate-100 */
+  --color-surface-200: #e2e8f0;   /* slate-200 */
+  --color-surface-300: #cbd5e1;   /* slate-300 */
+  --color-surface-400: #94a3b8;   /* slate-400 */
+  --color-surface-500: #64748b;   /* slate-500 */
+  --color-surface-600: #475569;   /* slate-600 */
+  --color-surface-700: #f1f5f9;   /* slate-100 for cards/slightly off-white surfaces */
+  --color-surface-800: #e2e8f0;   /* slate-200 for hover effects or deeper surfaces */
+  --color-surface-900: #d1d5db;   /* Example: gray-300, adjust as needed */
+  
+  --color-text-primary: #0f172a;  /* slate-900 */
+  --color-text-secondary: #475569;/* slate-600 */
+  --color-text-muted: #64748b;    /* slate-500 */
+  --color-text-inverse: #f8fafc;  /* slate-50 */
+  
+  --color-border: #e2e8f0;        /* slate-200 */
+  --color-border-light: #f1f5f9;   /* slate-100 */
+  --color-border-strong: #cbd5e1;  /* slate-300 */
+
+  /* Status colors */
+  --color-success: #10b981; /* emerald-500 */
+  --color-warning: #f59e0b; /* amber-500 */
+  --color-error: #ef4444;   /* red-500 */
+
+  /* Animation durations */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+}
+
+.dark {
+  /* Dark Theme Overrides */
+  --color-primary: var(--chosen-accent-dark);
+  --color-primary-foreground: var(--chosen-accent-foreground);
+  --color-secondary: #a78bfa; /* Violet-400 - Can also be made dynamic if needed */
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #34d399; /* Emerald-400 - Can also be made dynamic if needed */
+  --color-accent-foreground: #0f172a; /* Dark text on lighter accent for dark mode */
+
+  --color-background: #0f172a;    /* slate-900 */
+  --color-surface: #1e293b;       /* slate-800 */
+  --color-surface-50: #1e293b;    /* slate-800 (adjust if needed for dark mode variants) */
+  --color-surface-100: #283446;  /* Slightly lighter than surface for dark mode cards */
+  --color-surface-200: #334155;  /* slate-700 */
+  --color-surface-300: #475569;  /* slate-600 */
+  --color-surface-400: #64748b;  /* slate-500 */
+  --color-surface-500: #94a3b8;  /* slate-400 */
+  --color-surface-600: #cbd5e1;  /* slate-300 */
+  --color-surface-700: #334155;  /* slate-700 */
+  --color-surface-800: #162033;  /* slightly darker slate for distinct elements */
+  --color-surface-900: #0b1222;  /* Even darker than background for some effects */
+
+  --color-text-primary: #f8fafc;  /* slate-50 */
+  --color-text-secondary: #94a3b8;/* slate-400 */
+  --color-text-muted: #64748b;    /* slate-500 */
+  --color-text-inverse: #0f172a;  /* slate-900 */
+
+  --color-border: #334155;        /* slate-700 */
+  --color-border-light: #475569;  /* slate-600 */
+  --color-border-strong: #64748b; /* slate-500 */
+
+  /* Status colors */
+  --color-success: #34d399; /* emerald-400 */
+  --color-warning: #fcd34d; /* amber-300 */
+  --color-error: #f87171;   /* red-400 */
+}
+
+.light {
+  /* Light Theme Overrides */
+  --color-primary: var(--chosen-accent-light);
+  --color-primary-foreground: var(--chosen-accent-foreground);
+  --color-secondary: #8b5cf6; /* Violet-500 - Can also be made dynamic if needed */
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #10b981; /* Emerald-500 - Can also be made dynamic if needed */
+  --color-accent-foreground: #ffffff;
+
+  --color-background: #f8fafc;    /* slate-50 */
+  --color-surface: #ffffff;       /* white */
+  --color-surface-50: #f8fafc;    /* slate-50 */
+  --color-surface-100: #f1f5f9;   /* slate-100 */
+  --color-surface-200: #e2e8f0;   /* slate-200 */
+  --color-surface-300: #cbd5e1;   /* slate-300 */
+  --color-surface-400: #94a3b8;   /* slate-400 */
+  --color-surface-500: #64748b;   /* slate-500 */
+  --color-surface-600: #475569;   /* slate-600 */
+  --color-surface-700: #f1f5f9;   /* slate-100 for cards/slightly off-white surfaces */
+  --color-surface-800: #e2e8f0;   /* slate-200 for hover effects or deeper surfaces */
+  --color-surface-900: #d1d5db;   /* Example: gray-300, adjust as needed */
+
+  --color-text-primary: #0f172a;  /* slate-900 */
+  --color-text-secondary: #475569;/* slate-600 */
+  --color-text-muted: #64748b;    /* slate-500 */
+  --color-text-inverse: #f8fafc;  /* slate-50 */
+
+  --color-border: #e2e8f0;        /* slate-200 */
+  --color-border-light: #f1f5f9;   /* slate-100 */
+  --color-border-strong: #cbd5e1;  /* slate-300 */
+
+  /* Status colors */
+  --color-success: #10b981; /* emerald-500 */
+  --color-warning: #f59e0b; /* amber-500 */
+  --color-error: #ef4444;   /* red-500 */
+}
+
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+/* Typography */
+.font-heading-bold {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+}
+
+.font-heading-semibold {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+.font-heading-medium {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.font-body {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+}
+
+.font-body-medium {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.font-caption {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 0.875rem;
+}
+
+.font-data-medium {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Animation classes */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+.animate-gradient-shift {
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+.micro-celebration {
+  animation: micro-celebration 0.8s ease-out;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes micro-celebration {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Live status indicator */
+.live-indicator {
+  position: relative;
+}
+
+.live-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+  animation: live-sweep 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes live-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes subtle-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Apply this when system is idle */
+body.system-idle-animations-active {
+  /* Ensures the gradient is applied on top of the existing var(--color-background) */
+  /* The gradient goes from transparent version of primary to transparent version of secondary */
+  background: linear-gradient(120deg, var(--color-primary), var(--color-secondary), var(--color-accent)), var(--color-background);
+  background-size: 300% 300%; /* Make the gradient larger than the viewport to allow smooth shifting */
+  animation: subtle-gradient-shift 20s ease infinite;
+  transition: background 1s ease-in-out; /* Smooth transition when class is added/removed */
+}
+
+/* Ensure the body itself has the base background for when idle animations are NOT active */
+body {
+  /* ... existing body styles ... */
+  background-color: var(--color-background); /* This should already be there */
+}
+
+
+/* Dopamine-rich vibrant effects */
+.vibrant-border {
+  border: 1px solid;
+  border-image: linear-gradient(45deg, var(--color-primary), var(--color-secondary), var(--color-accent)) 1;
+  animation: vibrant-border 2s ease-in-out infinite;
+}
+
+@keyframes vibrant-border {
+  0%, 100% {
+    border-image: linear-gradient(45deg, var(--color-primary), var(--color-secondary), var(--color-accent)) 1;
+  }
+  50% {
+    border-image: linear-gradient(45deg, var(--color-accent), var(--color-primary), var(--color-secondary)) 1;
+  }
+}
+
+/* Energy background pattern */
+.energy-bg {
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+  animation: energy-shift 4s ease-in-out infinite;
+}
+
+@keyframes energy-shift {
+  0%, 100% {
+    background-position: 0% 0%, 100% 100%, 50% 50%;
+  }
+  50% {
+    background-position: 100% 100%, 0% 0%, 80% 20%;
+  }
+}
+
+/* Focus mode specific styles */
+.focus-mode-bg {
+  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.05) 0%, transparent 50%);
+  animation: focus-pulse 4s ease-in-out infinite;
+}
+
+@keyframes focus-pulse {
+  0%, 100% {
+    background-size: 100% 100%;
+  }
+  50% {
+    background-size: 110% 110%;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Custom utility classes */
+.text-balance {
+  text-wrap: balance;
+}
+
+.bg-glass {
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(51, 65, 85, 0.3);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+.shadow-glow-accent {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.shadow-glow-secondary {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+/* Focus visible styles for better accessibility */
+.focus-visible:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Mobile specific styles */
+@media (max-width: 768px) {
+  .mobile-stack {
+    flex-direction: column;
+  }
+  
+  .mobile-full-width {
+    width: 100%;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --color-background: #000000;
+    --color-surface: #1a1a1a;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #cccccc;
+    --color-border: #444444;
+  }
+}

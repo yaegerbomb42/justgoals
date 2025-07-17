@@ -1,0 +1,44 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the file
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to validate file metadata
+    function isValidFileMetadata(metadata) {
+      return metadata.size < 10 * 1024 * 1024 && // 10MB max
+             metadata.contentType.matches('image/.*|application/pdf|text/.*');
+    }
+    
+    // User profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && 
+        isValidFileMetadata(request.resource.metadata);
+    }
+    
+    // Goal attachments
+    match /users/{userId}/goals/{goalId}/{fileName} {
+      allow read, write: if isOwner(userId) && 
+        isValidFileMetadata(request.resource.metadata);
+    }
+    
+    // Journal entry attachments
+    match /users/{userId}/journal/{entryId}/{fileName} {
+      allow read, write: if isOwner(userId) && 
+        isValidFileMetadata(request.resource.metadata);
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+} 

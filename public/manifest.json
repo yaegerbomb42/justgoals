@@ -1,0 +1,20 @@
+{
+  "short_name": "JustGoals",
+  "name": "JustGoals",
+  "icons": [
+    {
+      "src": "/assets/images/no_image.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/images/no_image.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "https://justgoals.vercel.app/",
+  "display": "standalone",
+  "theme_color": "#ff9800",
+  "background_color": "#ffffff"
+}

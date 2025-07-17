@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+.cache
+*.log
+*.zip
+*.tar
+*.gz
+goals-d50ab-firebase-adminsdk-fbsvc-4f737e36b3.json 

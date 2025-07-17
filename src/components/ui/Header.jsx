@@ -1,0 +1,199 @@
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useAchievements } from '../../context/AchievementContext';
+import Icon from '../AppIcon';
+import Button from './Button';
+import AchievementBadge from './AchievementBadge';
+
+const Header = () => {
+  // Defensive: always provide safe defaults
+  let auth = {};
+  try {
+    auth = useAuth() || {};
+  } catch (e) {
+    auth = {};
+  }
+  const { user = {}, isAuthenticated = false, logout = () => {} } = auth;
+
+  let achievements = {};
+  try {
+    achievements = useAchievements() || {};
+  } catch (e) {
+    achievements = {};
+  }
+  const {
+    userPoints = 0,
+    showAllAchievementsModal = () => {},
+    syncStatus = '',
+    lastSync = null
+  } = achievements;
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  const navigationItems = [
+    { path: '/goals-dashboard', label: 'Goals', icon: 'Target' },
+    { path: '/daily-milestones', label: 'Milestones', icon: 'CheckSquare' },
+    { path: '/day', label: 'Day', icon: 'Calendar' },
+    { path: '/focus-mode', label: 'Focus', icon: 'Timer' },
+    { path: '/journal', label: 'Journal', icon: 'BookOpen' },
+    { path: '/ai-assistant-chat-drift', label: 'Drift AI', icon: 'MessageSquare' },
+    { path: '/analytics-dashboard', label: 'Analytics', icon: 'BarChart3' },
+    { path: '/achievements', label: 'Achievements', icon: 'Award' },
+    { path: '/settings-configuration', label: 'Settings', icon: 'Settings' }
+  ];
+
+  if (!isAuthenticated) {
+    return (
+      <div className="w-full bg-warning/10 border-b border-warning/20 text-warning text-center py-2">
+        You are not logged in. <a href="/login" className="underline">Log in</a> to access all features.
+      </div>
+    );
+  }
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/goals-dashboard" className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
+              <Icon name="Target" size={20} color="#FFFFFF" />
+            </div>
+            <span className="text-xl font-heading-bold text-text-primary">JustGoals</span>
+          </Link>
+
+          {/* Sync Status */}
+          {isAuthenticated && (
+            <div className="flex items-center space-x-2 mr-4">
+              {syncStatus === 'syncing' && <span className="text-xs text-info">Syncing...</span>}
+              {syncStatus === 'success' && <span className="text-xs text-success">Synced {lastSync ? lastSync.toLocaleTimeString() : ''}</span>}
+              {syncStatus === 'error' && <span className="text-xs text-error">Sync Error</span>}
+            </div>
+          )}
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1">
+            {navigationItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`
+                  flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-colors
+                  ${isActive(item.path)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
+                  }
+                `}
+              >
+                <Icon name={item.icon} size={16} />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right Side */}
+          <div className="flex items-center space-x-3">
+            {/* Achievement Points */}
+            <div className="hidden sm:flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg">
+              <Icon name="Trophy" size={16} className="text-primary" />
+              <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
+            </div>
+
+            {/* User Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-surface-700 transition-colors"
+              >
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <span className="text-sm font-body-medium text-white">
+                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <Icon name="ChevronDown" size={16} className="text-text-secondary" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-1 z-50">
+                  <div className="px-4 py-2 border-b border-border">
+                    <p className="text-sm font-body-medium text-text-primary truncate max-w-[140px] md:max-w-[200px] lg:max-w-[300px]" title={user?.name}>{user?.name}</p>
+                    <p className="text-xs text-text-secondary">{user?.email}</p>
+                  </div>
+                  
+                  <button
+                    onClick={showAllAchievementsModal}
+                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
+                  >
+                    <Icon name="Trophy" size={16} />
+                    <span>View Achievements</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
+                  >
+                    <Icon name="LogOut" size={16} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2 rounded-lg hover:bg-surface-700 transition-colors"
+            >
+              <Icon name="Menu" size={20} className="text-text-primary" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden border-t border-border py-4">
+            <nav className="space-y-1">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`
+                    flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-body-medium transition-colors
+                    ${isActive(item.path)
+                      ? 'bg-primary text-white'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
+                    }
+                  `}
+                >
+                  <Icon name={item.icon} size={16} />
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </nav>
+            
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-sm text-text-secondary">Points:</span>
+                <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
+
+export default Header;
