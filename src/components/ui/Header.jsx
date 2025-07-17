@@ -6,7 +6,7 @@ import Icon from '../AppIcon';
 import Button from './Button';
 import AchievementBadge from './AchievementBadge';
 
-const Header = () => {
+const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
   // Defensive: always provide safe defaults
   let auth = {};
   try {
@@ -101,6 +101,27 @@ const Header = () => {
             <div className="hidden sm:flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg">
               <Icon name="Trophy" size={16} className="text-primary" />
               <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
+            </div>
+
+            {/* Download Icon */}
+            <div className="relative">
+              <button
+                onClick={() => setShowDownloadMenu && setShowDownloadMenu(v => !v)}
+                className="p-2 rounded-full hover:bg-surface-700 transition"
+                aria-label="Download App"
+              >
+                <Icon name="Download" size={20} />
+              </button>
+              {showDownloadMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg z-50">
+                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-mac.dmg" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
+                    <Icon name="Apple" size={16} className="mr-2" /> Download for Mac
+                  </a>
+                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-win.exe" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
+                    <Icon name="Windows" size={16} className="mr-2" /> Download for Windows
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* User Menu */}

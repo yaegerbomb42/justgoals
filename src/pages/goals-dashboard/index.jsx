@@ -11,7 +11,6 @@ import WelcomeHero from './components/WelcomeHero';
 import QuickActions from './components/QuickActions';
 import FilterSortControls from './components/FilterSortControls';
 import GoalCard from './components/GoalCard';
-import GoalCreationModal from './components/GoalCreationModal';
 import EmptyState from './components/EmptyState';
 import Icon from '../../components/AppIcon';
 
@@ -220,38 +219,29 @@ const GoalsDashboard = () => {
   if (!safeGoals.length) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <Header showDownloadMenu={showDownloadMenu} setShowDownloadMenu={setShowDownloadMenu} />
         <main className="pt-20 pb-24 md:pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Download for Mac/Windows Section */}
-            <div className="mb-8 bg-surface rounded-xl border border-primary/30 p-6 flex flex-col items-center text-center shadow-elevation">
-              <h2 className="text-2xl font-heading-bold text-primary mb-2">Download for Mac & Windows</h2>
-              <p className="text-text-secondary mb-4 max-w-lg">Prefer to use Yaeger's Goals locally? Download the desktop app for offline use and faster access.</p>
-              <div className="flex flex-col md:flex-row gap-4 mb-2">
-                <a href="https://github.com/yaeger/yaeger_s_goals/releases/latest/download/YaegerGoals-mac.dmg" className="btn btn-primary" download>
-                  Download for Mac
-                </a>
-                <a href="https://github.com/yaeger/yaeger_s_goals/releases/latest/download/YaegerGoals-win.exe" className="btn btn-primary" download>
-                  Download for Windows
-                </a>
+            {showOnboarding && <OnboardingModal open={showOnboarding} onClose={handleDismissOnboarding} />}
+            {updateStatus && (
+              <div className="bg-info text-info-content px-4 py-2 text-center">
+                {updateStatus}
               </div>
-              <p className="text-xs text-text-muted">No install? You can also run locally with <code>npm run dev</code> after cloning from GitHub.</p>
-            </div>
+            )}
             <div className="text-center py-16">
               <h1 className="text-2xl font-heading-bold text-text-primary mb-4">No Goals Yet</h1>
               <p className="text-text-secondary mb-8">Start by creating your first goal to unlock achievements and progress tracking.</p>
-              <button onClick={handleCreateGoal} className="btn btn-primary">Create Goal</button>
+              <button onClick={() => navigate('/goal-creation-management')} className="btn btn-primary">Create Goal</button>
             </div>
           </div>
         </main>
-        <GoalCreationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onCreateGoal={handleCreateGoal} />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header showDownloadMenu={showDownloadMenu} setShowDownloadMenu={setShowDownloadMenu} />
       {showOnboarding && <OnboardingModal open={showOnboarding} onClose={handleDismissOnboarding} />}
       {updateStatus && (
         <div className="bg-info text-info-content px-4 py-2 text-center">
@@ -311,11 +301,11 @@ const GoalsDashboard = () => {
       <FloatingActionButton />
 
       {/* Goal Creation Modal */}
-      <GoalCreationModal
+      {/* GoalCreationModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreateGoal={handleCreateGoal}
-      />
+      /> */}
     </div>
   );
 };

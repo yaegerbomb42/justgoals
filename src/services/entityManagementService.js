@@ -183,6 +183,58 @@ export const getGoalCalendarEventId = async (userId, goalId) => {
   return doc.exists ? doc.data().googleCalendarEventId : null;
 };
 
+// Helper: update goal progress based on completed milestones
+export const autoUpdateGoalProgress = async (user, goalId) => {
+  if (!user || !user.id || !goalId) return;
+  const storageKey = getGoalStorageKey(user.id);
+  let goals = getItems(storageKey);
+  const goal = goals.find(g => g.id === goalId);
+  if (!goal) return;
+
+  // Get all milestones for this goal
+  const milestonesKey = `milestones_data_${user.id}`;
+  const milestones = getItems(milestonesKey).filter(m => m.goalId === goalId);
+  const total = milestones.length;
+  const completed = milestones.filter(m => m.completed).length;
+  let progress = total > 0 ? Math.round((completed / total) * 100) : goal.progress;
+
+  // If goal is in auto mode, call AI for a smarter update
+  if (goal.progressMode === 'auto') {
+    try {
+      const recentActivities = []; // Optionally, fetch recent activities
+      progress = await import('../services/geminiService').then(mod => mod.determineProgressUpdate(goal, recentActivities));
+    } catch (e) { /* fallback to milestone-based progress */ }
+  }
+
+  // Update goal progress
+  await updateGoal(user, goalId, { progress });
+};
+
+// Patch: after milestone completion, auto-update parent goal progress
+export const completeMilestone = async (user, milestoneId) => {
+  // ...existing code to mark milestone as completed...
+  // After completion:
+  const milestonesKey = `milestones_data_${user.id}`;
+  const milestones = getItems(milestonesKey);
+  const milestone = milestones.find(m => m.id === milestoneId);
+  if (milestone && milestone.goalId) {
+    await autoUpdateGoalProgress(user, milestone.goalId);
+  }
+  // ...existing code...
+};
+
+// Patch: after focus session ends, auto-update all active goals
+export const endFocusSession = async (user, sessionId) => {
+  // ...existing code to end session...
+  // After ending:
+  const storageKey = getGoalStorageKey(user.id);
+  const goals = getItems(storageKey).filter(g => g.progress < 100);
+  for (const goal of goals) {
+    await autoUpdateGoalProgress(user, goal.id);
+  }
+  // ...existing code...
+};
+
 // --- Milestone Management ---
 
 const getMilestoneStorageKey = (userId) => userId ? `milestones_data_${userId}` : null;
