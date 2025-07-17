@@ -156,21 +156,9 @@ const GoalsDashboard = () => {
     setFilteredGoals(filtered);
   }, [goals, activeFilter, activeSort]);
 
-  // Classic modal-based goal creation handler
-  const handleCreateGoal = (goalData) => {
-    if (!user || !user.id) {
-      alert('You must be logged in to create a goal.');
-      return;
-    }
-    entityService.createGoal(user, goalData).then((createdGoal) => {
-      if (createdGoal) {
-        setGoals((prev) => [...prev, createdGoal]);
-      } else {
-        alert('Failed to create goal. Please try again.');
-      }
-    }).catch((e) => {
-      alert('Failed to create goal. Please try again.');
-    });
+  // Restore wizard-based goal creation
+  const handleCreateGoal = () => {
+    navigate('/goal-creation-management');
   };
 
   const handleDeleteGoal = (goalId) => {
@@ -244,7 +232,7 @@ const GoalsDashboard = () => {
             <div className="text-center py-16">
               <h1 className="text-2xl font-heading-bold text-text-primary mb-4">No Goals Yet</h1>
               <p className="text-text-secondary mb-8">Start by creating your first goal to unlock achievements and progress tracking.</p>
-              <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary">Create Goal</button>
+              <button onClick={handleCreateGoal} className="btn btn-primary">Create Goal</button>
             </div>
           </div>
         </main>
@@ -261,7 +249,6 @@ const GoalsDashboard = () => {
           {updateStatus}
         </div>
       )}
-      
       <main className="pt-20 pb-24 md:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Welcome Hero Section - always show */}
@@ -274,7 +261,7 @@ const GoalsDashboard = () => {
           />
           {/* Quick Actions - always show */}
           <QuickActions
-            onCreateGoal={() => setIsCreateModalOpen(true)}
+            onCreateGoal={handleCreateGoal}
             onOpenDrift={handleOpenDrift}
           />
           {/* Filter and Sort Controls - always show */}
@@ -298,7 +285,7 @@ const GoalsDashboard = () => {
             </div>
           ) : (
             <EmptyState
-              onCreateGoal={() => setIsCreateModalOpen(true)}
+              onCreateGoal={handleCreateGoal}
               filterType={activeFilter}
             />
           )}
@@ -306,12 +293,6 @@ const GoalsDashboard = () => {
       </main>
       {/* Floating Action Button */}
       <FloatingActionButton />
-      {/* Classic Goal Creation Modal */}
-      <GoalCreationModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onCreateGoal={handleCreateGoal}
-      />
     </div>
   );
 };

@@ -187,7 +187,7 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
                     <p className="text-sm font-body-medium text-text-primary truncate max-w-[140px] md:max-w-[200px] lg:max-w-[300px]" title={user?.name}>{user?.name}</p>
                     <p className="text-xs text-text-secondary">{user?.email}</p>
                   </div>
-                  {/* Remove View Achievements button here, Achievements is now a main tab */}
+                  {/* Only remove View Achievements button here, keep sign out and user icon */}
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
