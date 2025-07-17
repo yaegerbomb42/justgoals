@@ -63,7 +63,27 @@ const AnalyticsDashboard = () => {
     );
   }
   if (error) {
-    return <div className="p-4 bg-error/10 border border-error/20 rounded text-error text-center mb-4">{error}</div>;
+    // Show error banner but still render the dashboard UI with empty data
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-20 pb-24 md:pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="p-4 bg-error/10 border border-error/20 rounded text-error text-center mb-4">{error}</div>
+            {/* Render dashboard UI with empty data */}
+            {renderDashboardUI({
+              heatmap: [],
+              trends: [],
+              focusTimes: [],
+              goalDependencies: {},
+              habits: {},
+              insights: [],
+              permissionError: false
+            })}
+          </div>
+        </main>
+      </div>
+    );
   }
   if (!isAuthenticated) {
     return (
@@ -259,6 +279,70 @@ const AnalyticsDashboard = () => {
     { id: 'habits', label: 'Habits', icon: 'Repeat' },
     { id: 'predictions', label: 'Predictions', icon: 'Zap' }
   ];
+
+  const renderDashboardUI = (data) => (
+    <div>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-heading-bold text-text-primary mb-2">
+          Analytics Dashboard
+        </h1>
+        <p className="text-text-secondary">
+          Track your productivity patterns and get insights to improve your performance.
+        </p>
+      </div>
+      {/* Time Range Selector */}
+      <div className="mb-6">
+        <div className="flex space-x-2">
+          {['week', 'month', 'quarter', 'year'].map((range) => (
+            <Button
+              key={range}
+              variant={timeRange === range ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setTimeRange(range)}
+            >
+              {range.charAt(0).toUpperCase() + range.slice(1)}
+            </Button>
+          ))}
+        </div>
+      </div>
+      {/* Tabs */}
+      <div className="mb-6">
+        <div className="flex space-x-1 bg-surface-700 rounded-lg p-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                    flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-body-medium transition-colors
+                    ${activeTab === tab.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-600'
+                    }
+                  `}
+            >
+              <Icon name={tab.icon} size={16} />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Content */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <div>
+          {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'productivity' && renderProductivity()}
+          {activeTab === 'goals' && renderGoals()}
+          {activeTab === 'habits' && renderHabits()}
+          {activeTab === 'predictions' && renderPredictions()}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">

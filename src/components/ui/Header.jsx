@@ -73,13 +73,7 @@ const Header = () => {
           </Link>
 
           {/* Sync Status */}
-          {isAuthenticated && (
-            <div className="flex items-center space-x-2 mr-4">
-              {syncStatus === 'syncing' && <span className="text-xs text-info">Syncing...</span>}
-              {syncStatus === 'success' && <span className="text-xs text-success">Synced {lastSync ? lastSync.toLocaleTimeString() : ''}</span>}
-              {syncStatus === 'error' && <span className="text-xs text-error">Sync Error</span>}
-            </div>
-          )}
+          {/* Remove sync status display from header */}
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">

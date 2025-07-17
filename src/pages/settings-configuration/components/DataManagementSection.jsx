@@ -3,6 +3,7 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import { useAuth } from '../../../context/AuthContext';
 import * as backupService from '../../../services/backupService';
+import { useAchievements } from '../../../context/AchievementContext';
 
 const DataManagementSection = ({ 
   autoBackup, 
@@ -14,6 +15,7 @@ const DataManagementSection = ({
   onResetAllData 
 }) => {
   const { user } = useAuth();
+  const { lastSync } = useAchievements() || {};
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState('');
@@ -237,6 +239,9 @@ const DataManagementSection = ({
           <p className="text-xs text-text-secondary mt-2">
             Export your data as JSON or import from a previous backup
           </p>
+          <div className="text-xs text-text-secondary mt-2">
+            Last synced: {lastSync ? lastSync.toLocaleString() : 'Never synced'}
+          </div>
         </div>
 
         {/* Reset Data */}

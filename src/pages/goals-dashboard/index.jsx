@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +13,7 @@ import FilterSortControls from './components/FilterSortControls';
 import GoalCard from './components/GoalCard';
 import GoalCreationModal from './components/GoalCreationModal';
 import EmptyState from './components/EmptyState';
+import Icon from '../../components/AppIcon';
 
 // Onboarding Modal Component
 function OnboardingModal({ open, onClose }) {
@@ -50,6 +51,8 @@ const GoalsDashboard = () => {
     return !localStorage.getItem('onboardingDismissed');
   });
   const [updateStatus, setUpdateStatus] = useState(null);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadMenuRef = useRef(null);
 
   // Load goals using the entity service
   useEffect(() => {
