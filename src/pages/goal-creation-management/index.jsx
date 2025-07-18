@@ -24,8 +24,10 @@ const GoalCreationManagement = () => {
   // Load goals using the entity service
   useEffect(() => {
     if (isAuthenticated && user) {
-      const userGoals = entityService.getGoals(user);
-      setExistingGoals(userGoals);
+      (async () => {
+        const userGoals = await entityService.getGoals(user);
+        setExistingGoals(userGoals);
+      })();
     } else {
       setExistingGoals([]); // Not authenticated or no user
     }
