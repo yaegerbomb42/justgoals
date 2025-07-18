@@ -13,6 +13,7 @@ import FilterSortControls from './components/FilterSortControls';
 import GoalCard from './components/GoalCard';
 import EmptyState from './components/EmptyState';
 import Icon from '../../components/AppIcon';
+import firestoreService from '../../services/firestoreService';
 
 // Onboarding Modal Component
 function OnboardingModal({ open, onClose }) {
@@ -44,9 +45,8 @@ const GoalsDashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const { checkAchievements } = useAchievements();
   const { settings } = useSettings();
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return !localStorage.getItem('onboardingDismissed');
-  });
+  // Robust onboarding modal state
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [updateStatus, setUpdateStatus] = useState(null);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const downloadMenuRef = useRef(null);
@@ -94,9 +94,35 @@ const GoalsDashboard = () => {
     }
   }, []);
 
-  const handleDismissOnboarding = () => {
+  useEffect(() => {
+    let cancelled = false;
+    async function checkOnboarding() {
+      if (isAuthenticated && user && user.id) {
+        try {
+          const appSettings = await firestoreService.getAppSettings(user.id);
+          if (!cancelled) setShowOnboarding(!appSettings.onboardingDismissed);
+        } catch (e) {
+          // Fallback: if Firestore fails, only show onboarding for this session
+          if (!cancelled) setShowOnboarding(true);
+        }
+      } else {
+        setShowOnboarding(false);
+      }
+    }
+    checkOnboarding();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user]);
+
+  const handleDismissOnboarding = async () => {
     setShowOnboarding(false);
-    localStorage.setItem('onboardingDismissed', '1');
+    if (isAuthenticated && user && user.id) {
+      try {
+        const appSettings = await firestoreService.getAppSettings(user.id);
+        await firestoreService.saveAppSettings(user.id, { ...appSettings, onboardingDismissed: true });
+      } catch (e) {
+        // Ignore Firestore errors, but still hide modal for this session
+      }
+    }
   };
 
   // Filter and sort goals
