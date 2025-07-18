@@ -1,11 +1,51 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
+
+const getTotalTime = () => {
+  const stored = localStorage.getItem('totalTimeLoggedSeconds');
+  return stored ? parseInt(stored, 10) : 0;
+};
 
 const WelcomeHero = ({ userName, overallProgress, totalGoals, completedGoals, streakDays }) => {
   const progressPercentage = totalGoals > 0 ? (completedGoals / totalGoals) * 100 : 0;
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
+
+  // Live clock state
+  const [currentTime, setCurrentTime] = useState(new Date());
+  // Total time logged state (in seconds)
+  const [totalTime, setTotalTime] = useState(getTotalTime());
+
+  // Update live clock every second
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update total time logged every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTotalTime(prev => {
+        const updated = prev + 5;
+        localStorage.setItem('totalTimeLoggedSeconds', updated);
+        return updated;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Format total time nicely
+  const formatTotalTime = (seconds) => {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  };
+
+  // Format live time nicely
+  const formatLiveTime = (date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
 
   return (
     <motion.div
@@ -29,6 +69,18 @@ const WelcomeHero = ({ userName, overallProgress, totalGoals, completedGoals, st
             backgroundSize: '200% 200%',
           }}
         />
+      </div>
+
+      {/* Live Clock and Total Time */}
+      <div className="absolute top-4 right-6 flex flex-col items-end z-10">
+        <div className="flex items-center space-x-2 text-2xl font-mono text-primary drop-shadow-sm">
+          <Icon name="Clock" size={20} className="mr-1" />
+          <span>{formatLiveTime(currentTime)}</span>
+        </div>
+        <div className="flex items-center space-x-2 text-xs text-text-secondary mt-1 bg-surface-700 px-2 py-1 rounded-full shadow">
+          <Icon name="Activity" size={14} />
+          <span>Total time logged: {formatTotalTime(totalTime)}</span>
+        </div>
       </div>
 
       {/* Content */}

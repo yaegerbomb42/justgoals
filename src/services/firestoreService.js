@@ -354,6 +354,24 @@ class FirestoreService {
     }
   }
 
+  // Save Gemini API key to Firestore
+  async saveApiKey(userId, apiKey) {
+    if (!userId) throw new Error('User ID required');
+    const settingsDoc = this.getUserDoc(userId, '', 'settings');
+    await setDoc(settingsDoc, { apiKey }, { merge: true });
+  }
+
+  // Load Gemini API key from Firestore
+  async loadApiKey(userId) {
+    if (!userId) return '';
+    const settingsDoc = this.getUserDoc(userId, '', 'settings');
+    const docSnap = await getDoc(settingsDoc);
+    if (docSnap.exists() && docSnap.data().apiKey) {
+      return docSnap.data().apiKey;
+    }
+    return '';
+  }
+
   // Migration helper: migrate from localStorage to Firestore
   async migrateFromLocalStorage(userId) {
     if (!userId) {

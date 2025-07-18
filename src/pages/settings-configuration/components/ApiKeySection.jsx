@@ -5,31 +5,52 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { useAuth } from '../../../context/AuthContext';
 import * as geminiService from '../../../services/geminiService';
+import firestoreService from '../../../services/firestoreService';
 
 const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConnection, connectionStatus }) => {
   const { user } = useAuth();
   const [localApiKey, setLocalApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState(''); // New state for error/success message
+  const [cloudStatus, setCloudStatus] = useState('idle'); // idle, syncing, success, error
 
-  // Load API key from user-specific storage
+  // Load API key from Firestore, then localStorage
   useEffect(() => {
     if (user && user.id) {
-      const userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
-      if (userApiKey) {
-        setLocalApiKey(userApiKey);
-        onApiKeyChange(userApiKey);
-      }
+      (async () => {
+        setCloudStatus('syncing');
+        try {
+          const cloudKey = await firestoreService.loadApiKey(user.id);
+          if (cloudKey) {
+            setLocalApiKey(cloudKey);
+            onApiKeyChange(cloudKey);
+            localStorage.setItem(`gemini_api_key_${user.id}`, cloudKey);
+            setCloudStatus('success');
+            return;
+          }
+        } catch (e) {
+          setCloudStatus('error');
+        }
+        // Fallback to localStorage
+        const userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
+        if (userApiKey) {
+          setLocalApiKey(userApiKey);
+          onApiKeyChange(userApiKey);
+          setCloudStatus('idle');
+        }
+      })();
     }
   }, [user, onApiKeyChange]);
 
   const handleApiKeyChange = (value) => {
     setLocalApiKey(value);
     onApiKeyChange(value);
-    
-    // Save to user-specific storage
     if (user && user.id) {
       localStorage.setItem(`gemini_api_key_${user.id}`, value);
+      setCloudStatus('syncing');
+      firestoreService.saveApiKey(user.id, value)
+        .then(() => setCloudStatus('success'))
+        .catch(() => setCloudStatus('error'));
     }
   };
 
@@ -139,6 +160,22 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
               </span>
             )}
           </div>
+          {/* Cloud sync status */}
+          {user && localApiKey && (
+            <div className="flex items-center space-x-2 mt-1 text-xs">
+              <Icon name={cloudStatus === 'success' ? 'CloudCheck' : cloudStatus === 'syncing' ? 'CloudSync' : cloudStatus === 'error' ? 'CloudOff' : 'Cloud'} size={14} className={
+                cloudStatus === 'success' ? 'text-success' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'
+              } />
+              <span className={
+                cloudStatus === 'success' ? 'text-success' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'
+              }>
+                {cloudStatus === 'success' && 'Synced to cloud'}
+                {cloudStatus === 'syncing' && 'Syncing...'}
+                {cloudStatus === 'error' && 'Cloud sync error'}
+                {cloudStatus === 'idle' && 'Not yet synced'}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between">
