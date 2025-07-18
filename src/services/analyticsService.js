@@ -66,29 +66,56 @@ class AnalyticsService {
       // Try to get data from Firestore
       const docRef = firestore.collection('users').doc(user.uid).collection('analytics').doc('dashboard');
       const doc = await docRef.get();
-      if (doc.exists) {
-        const data = doc.data();
-        return {
-          heatmap: Array.isArray(data.heatmap) ? data.heatmap : [],
-          trends: Array.isArray(data.trends) ? data.trends : [],
-          focusTimes: Array.isArray(data.focusTimes) ? data.focusTimes : [],
-          goalDependencies: typeof data.goalDependencies === 'object' && data.goalDependencies !== null ? data.goalDependencies : {},
-          habits: typeof data.habits === 'object' && data.habits !== null ? data.habits : {},
-          insights: Array.isArray(data.insights) ? data.insights : [],
-          permissionError: false
-        };
+      let data = doc.exists ? doc.data() : {};
+      // --- Prefill heatmap days ---
+      // Determine date range
+      let days = [];
+      let today = new Date();
+      let startDate;
+      if (timeRange === 'week') {
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 6);
+      } else if (timeRange === 'month') {
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      } else if (timeRange === 'quarter') {
+        let quarter = Math.floor(today.getMonth() / 3);
+        startDate = new Date(today.getFullYear(), quarter * 3, 1);
+      } else if (timeRange === 'year') {
+        startDate = new Date(today.getFullYear(), 0, 1);
       } else {
-        // No analytics data yet, return empty
-        return {
-          heatmap: [],
-          trends: [],
-          focusTimes: [],
-          goalDependencies: {},
-          habits: {},
-          insights: [],
-          permissionError: false
-        };
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
       }
+      let d = new Date(startDate);
+      while (d <= today) {
+        days.push(d.toISOString().slice(0, 10));
+        d = new Date(d);
+        d.setDate(d.getDate() + 1);
+      }
+      // Build a map of existing heatmap data by date
+      const heatmapRaw = Array.isArray(data.heatmap) ? data.heatmap : [];
+      const heatmapMap = {};
+      for (const entry of heatmapRaw) {
+        const dateStr = (entry.date || '').slice(0, 10);
+        if (dateStr) heatmapMap[dateStr] = entry;
+      }
+      // Fill in all days
+      const fullHeatmap = days.map(date => {
+        const entry = heatmapMap[date];
+        return {
+          date,
+          goals: entry && typeof entry.goals === 'number' ? entry.goals : 0,
+          focus: entry && typeof entry.focus === 'number' ? entry.focus : 0
+        };
+      });
+      return {
+        heatmap: fullHeatmap,
+        trends: Array.isArray(data.trends) ? data.trends : [],
+        focusTimes: Array.isArray(data.focusTimes) ? data.focusTimes : [],
+        goalDependencies: typeof data.goalDependencies === 'object' && data.goalDependencies !== null ? data.goalDependencies : {},
+        habits: typeof data.habits === 'object' && data.habits !== null ? data.habits : {},
+        insights: Array.isArray(data.insights) ? data.insights : [],
+        permissionError: false
+      };
     } catch (error) {
       console.error('Error fetching analytics:', error);
       return {
