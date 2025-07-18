@@ -13,6 +13,7 @@ import QuickLinksPanel from './components/QuickLinksPanel';
 import FocusFloatingActions from './components/FocusFloatingActions';
 import * as entityService from '../../services/entityManagementService';
 import notificationManager from '../../utils/notificationUtils';
+import firestoreService from '../../services/firestoreService';
 
 const soundMap = {
   none: '',
@@ -33,6 +34,8 @@ const checkSoundFileExists = async (url) => {
     return false;
   }
 };
+
+const getGoalChatKey = (goalId, userId) => `goal_chat_${userId}_${goalId}`;
 
 const FocusMode = () => {
   const navigate = useNavigate();
@@ -99,6 +102,9 @@ const FocusMode = () => {
   });
   const [sessionNotes, setSessionNotes] = useState([]);
   const [sessionLinks, setSessionLinks] = useState([]);
+  const [goalChatMessages, setGoalChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
 
   // Initialize from URL params or localStorage
   useEffect(() => {
@@ -226,6 +232,43 @@ const FocusMode = () => {
     };
   }, [isTimerActive, globalFocusSettings.soundEnabled, globalFocusSettings.selectedAmbientSound]);
 
+  // Load chat messages for selected goal from Firestore and localStorage
+  useEffect(() => {
+    const loadChat = async () => {
+      if (selectedGoal && user && user.id) {
+        const chatKey = getGoalChatKey(selectedGoal.id, user.id);
+        // Try Firestore first
+        try {
+          const cloudMsgs = await firestoreService.getGoalChatMessages(user.id, selectedGoal.id);
+          if (cloudMsgs && Array.isArray(cloudMsgs)) {
+            setGoalChatMessages(cloudMsgs);
+            localStorage.setItem(chatKey, JSON.stringify(cloudMsgs));
+            return;
+          }
+        } catch {}
+        // Fallback to localStorage
+        const saved = localStorage.getItem(chatKey);
+        if (saved) {
+          try { setGoalChatMessages(JSON.parse(saved)); }
+          catch { setGoalChatMessages([]); }
+        } else {
+          setGoalChatMessages([]);
+        }
+      } else {
+        setGoalChatMessages([]);
+      }
+    };
+    loadChat();
+  }, [selectedGoal, user]);
+
+  // Save chat messages to Firestore and localStorage
+  useEffect(() => {
+    if (selectedGoal && user && user.id) {
+      const chatKey = getGoalChatKey(selectedGoal.id, user.id);
+      localStorage.setItem(chatKey, JSON.stringify(goalChatMessages));
+      firestoreService.saveGoalChatMessages(user.id, selectedGoal.id, goalChatMessages);
+    }
+  }, [goalChatMessages, selectedGoal, user]);
 
   const startSession = () => {
     if (!selectedGoal) return;
@@ -423,6 +466,21 @@ const FocusMode = () => {
     navigate('/goals-dashboard');
   };
 
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || !selectedGoal || !user) return;
+    const newMsg = {
+      id: Date.now(),
+      content: chatInput.trim(),
+      timestamp: new Date().toISOString(),
+      userId: user.id,
+      goalId: selectedGoal.id
+    };
+    setGoalChatMessages(prev => [...prev, newMsg]);
+    setChatInput('');
+    // Immediately update Drift's context (e.g., via a shared context, event, or queue)
+    window.dispatchEvent(new CustomEvent('drift-goal-chat', { detail: { goalId: selectedGoal.id, message: newMsg } }));
+  };
+
   const getBackgroundClass = () => {
     switch (localSessionSettings.background) { // Use localSessionSettings
       case 'gradient':
@@ -596,6 +654,57 @@ const FocusMode = () => {
         isNotesOpen={isNotesOpen}
         isLinksOpen={isLinksOpen}
       />
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-border px-4 py-2 flex items-center space-x-2" style={{ maxWidth: '100vw' }}>
+        <button
+          type="button"
+          className="p-2 rounded-full bg-primary text-white hover:bg-primary-dark transition-colors"
+          onClick={() => setIsChatHistoryOpen(v => !v)}
+          aria-label="Show chat history"
+        >
+          <Icon name={isChatHistoryOpen ? 'Minus' : 'Plus'} size={18} />
+        </button>
+        <input
+          type="text"
+          className="flex-1 px-4 py-2 rounded-lg border border-border bg-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          placeholder={selectedGoal ? `Update Drift or log progress for "${selectedGoal.title}"...` : 'Select a goal to log progress...'}
+          value={chatInput}
+          onChange={e => setChatInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSendChat(); }}
+          disabled={!selectedGoal}
+        />
+        <Button
+          variant="primary"
+          size="md"
+          onClick={handleSendChat}
+          disabled={!chatInput.trim() || !selectedGoal}
+          iconName="Send"
+          iconPosition="left"
+        >
+          Send
+        </Button>
+      </div>
+
+      {/* Chat History Panel (replaces notes if open) */}
+      {isChatHistoryOpen && (
+        <div className="fixed bottom-16 left-0 right-0 z-40 max-h-64 overflow-y-auto bg-surface border-t border-border px-4 py-2" style={{ maxWidth: '100vw' }}>
+          <div className="space-y-2">
+            {goalChatMessages.length === 0 ? (
+              <div className="text-text-secondary text-sm text-center">No chat history for this goal yet.</div>
+            ) : (
+              goalChatMessages.map(msg => (
+                <div key={msg.id} className="flex items-start space-x-2">
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</div>
+                  <div>
+                    <div className="text-xs text-text-secondary">{new Date(msg.timestamp).toLocaleString()}</div>
+                    <div className="text-sm text-text-primary bg-surface-700 rounded-lg px-3 py-2 mt-1">{msg.content}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

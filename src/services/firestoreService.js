@@ -372,6 +372,33 @@ class FirestoreService {
     return '';
   }
 
+  // Save chat messages for a goal
+  async saveGoalChatMessages(userId, goalId, messages) {
+    if (!userId || !goalId) return;
+    try {
+      const chatDoc = this.getUserDoc(userId, 'goalChats', goalId);
+      await setDoc(chatDoc, { messages, updatedAt: serverTimestamp() });
+    } catch (error) {
+      console.error('Error saving goal chat messages to Firestore:', error);
+    }
+  }
+
+  // Load chat messages for a goal
+  async getGoalChatMessages(userId, goalId) {
+    if (!userId || !goalId) return [];
+    try {
+      const chatDoc = this.getUserDoc(userId, 'goalChats', goalId);
+      const docSnap = await getDoc(chatDoc);
+      if (docSnap.exists() && Array.isArray(docSnap.data().messages)) {
+        return docSnap.data().messages;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error loading goal chat messages from Firestore:', error);
+      return [];
+    }
+  }
+
   // Migration helper: migrate from localStorage to Firestore
   async migrateFromLocalStorage(userId) {
     if (!userId) {

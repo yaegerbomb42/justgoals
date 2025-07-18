@@ -165,8 +165,9 @@ const Header = () => {
           </nav>
 
           {/* Right Side */}
+          {/* Achievement Points and User Profile */}
           <div className="flex items-center space-x-3">
-            {/* Achievement Points - Clickable */}
+            {/* Achievement Points - Always visible and clickable */}
             <button
               onClick={() => navigate('/achievements')}
               className="flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg hover:bg-surface-600 transition-colors cursor-pointer flex-shrink-0"
@@ -174,13 +175,12 @@ const Header = () => {
               <Icon name="Trophy" size={16} className="text-primary" />
               <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
             </button>
-
-            {/* User Profile Icon - Always visible next to achievement points */}
+            {/* User Profile Icon and Dropdown */}
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => {
                   setIsMenuOpen(v => {
-                    if (!v) setShowDownloadMenu(false); // Close download menu when opening user menu
+                    if (!v) setShowDownloadMenu(false);
                     return !v;
                   });
                 }}
@@ -194,7 +194,6 @@ const Header = () => {
                 </div>
                 <Icon name="ChevronDown" size={16} className="text-text-secondary" />
               </button>
-
               {/* Dropdown Menu */}
               {isMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-1 z-50">
@@ -232,17 +231,6 @@ const Header = () => {
                 </div>
               )}
             </div>
-
-            {/* Download Icon */}
-            {/* This section is removed as per the edit hint */}
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-surface-700 transition-colors"
-            >
-              <Icon name="Menu" size={20} className="text-text-primary" />
-            </button>
           </div>
         </div>
 
