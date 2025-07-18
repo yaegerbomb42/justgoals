@@ -138,33 +138,7 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
               <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
             </button>
 
-            {/* Download Icon */}
-            <div className="relative" ref={downloadMenuRef}>
-              <button
-                onClick={() => {
-                  setShowDownloadMenu && setShowDownloadMenu(v => {
-                    if (!v) setIsMenuOpen(false); // Close user menu when opening download
-                    return !v;
-                  });
-                }}
-                className="p-2 rounded-full hover:bg-surface-700 transition"
-                aria-label="Download App"
-              >
-                <Icon name="Download" size={20} />
-              </button>
-              {showDownloadMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg z-50">
-                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-mac.dmg" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
-                    <Icon name="Apple" size={16} className="mr-2" /> Download for Mac
-                  </a>
-                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-win.exe" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
-                    <Icon name="Windows" size={16} className="mr-2" /> Download for Windows
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {/* User Menu */}
+            {/* User Profile Icon - Always visible next to achievement points */}
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => {
@@ -173,7 +147,8 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
                     return !v;
                   });
                 }}
-                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-surface-700 transition-colors"
+                className="flex items-center space-x-2 p-2 rounded-full hover:bg-surface-700 transition-colors border border-border"
+                aria-label="User Profile"
               >
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                   <span className="text-sm font-body-medium text-white">
@@ -217,6 +192,32 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
                     <Icon name="LogOut" size={16} />
                     <span>Sign Out</span>
                   </button>
+                </div>
+              )}
+            </div>
+
+            {/* Download Icon */}
+            <div className="relative" ref={downloadMenuRef}>
+              <button
+                onClick={() => {
+                  setShowDownloadMenu && setShowDownloadMenu(v => {
+                    if (!v) setIsMenuOpen(false); // Close user menu when opening download
+                    return !v;
+                  });
+                }}
+                className="p-2 rounded-full hover:bg-surface-700 transition"
+                aria-label="Download App"
+              >
+                <Icon name="Download" size={20} />
+              </button>
+              {showDownloadMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg z-50">
+                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-mac.dmg" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
+                    <Icon name="Apple" size={16} className="mr-2" /> Download for Mac
+                  </a>
+                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-win.exe" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
+                    <Icon name="Windows" size={16} className="mr-2" /> Download for Windows
+                  </a>
                 </div>
               )}
             </div>
