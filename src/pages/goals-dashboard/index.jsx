@@ -55,8 +55,10 @@ const GoalsDashboard = () => {
   useEffect(() => {
     setGoals([]);
     if (isAuthenticated && user) {
-      const userGoals = entityService.getGoals(user);
-      setGoals(userGoals);
+      (async () => {
+        const userGoals = await entityService.getGoals(user);
+        setGoals(userGoals);
+      })();
     }
   }, [isAuthenticated, user]);
 
