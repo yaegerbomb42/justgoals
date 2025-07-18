@@ -15,11 +15,14 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
   const [cloudStatus, setCloudStatus] = useState('idle'); // idle, syncing, success, error
   const [loadError, setLoadError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasTested, setHasTested] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Robustly load API key from Firestore, fallback to localStorage
+  // Only load API key once on mount
   useEffect(() => {
     let cancelled = false;
-    async function loadApiKey() {
+    async function loadApiKeyOnce() {
+      if (hasLoaded) return;
       if (user && user.id) {
         setIsLoading(true);
         setCloudStatus('syncing');
@@ -32,6 +35,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             localStorage.setItem(`gemini_api_key_${user.id}`, cloudKey);
             setCloudStatus('success');
             setIsLoading(false);
+            setHasLoaded(true);
             return;
           }
         } catch (e) {
@@ -54,16 +58,29 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             setCloudStatus('idle');
           }
           setIsLoading(false);
+          setHasLoaded(true);
         }
       }
     }
-    loadApiKey();
+    loadApiKeyOnce();
     return () => { cancelled = true; };
-  }, [user, onApiKeyChange]);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Only test connection once after key is loaded or changed
+  useEffect(() => {
+    if (!hasTested && localApiKey && !isLoading) {
+      setHasTested(true);
+      handleTestConnection();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localApiKey, isLoading]);
 
   const handleApiKeyChange = (value) => {
     setLocalApiKey(value);
     onApiKeyChange(value);
+    setHasTested(false); // Allow re-testing after change
     if (user && user.id) {
       localStorage.setItem(`gemini_api_key_${user.id}`, value);
       setCloudStatus('syncing');
@@ -79,7 +96,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
 
   const handleTestConnection = async () => {
     if (!localApiKey.trim()) {
-      alert('Please enter an API key first');
+      setConnectionMessage('');
       return;
     }
     setConnectionMessage('');
@@ -87,6 +104,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
       const result = await geminiService.testConnection(localApiKey);
       setConnectionMessage(result.message || '');
       onTestConnection(result.success ? 'success' : 'error');
+      console.log('[API Key] Connection tested:', result);
     } catch (error) {
       console.error('Connection test failed:', error);
       setConnectionMessage(error.message || 'Unknown error');
