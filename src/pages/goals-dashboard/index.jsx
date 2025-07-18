@@ -48,6 +48,7 @@ const GoalsDashboard = () => {
   // Robust onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingError, setOnboardingError] = useState(null);
+  const [lastOnboardingState, setLastOnboardingState] = useState(undefined); // For guard
   const [updateStatus, setUpdateStatus] = useState(null);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const downloadMenuRef = useRef(null);
@@ -107,29 +108,45 @@ const GoalsDashboard = () => {
           if (typeof onboardingDismissed === 'undefined') {
             onboardingDismissed = localStorage.getItem(`onboardingDismissed_${user.id}`) === 'true';
           }
+          console.log('[Onboarding] Firestore/localStorage value:', onboardingDismissed);
           if (!cancelled) {
-            setShowOnboarding(!onboardingDismissed);
-            setOnboardingError(null);
-            sessionFlag = true;
+            // Only update state if value actually changes
+            if (lastOnboardingState !== onboardingDismissed) {
+              setShowOnboarding(!onboardingDismissed);
+              setLastOnboardingState(onboardingDismissed);
+              setOnboardingError(null);
+              sessionFlag = true;
+              console.log('[Onboarding] State updated:', !onboardingDismissed);
+            } else {
+              console.log('[Onboarding] No state change needed');
+            }
           }
         } catch (e) {
-          console.error('Onboarding Firestore error:', e);
+          console.error('[Onboarding] Firestore error:', e);
           // Fallback to localStorage if error
           const onboardingDismissed = localStorage.getItem(`onboardingDismissed_${user?.id}`) === 'true';
           if (!cancelled && !sessionFlag) {
-            setShowOnboarding(!onboardingDismissed);
-            setOnboardingError('Could not check onboarding status. Please check your connection or permissions.');
-            sessionFlag = true;
+            if (lastOnboardingState !== onboardingDismissed) {
+              setShowOnboarding(!onboardingDismissed);
+              setLastOnboardingState(onboardingDismissed);
+              setOnboardingError('Could not check onboarding status. Please check your connection or permissions.');
+              sessionFlag = true;
+              console.log('[Onboarding] Fallback state updated:', !onboardingDismissed);
+            } else {
+              console.log('[Onboarding] No fallback state change needed');
+            }
           }
         }
       } else {
         setShowOnboarding(false);
         setOnboardingError(null);
+        setLastOnboardingState(undefined);
+        console.log('[Onboarding] Not authenticated or no user, modal hidden');
       }
     }
     checkOnboarding();
     return () => { cancelled = true; };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, lastOnboardingState]);
 
   const handleDismissOnboarding = async () => {
     setShowOnboarding(false);
@@ -138,9 +155,13 @@ const GoalsDashboard = () => {
         const appSettings = await firestoreService.getAppSettings(user.id);
         await firestoreService.saveAppSettings(user.id, { ...appSettings, onboardingDismissed: true });
         localStorage.setItem(`onboardingDismissed_${user.id}`, 'true'); // Always persist in localStorage as well
+        setLastOnboardingState(true);
+        console.log('[Onboarding] Modal dismissed, state set to true');
       } catch (e) {
         // If Firestore fails, persist in localStorage
         localStorage.setItem(`onboardingDismissed_${user.id}`, 'true');
+        setLastOnboardingState(true);
+        console.log('[Onboarding] Modal dismissed (fallback), state set to true');
       }
     }
   };
