@@ -97,6 +97,39 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/goals-dashboard" className="flex items-center space-x-4 md:space-x-6 lg:space-x-8 pr-4 md:pr-8">
+            {/* Download Dropdown */}
+            <div className="relative">
+              <button
+                className="flex items-center px-2 py-1 rounded hover:bg-surface-700 transition-colors"
+                onClick={() => setShowDownloadMenu && setShowDownloadMenu(v => !v)}
+                aria-label="Download App"
+              >
+                <Icon name="Download" size={20} className="mr-1" />
+                <span className="font-body-medium text-sm">Download</span>
+                <svg className="ml-1 w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              {showDownloadMenu && (
+                <div className="absolute left-0 mt-2 w-48 bg-surface-800 border border-border rounded shadow-lg z-50">
+                  <a
+                    href="/out/make/YaegerGoals-0.1.0-x64.dmg"
+                    download
+                    className="block px-4 py-2 text-sm text-text-primary hover:bg-surface-700 rounded-t"
+                  >
+                    Mac (DMG)
+                  </a>
+                  <a
+                    href="/out/make/zip/darwin/x64/YaegerGoals-darwin-x64-0.1.0.zip"
+                    download
+                    className="block px-4 py-2 text-sm text-text-primary hover:bg-surface-700"
+                  >
+                    Mac (ZIP)
+                  </a>
+                  <span className="block px-4 py-2 text-sm text-text-secondary cursor-not-allowed bg-surface-700 rounded-b opacity-60">
+                    Windows (coming soon)
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
               <Icon name="Target" size={20} color="#FFFFFF" />
             </div>
