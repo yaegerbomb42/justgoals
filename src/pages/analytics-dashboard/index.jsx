@@ -15,6 +15,12 @@ import PredictiveInsights from './components/PredictiveInsights';
 import OptimalFocusTimes from './components/OptimalFocusTimes';
 import GoalDependencyGraph from './components/GoalDependencyGraph';
 
+// Enhanced Analytics Components
+import AdvancedProductivityChart from './components/AdvancedProductivityChart';
+import GoalPerformanceMatrix from './components/GoalPerformanceMatrix';
+import StreakAnalytics from './components/StreakAnalytics';
+import InteractiveTimeAllocation from './components/InteractiveTimeAllocation';
+
 const AnalyticsDashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const { userPoints, achievements, getRecentAchievements, getNextAchievements } = useAchievements();
@@ -32,67 +38,35 @@ const AnalyticsDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      setIsLoading(true);
-      analyticsService.getUserAnalytics(user.id, timeRange)
-        .then(fetchedData => {
-          setAnalyticsData({
-            heatmap: Array.isArray(fetchedData.heatmap) ? fetchedData.heatmap : [],
-            trends: Array.isArray(fetchedData.trends) ? fetchedData.trends : [],
-            focusTimes: Array.isArray(fetchedData.focusTimes) ? fetchedData.focusTimes : [],
-            goalDependencies: typeof fetchedData.goalDependencies === 'object' && fetchedData.goalDependencies !== null ? fetchedData.goalDependencies : {},
-            habits: typeof fetchedData.habits === 'object' && fetchedData.habits !== null ? fetchedData.habits : {},
-            insights: Array.isArray(fetchedData.insights) ? fetchedData.insights : [],
-            permissionError: !!fetchedData.permissionError
-          });
-          setIsLoading(false);
-        })
-        .catch(err => {
-          console.warn('Analytics data loading failed, using default data:', err);
-          setAnalyticsData({
-            heatmap: [],
-            trends: [],
-            focusTimes: [],
-            goalDependencies: {},
-            habits: {},
-            insights: [],
-            permissionError: false
-          });
-          setIsLoading(false);
+    setIsLoading(true);
+    // Always fetch analytics data, even for unauthenticated users (demo data)
+    analyticsService.getUserAnalytics(user?.id, timeRange)
+      .then(fetchedData => {
+        setAnalyticsData({
+          heatmap: Array.isArray(fetchedData.heatmap) ? fetchedData.heatmap : [],
+          trends: Array.isArray(fetchedData.trends) ? fetchedData.trends : [],
+          focusTimes: Array.isArray(fetchedData.focusTimes) ? fetchedData.focusTimes : [],
+          goalDependencies: typeof fetchedData.goalDependencies === 'object' && fetchedData.goalDependencies !== null ? fetchedData.goalDependencies : {},
+          habits: typeof fetchedData.habits === 'object' && fetchedData.habits !== null ? fetchedData.habits : {},
+          insights: Array.isArray(fetchedData.insights) ? fetchedData.insights : [],
+          permissionError: !!fetchedData.permissionError
         });
-    } else {
-      setAnalyticsData({
-        heatmap: [],
-        trends: [],
-        focusTimes: [],
-        goalDependencies: {},
-        habits: {},
-        insights: [],
-        permissionError: false
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.warn('Analytics data loading failed, using default data:', err);
+        setAnalyticsData({
+          heatmap: [],
+          trends: [],
+          focusTimes: [],
+          goalDependencies: {},
+          habits: {},
+          insights: [],
+          permissionError: false
+        });
+        setIsLoading(false);
       });
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, user, timeRange]);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-20 pb-24 md:pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h1 className="text-2xl font-heading-bold text-text-primary mb-4">
-                Analytics Dashboard
-              </h1>
-              <p className="text-text-secondary">
-                Please log in to view your analytics and insights.
-              </p>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  }, [user, timeRange]); // Removed isAuthenticated dependency
 
   const safeAnalyticsData = {
     heatmap: Array.isArray(analyticsData.heatmap) ? analyticsData.heatmap : [],
@@ -110,7 +84,10 @@ const AnalyticsDashboard = () => {
     { id: 'productivity', label: 'Productivity', icon: 'TrendingUp' },
     { id: 'goals', label: 'Goals', icon: 'Target' },
     { id: 'habits', label: 'Habits', icon: 'Repeat' },
-    { id: 'predictions', label: 'Predictions', icon: 'Zap' }
+    { id: 'time', label: 'Time Tracking', icon: 'Clock' },
+    { id: 'streaks', label: 'Streaks', icon: 'Flame' },
+    { id: 'performance', label: 'Performance', icon: 'Zap' },
+    { id: 'predictions', label: 'AI Insights', icon: 'Brain' }
   ];
 
   const renderOverview = () => (
@@ -176,6 +153,48 @@ const AnalyticsDashboard = () => {
         </div>
       )}
 
+      {/* Enhanced Analytics Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Advanced Productivity Chart Preview */}
+        <div className="bg-surface rounded-lg p-6 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-heading-semibold text-text-primary">Productivity Overview</h3>
+            <Button variant="outline" size="sm" onClick={() => setActiveTab('productivity')}>
+              <Icon name="TrendingUp" size={16} className="mr-2" />
+              View Details
+            </Button>
+          </div>
+          <AdvancedProductivityChart data={safeAnalyticsData.heatmap.slice(-7)} timeRange="week" />
+        </div>
+
+        {/* Time Allocation Preview */}
+        <div className="bg-surface rounded-lg p-6 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-heading-semibold text-text-primary">Time Allocation</h3>
+            <Button variant="outline" size="sm" onClick={() => setActiveTab('time')}>
+              <Icon name="Clock" size={16} className="mr-2" />
+              View Details
+            </Button>
+          </div>
+          <InteractiveTimeAllocation data={safeAnalyticsData.habits} />
+        </div>
+      </div>
+
+      {/* Activity Heatmap */}
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-heading-semibold text-text-primary">Activity Heatmap</h3>
+          <Button variant="outline" size="sm" onClick={() => setActiveTab('productivity')}>
+            <Icon name="BarChart3" size={16} className="mr-2" />
+            Advanced View
+          </Button>
+        </div>
+        <ProductivityHeatmap data={safeAnalyticsData.heatmap} />
+        {(!safeAnalyticsData.heatmap || safeAnalyticsData.heatmap.length === 0) && (
+          <div className="text-center text-text-secondary mt-4">No activity data yet. Start using the app to see your heatmap!</div>
+        )}
+      </div>
+
       {/* Recent Achievements */}
       <div className="bg-surface rounded-lg p-6 border border-border">
         <div className="flex items-center justify-between mb-4">
@@ -198,15 +217,6 @@ const AnalyticsDashboard = () => {
             ))
           )}
         </div>
-      </div>
-
-      {/* Productivity Heatmap */}
-      <div className="bg-surface rounded-lg p-6 border border-border">
-        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Activity Heatmap</h3>
-        <ProductivityHeatmap data={safeAnalyticsData.heatmap} />
-        {(!safeAnalyticsData.heatmap || safeAnalyticsData.heatmap.length === 0) && (
-          <div className="text-center text-text-secondary mt-4">No activity data yet. Start using the app to see your heatmap!</div>
-        )}
       </div>
 
       {/* Next Achievements */}
@@ -232,13 +242,60 @@ const AnalyticsDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Quick Actions */}
+      <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-6 border border-primary/20">
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Quick Analytics</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setActiveTab('streaks')}
+            className="flex-col h-auto py-4"
+          >
+            <Icon name="Flame" size={24} className="mb-2 text-warning" />
+            <span>Streaks</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setActiveTab('performance')}
+            className="flex-col h-auto py-4"
+          >
+            <Icon name="Zap" size={24} className="mb-2 text-accent" />
+            <span>Performance</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setActiveTab('goals')}
+            className="flex-col h-auto py-4"
+          >
+            <Icon name="Target" size={24} className="mb-2 text-success" />
+            <span>Goals</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setActiveTab('predictions')}
+            className="flex-col h-auto py-4"
+          >
+            <Icon name="Brain" size={24} className="mb-2 text-primary" />
+            <span>AI Insights</span>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
   const renderProductivity = () => (
     <div className="space-y-6">
       <div className="bg-surface rounded-lg p-6 border border-border">
-        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Productivity Trends</h3>
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Advanced Productivity Analytics</h3>
+        <AdvancedProductivityChart data={safeAnalyticsData.heatmap} timeRange={timeRange} />
+      </div>
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Traditional Productivity Trends</h3>
         <ProductivityTrends data={safeAnalyticsData.trends} />
         {(!safeAnalyticsData.trends || safeAnalyticsData.trends.length === 0) && (
           <div className="text-center text-text-secondary mt-4">No productivity data yet. Start using the app to see your trends!</div>
@@ -256,6 +313,10 @@ const AnalyticsDashboard = () => {
 
   const renderGoals = () => (
     <div className="space-y-6">
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Goal Performance Matrix</h3>
+        <GoalPerformanceMatrix data={safeAnalyticsData.goalDependencies} />
+      </div>
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Goal Dependencies</h3>
         <GoalDependencyGraph data={safeAnalyticsData.goalDependencies} />
@@ -281,11 +342,42 @@ const AnalyticsDashboard = () => {
   const renderPredictions = () => (
     <div className="space-y-6">
       <div className="bg-surface rounded-lg p-6 border border-border">
-        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Predictive Insights</h3>
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">AI-Powered Predictive Insights</h3>
         <PredictiveInsights data={safeAnalyticsData.insights} />
         {(!safeAnalyticsData.insights || safeAnalyticsData.insights.length === 0) && (
           <div className="text-center text-text-secondary mt-4">No predictive insights yet. Use the app more to unlock AI-powered predictions!</div>
         )}
+      </div>
+    </div>
+  );
+
+  const renderTimeTracking = () => (
+    <div className="space-y-6">
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Interactive Time Allocation</h3>
+        <InteractiveTimeAllocation data={safeAnalyticsData.habits} />
+      </div>
+    </div>
+  );
+
+  const renderStreaks = () => (
+    <div className="space-y-6">
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Streak Analytics & Patterns</h3>
+        <StreakAnalytics data={safeAnalyticsData.habits} />
+      </div>
+    </div>
+  );
+
+  const renderPerformance = () => (
+    <div className="space-y-6">
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Performance Overview</h3>
+        <AdvancedProductivityChart data={safeAnalyticsData.heatmap} timeRange={timeRange} />
+      </div>
+      <div className="bg-surface rounded-lg p-6 border border-border">
+        <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Goal Performance Analysis</h3>
+        <GoalPerformanceMatrix data={safeAnalyticsData.goalDependencies} />
       </div>
     </div>
   );
@@ -295,6 +387,24 @@ const AnalyticsDashboard = () => {
       <Header />
       <main className="pt-20 pb-24 md:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Demo Banner for unauthenticated users */}
+          {!isAuthenticated && (
+            <div className="bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Icon name="Eye" size={20} className="text-primary" />
+                  <div>
+                    <h3 className="text-sm font-heading-semibold text-primary">Demo Mode</h3>
+                    <p className="text-xs text-text-secondary">You're viewing demo analytics data. Sign in to see your real data.</p>
+                  </div>
+                </div>
+                <Button size="sm" onClick={() => window.location.href = '/login'}>
+                  Sign In
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -346,6 +456,9 @@ const AnalyticsDashboard = () => {
                 {activeTab === 'productivity' && renderProductivity()}
                 {activeTab === 'goals' && renderGoals()}
                 {activeTab === 'habits' && renderHabits()}
+                {activeTab === 'time' && renderTimeTracking()}
+                {activeTab === 'streaks' && renderStreaks()}
+                {activeTab === 'performance' && renderPerformance()}
                 {activeTab === 'predictions' && renderPredictions()}
               </>
             )}
