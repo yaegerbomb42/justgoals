@@ -96,7 +96,7 @@ const Day = () => {
     if (savedPlan) {
       try {
         const parsed = JSON.parse(savedPlan);
-        const normalized = normalizePlanResponse(JSON.stringify(parsed));
+        const normalized = normalizePlanData(JSON.stringify(parsed));
         if (normalized) {
           setDailyPlan(normalized);
         } else {
@@ -118,7 +118,7 @@ const Day = () => {
   const saveDailyPlan = useCallback((plan, date = selectedDate) => {
     if (!user?.id) return;
     const planKey = `daily_plan_${user.id}_${date}`;
-    const normalized = normalizePlanResponse(JSON.stringify(plan));
+    const normalized = normalizePlanData(JSON.stringify(plan));
     if (normalized) {
       localStorage.setItem(planKey, JSON.stringify(normalized));
     } else {
@@ -233,7 +233,7 @@ const Day = () => {
       }
       
       // Robust AI response parsing and normalization
-      const flatJsonData = normalizePlanResponse(response);
+      const flatJsonData = normalizePlanData(response);
       if (!flatJsonData) {
         setPlanError('AI did not return a valid plan. Please try again.');
         setIsGenerating(false);
@@ -839,48 +839,26 @@ const Day = () => {
   );
 };
 
-// Utility to robustly extract and normalize AI response into a valid array of activity objects
-function normalizePlanResponse(response) {
-  let jsonData = null;
-  // Try to extract JSON array from markdown
-  const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    try {
-      jsonData = JSON.parse(codeBlockMatch[1]);
-    } catch {}
+// General, bulletproof normalization for any plan data
+function normalizePlanData(input) {
+  let data = input;
+  if (typeof input === 'string') {
+    try { data = JSON.parse(input); } catch { return []; }
   }
-  // Try to extract JSON array pattern
-  if (!jsonData) {
-    const jsonMatch = response.match(/\[\s*\{[\s\S]*\}\s*\]/);
-    if (jsonMatch) {
-      try {
-        jsonData = JSON.parse(jsonMatch[0]);
-      } catch {}
-    }
-  }
-  // Try to parse the whole response
-  if (!jsonData) {
-    try {
-      jsonData = JSON.parse(response.trim());
-    } catch {}
-  }
-  // Fallback: if jsonData is a single object, wrap in array
-  if (jsonData && !Array.isArray(jsonData) && typeof jsonData === 'object') {
-    jsonData = [jsonData];
-  }
-  // If still not an array, give up
-  if (!jsonData || !Array.isArray(jsonData)) {
-    return null;
+  // Accept single object
+  if (data && !Array.isArray(data) && typeof data === 'object') {
+    data = [data];
   }
   // Deep flatten
   function deepFlatten(arr) {
     return arr.reduce((acc, val) => Array.isArray(val) ? acc.concat(deepFlatten(val)) : acc.concat(val), []);
   }
-  const flat = deepFlatten(jsonData).filter(
+  if (!Array.isArray(data)) return [];
+  const flat = deepFlatten(data).filter(
     item => item && typeof item === 'object' && !Array.isArray(item) && typeof item.time === 'string' && typeof item.title === 'string'
   );
-  return flat.length > 0 ? flat : null;
+  return flat;
 }
 
-export { normalizePlanResponse };
+export { normalizePlanData };
 export default Day; 

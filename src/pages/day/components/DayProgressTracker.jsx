@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../context/AuthContext';
-import { normalizePlanResponse } from '../index'; // Import normalization utility from day/index.jsx
+import { normalizePlanData } from '../index'; // Import new general normalization utility
 
 const DayProgressTracker = () => {
   const { user } = useAuth();
@@ -28,7 +28,7 @@ const DayProgressTracker = () => {
       if (savedPlan) {
         try {
           const parsed = JSON.parse(savedPlan);
-          const normalized = normalizePlanResponse(JSON.stringify(parsed));
+          const normalized = normalizePlanData(JSON.stringify(parsed));
           if (normalized) {
             const total = normalized.length;
             const completed = normalized.filter(activity => activity.completed).length;

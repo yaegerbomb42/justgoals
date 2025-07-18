@@ -118,6 +118,23 @@ const AiAssistantChatDrift = () => {
     initializeGemini();
   }, []);
 
+  // Add a useEffect to re-check Gemini connection whenever the API key changes
+  useEffect(() => {
+    const checkGeminiConnection = async () => {
+      const apiKey = getUserApiKey();
+      if (apiKey) {
+        geminiService.initialize(apiKey);
+        const connection = await geminiService.testConnection(apiKey);
+        setIsConnected(connection.success);
+        setIsInitialized(true);
+      } else {
+        setIsConnected(false);
+        setIsInitialized(true);
+      }
+    };
+    checkGeminiConnection();
+  }, [user && user.id, localStorage.getItem(`gemini_api_key_${user && user.id}`)]);
+
   useEffect(() => {
     // Listen for post-focus-session AI prompt
     const checkForFocusSessionMessage = () => {
