@@ -47,6 +47,7 @@ const GoalsDashboard = () => {
   const { settings } = useSettings();
   // Robust onboarding modal state
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingError, setOnboardingError] = useState(null);
   const [updateStatus, setUpdateStatus] = useState(null);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const downloadMenuRef = useRef(null);
@@ -96,17 +97,27 @@ const GoalsDashboard = () => {
 
   useEffect(() => {
     let cancelled = false;
+    let sessionFlag = false;
     async function checkOnboarding() {
       if (isAuthenticated && user && user.id) {
         try {
           const appSettings = await firestoreService.getAppSettings(user.id);
-          if (!cancelled) setShowOnboarding(!appSettings.onboardingDismissed);
+          if (!cancelled) {
+            setShowOnboarding(!appSettings.onboardingDismissed);
+            setOnboardingError(null);
+            sessionFlag = true;
+          }
         } catch (e) {
-          // Fallback: if Firestore fails, only show onboarding for this session
-          if (!cancelled) setShowOnboarding(true);
+          console.error('Onboarding Firestore error:', e);
+          if (!cancelled && !sessionFlag) {
+            setShowOnboarding(true);
+            setOnboardingError('Could not check onboarding status. Please check your connection or permissions.');
+            sessionFlag = true;
+          }
         }
       } else {
         setShowOnboarding(false);
+        setOnboardingError(null);
       }
     }
     checkOnboarding();
@@ -170,6 +181,11 @@ const GoalsDashboard = () => {
     <div className="min-h-screen bg-background">
       <Header showDownloadMenu={showDownloadMenu} setShowDownloadMenu={setShowDownloadMenu} />
       {showOnboarding && <OnboardingModal open={showOnboarding} onClose={handleDismissOnboarding} />}
+      {onboardingError && (
+        <div className="bg-error/10 border border-error/20 text-error text-center p-4 mb-4 rounded">
+          <strong>{onboardingError}</strong>
+        </div>
+      )}
       {updateStatus && (
         <div className="bg-info text-info-content px-4 py-2 text-center">
           {updateStatus}
