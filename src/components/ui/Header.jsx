@@ -169,7 +169,7 @@ const Header = () => {
             {/* Achievement Points - Clickable */}
             <button
               onClick={() => navigate('/achievements')}
-              className="hidden sm:flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg hover:bg-surface-600 transition-colors cursor-pointer"
+              className="flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg hover:bg-surface-600 transition-colors cursor-pointer flex-shrink-0"
             >
               <Icon name="Trophy" size={16} className="text-primary" />
               <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>

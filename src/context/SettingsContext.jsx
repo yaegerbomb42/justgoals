@@ -81,6 +81,8 @@ export const SettingsProvider = ({ children }) => {
   // Load settings from localStorage
   useEffect(() => {
     const MAX_SIZE = 1024 * 1024; // 1MB
+    let timeoutId = null;
+    let didTimeout = false;
     const loadSettings = () => {
       const settingsKey = getAppSettingsKey();
       const defaultSettings = getDefaultSettings();
@@ -140,14 +142,21 @@ export const SettingsProvider = ({ children }) => {
             }
           }
         }
-        setSettings(loadedSettings);
+        if (!didTimeout) setSettings(loadedSettings);
       } catch (e) {
-        setSettings(defaultSettings);
+        if (!didTimeout) setSettings(defaultSettings);
       } finally {
-        setIsLoading(false);
+        if (!didTimeout) setIsLoading(false);
       }
     };
+    timeoutId = setTimeout(() => {
+      didTimeout = true;
+      console.warn('Settings loading timed out, clearing all localStorage and reloading.');
+      localStorage.clear();
+      window.location.reload();
+    }, 1000);
     loadSettings();
+    return () => clearTimeout(timeoutId);
   }, [getAppSettingsKey, user, getDefaultSettings]);
 
   // Apply accent colors to CSS variables
