@@ -53,7 +53,7 @@ const Routes = () => {
         <Route path="/daily-milestones" element={<ProtectedRoute><DailyMilestones /></ProtectedRoute>} />
         <Route path="/goal-creation-management" element={<ProtectedRoute><GoalCreationManagement /></ProtectedRoute>} />
         <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
-        <Route path="/analytics-dashboard" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+        <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
         <Route path="/day" element={<ProtectedRoute><Day /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
 

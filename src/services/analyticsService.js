@@ -2,6 +2,7 @@
 
 import { firestore } from './firebaseClient';
 import { getAuth } from 'firebase/auth';
+import generateDemoAnalyticsData from '../utils/demoDataGenerator';
 
 class AnalyticsService {
   constructor() {
@@ -45,16 +46,8 @@ class AnalyticsService {
   // Main analytics method
   async getUserAnalytics(userId, timeRange = 'month') {
     if (!userId) {
-      // Only return empty data for unauthenticated
-      return {
-        heatmap: [],
-        trends: [],
-        focusTimes: [],
-        goalDependencies: {},
-        habits: {},
-        insights: [],
-        permissionError: false
-      };
+      // Return demo data for unauthenticated users to showcase features
+      return generateDemoAnalyticsData();
     }
 
     try {
