@@ -258,8 +258,8 @@ const Day = () => {
       }
 
       // Validate and format activities
-      const formattedPlan = jsonData
-        .filter(activity => activity.time && activity.title)
+      const formattedPlan = (Array.isArray(jsonData) ? jsonData : [])
+        .filter(activity => activity && typeof activity === 'object' && typeof activity.time === 'string' && activity.title)
         .map((activity, index) => ({
           id: `activity_${Date.now()}_${index}`,
           time: activity.time || '09:00',
@@ -274,7 +274,7 @@ const Day = () => {
           completed: false,
           createdAt: new Date().toISOString()
         }))
-        .sort((a, b) => a.time.localeCompare(b.time));
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
       if (formattedPlan.length === 0) {
         throw new Error('No valid activities were generated. Please try again.');

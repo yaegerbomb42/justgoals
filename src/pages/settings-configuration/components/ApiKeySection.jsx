@@ -214,14 +214,17 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
                 cloudStatus === 'success' ? 'text-success' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'
               } />
               <span className={
-                cloudStatus === 'success' ? 'text-success' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'
+                cloudStatus === 'success' ? 'text-success font-bold' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'
               }>
-                {cloudStatus === 'success' && 'Synced to cloud'}
+                {cloudStatus === 'success' && 'Connected'}
                 {cloudStatus === 'syncing' && 'Syncing...'}
                 {cloudStatus === 'error' && 'Cloud sync error'}
                 {cloudStatus === 'idle' && 'Not yet synced'}
               </span>
             </div>
+          )}
+          {!localApiKey && !isLoading && (
+            <div className="text-xs text-error mt-2">Failed to load API key. Please enter and save your key.</div>
           )}
         </div>
 
