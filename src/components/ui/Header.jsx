@@ -6,7 +6,7 @@ import Icon from '../AppIcon';
 import Button from './Button';
 import AchievementBadge from './AchievementBadge';
 
-const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
+const Header = () => {
   // Defensive: always provide safe defaults
   let auth = {};
   try {
@@ -32,6 +32,7 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const downloadMenuRef = useRef(null);
   const userMenuRef = useRef(null);
 
@@ -44,13 +45,13 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
         userMenuRef.current &&
         !userMenuRef.current.contains(event.target)
       ) {
-        setShowDownloadMenu && setShowDownloadMenu(false);
+        setShowDownloadMenu(false);
         setIsMenuOpen(false);
       } else if (
         downloadMenuRef.current &&
         !downloadMenuRef.current.contains(event.target)
       ) {
-        setShowDownloadMenu && setShowDownloadMenu(false);
+        setShowDownloadMenu(false);
       } else if (
         userMenuRef.current &&
         !userMenuRef.current.contains(event.target)
@@ -62,7 +63,7 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [setShowDownloadMenu]);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -95,13 +96,13 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/goals-dashboard" className="flex items-center space-x-4 md:space-x-6 lg:space-x-8 pr-4 md:pr-8">
+          {/* Logo and Download Dropdown */}
+          <div className="flex items-center space-x-4 md:space-x-6 lg:space-x-8 pr-4 md:pr-8">
             {/* Download Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={downloadMenuRef}>
               <button
                 className="flex items-center px-2 py-1 rounded hover:bg-surface-700 transition-colors"
-                onClick={() => setShowDownloadMenu && setShowDownloadMenu(v => !v)}
+                onClick={() => setShowDownloadMenu(v => !v)}
                 aria-label="Download App"
               >
                 <Icon name="Download" size={20} className="mr-1" />
@@ -130,11 +131,14 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
                 </div>
               )}
             </div>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
-              <Icon name="Target" size={20} color="#FFFFFF" />
-            </div>
-            <span className="text-xl font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
-          </Link>
+            {/* App Logo/Title */}
+            <Link to="/goals-dashboard" className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
+                <Icon name="Target" size={20} color="#FFFFFF" />
+              </div>
+              <span className="text-xl font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
+            </Link>
+          </div>
 
           {/* Sync Status */}
           {/* Remove sync status display from header */}
@@ -176,7 +180,7 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
               <button
                 onClick={() => {
                   setIsMenuOpen(v => {
-                    if (!v) setShowDownloadMenu && setShowDownloadMenu(false); // Close download menu when opening user menu
+                    if (!v) setShowDownloadMenu(false); // Close download menu when opening user menu
                     return !v;
                   });
                 }}
@@ -230,30 +234,7 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
             </div>
 
             {/* Download Icon */}
-            <div className="relative" ref={downloadMenuRef}>
-              <button
-                onClick={() => {
-                  setShowDownloadMenu && setShowDownloadMenu(v => {
-                    if (!v) setIsMenuOpen(false); // Close user menu when opening download
-                    return !v;
-                  });
-                }}
-                className="p-2 rounded-full hover:bg-surface-700 transition"
-                aria-label="Download App"
-              >
-                <Icon name="Download" size={20} />
-              </button>
-              {showDownloadMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg z-50">
-                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-mac.dmg" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
-                    <Icon name="Apple" size={16} className="mr-2" /> Download for Mac
-                  </a>
-                  <a href="https://github.com/yaegerbomb42/justgoals/releases/latest/download/YaegerGoals-win.exe" className="flex items-center px-4 py-2 hover:bg-surface-700" download>
-                    <Icon name="Windows" size={16} className="mr-2" /> Download for Windows
-                  </a>
-                </div>
-              )}
-            </div>
+            {/* This section is removed as per the edit hint */}
 
             {/* Mobile Menu Button */}
             <button
