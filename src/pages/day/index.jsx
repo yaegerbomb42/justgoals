@@ -33,6 +33,22 @@ const Day = () => {
   });
   const [planError, setPlanError] = useState(null);
 
+  // On app load, clean all daily_plan_* keys in localStorage if not valid
+  useEffect(() => {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('daily_plan_')) {
+        try {
+          const plan = JSON.parse(localStorage.getItem(key));
+          if (!Array.isArray(plan) || !plan.every(item => item && typeof item === 'object' && typeof item.time === 'string' && typeof item.title === 'string')) {
+            localStorage.removeItem(key);
+          }
+        } catch {
+          localStorage.removeItem(key);
+        }
+      }
+    });
+  }, []);
+
   // Load planner preferences
   useEffect(() => {
     if (user?.id) {
@@ -361,7 +377,13 @@ const Day = () => {
   const progressStats = getProgressStats();
 
   // In all places where dailyPlan is used, ensure it is always a valid array
-  const safeDailyPlan = Array.isArray(dailyPlan) && dailyPlan.every(item => item && typeof item === 'object' && typeof item.time === 'string' && typeof item.title === 'string') ? dailyPlan : [];
+  let safeDailyPlan = [];
+  try {
+    safeDailyPlan = Array.isArray(dailyPlan) && dailyPlan.every(item => item && typeof item === 'object' && typeof item.time === 'string' && typeof item.title === 'string') ? dailyPlan : [];
+  } catch {
+    safeDailyPlan = [];
+    setPlanError && setPlanError('Plan data was corrupted and has been reset.');
+  }
 
   if (!isAuthenticated) {
     return <div>Please log in to access your daily plan.</div>;

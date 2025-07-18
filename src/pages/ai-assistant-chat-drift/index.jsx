@@ -812,29 +812,42 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
   // Utility to get user-specific API key
   const getUserApiKey = () => (user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : null);
 
-  // Always re-initialize Gemini and update connection state when user or key changes
+  // Track the current API key and connection state
+  const [currentApiKey, setCurrentApiKey] = useState('');
+  const [connectionDebug, setConnectionDebug] = useState({ key: '', connected: false });
+
+  // Function to check and update Gemini connection
+  const checkGeminiConnection = async () => {
+    const key = user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : '';
+    setCurrentApiKey(key || '');
+    if (key) {
+      geminiService.initialize(key);
+      const connection = await geminiService.testConnection(key);
+      setIsConnected(connection.success);
+      setIsInitialized(true);
+      setConnectionDebug({ key, connected: connection.success });
+    } else {
+      setIsConnected(false);
+      setIsInitialized(true);
+      setConnectionDebug({ key: '', connected: false });
+    }
+  };
+
+  // Always re-check Gemini connection when user or key changes
   useEffect(() => {
-    const checkGeminiConnection = async () => {
-      const apiKey = getUserApiKey();
-      if (apiKey) {
-        geminiService.initialize(apiKey);
-        const connection = await geminiService.testConnection(apiKey);
-        setIsConnected(connection.success);
-        setIsInitialized(true);
-      } else {
-        setIsConnected(false);
-        setIsInitialized(true);
-      }
-    };
     checkGeminiConnection();
   }, [user && user.id, localStorage.getItem(`gemini_api_key_${user && user.id}`)]);
 
-  // In every AI call (generateText, etc):
+  // Manual refresh button
+  const handleRefreshConnection = () => {
+    checkGeminiConnection();
+  };
+
+  // In all AI calls, always use currentApiKey
   const ensureGeminiReady = async () => {
-    const apiKey = getUserApiKey();
-    if (!apiKey) return false;
-    geminiService.initialize(apiKey);
-    const connection = await geminiService.testConnection(apiKey);
+    if (!currentApiKey) return false;
+    geminiService.initialize(currentApiKey);
+    const connection = await geminiService.testConnection(currentApiKey);
     return connection.success;
   };
 
@@ -1361,6 +1374,8 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
                     <span className="text-error">API Key Required. Please configure your Gemini API key in Settings to start chatting.</span>
                   )
                 )}
+                <div className="text-xs text-text-secondary mt-1">[Debug] API Key: {connectionDebug.key ? 'Present' : 'Missing'} | Connected: {connectionDebug.connected ? 'Yes' : 'No'}</div>
+                <button className="ml-2 px-2 py-1 bg-surface-700 text-xs rounded hover:bg-surface-600" onClick={handleRefreshConnection}>Refresh Connection</button>
               </div>
 
               {/* Message Input */}
