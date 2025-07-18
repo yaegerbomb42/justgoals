@@ -44,7 +44,7 @@ const QuickActions = ({ onCreateGoal, onOpenDrift }) => {
           const ActionComponent = item.link ? Link : 'button';
           const actionProps = item.link 
             ? { to: item.link }
-            : { onClick: item.action };
+            : { onClick: item.action, type: 'button' };
 
           return (
             <ActionComponent
