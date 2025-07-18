@@ -2,7 +2,7 @@ module.exports = {
   packagerConfig: {
     icon: 'public/favicon.ico', // You can replace with a real .icns/.ico for production
     asar: true,
-    name: 'YaegerGoals',
+    name: 'JustGoals',
     // --- Mac Code Signing & Notarization (Optional) ---
     ...(process.env.APPLE_DEV_IDENTITY && {
       osxSign: {
@@ -30,7 +30,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: 'yaegergoals',
+        name: 'justgoals',
         setupIcon: 'public/favicon.ico',
       },
     },
