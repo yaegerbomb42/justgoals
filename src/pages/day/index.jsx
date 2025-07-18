@@ -91,15 +91,23 @@ const Day = () => {
   // Load daily plan for selected date
   const loadDailyPlan = useCallback((date) => {
     if (!user?.id) return;
-    
     const planKey = `daily_plan_${user.id}_${date}`;
     const savedPlan = localStorage.getItem(planKey);
     if (savedPlan) {
       try {
-        setDailyPlan(JSON.parse(savedPlan));
+        const parsed = JSON.parse(savedPlan);
+        const normalized = normalizePlanResponse(JSON.stringify(parsed));
+        if (normalized) {
+          setDailyPlan(normalized);
+        } else {
+          setDailyPlan([]);
+          setPlanError('Saved plan was invalid and has been cleared.');
+          localStorage.removeItem(planKey);
+        }
       } catch (error) {
-        console.error('Error loading daily plan:', error);
         setDailyPlan([]);
+        setPlanError('Error loading daily plan. Plan has been cleared.');
+        localStorage.removeItem(planKey);
       }
     } else {
       setDailyPlan([]);
@@ -109,9 +117,14 @@ const Day = () => {
   // Save daily plan
   const saveDailyPlan = useCallback((plan, date = selectedDate) => {
     if (!user?.id) return;
-    
     const planKey = `daily_plan_${user.id}_${date}`;
-    localStorage.setItem(planKey, JSON.stringify(plan));
+    const normalized = normalizePlanResponse(JSON.stringify(plan));
+    if (normalized) {
+      localStorage.setItem(planKey, JSON.stringify(normalized));
+    } else {
+      localStorage.removeItem(planKey);
+      setPlanError('Attempted to save an invalid plan. Plan was not saved.');
+    }
   }, [user, selectedDate]);
 
   // Generate intelligent daily plan
@@ -135,6 +148,7 @@ const Day = () => {
         setIsGenerating(false);
         return;
       }
+      geminiService.initialize(apiKey);
       const connectionTest = await geminiService.testConnection(apiKey);
       if (!connectionTest.success) {
         throw new Error('API connection failed. Please check your API key.');
@@ -449,7 +463,24 @@ const Day = () => {
                   <strong>{planError}</strong>
                 </div>
               )}
-              {dailyPlan.length === 0 ? (
+              {(!Array.isArray(dailyPlan) || dailyPlan.some(item => typeof item !== 'object' || Array.isArray(item) || typeof item.time !== 'string' || typeof item.title !== 'string')) ? (
+                <div className="text-center py-12">
+                  <Icon name="AlertTriangle" size={48} className="text-error mx-auto mb-4" />
+                  <h3 className="text-lg font-heading-medium text-error mb-2">Invalid plan data</h3>
+                  <p className="text-text-secondary mb-4">
+                    The plan data is corrupted or invalid. Please generate a new plan.
+                  </p>
+                  <Button
+                    onClick={generateDailyPlan}
+                    disabled={isGenerating}
+                    loading={isGenerating}
+                    iconName="Zap"
+                    iconPosition="left"
+                  >
+                    Generate My Day
+                  </Button>
+                </div>
+              ) : dailyPlan.length === 0 ? (
                 <div className="text-center py-12">
                   <Icon name="Calendar" size={48} className="text-text-muted mx-auto mb-4" />
                   <h3 className="text-lg font-heading-medium text-text-primary mb-2">No plan for today</h3>
@@ -841,9 +872,12 @@ function normalizePlanResponse(response) {
   if (!jsonData || !Array.isArray(jsonData)) {
     return null;
   }
-  // Flatten and filter for valid activity objects
-  const flat = jsonData.flat(Infinity).filter(
-    item => item && typeof item === 'object' && !Array.isArray(item) && typeof item.time === 'string' && item.title
+  // Deep flatten
+  function deepFlatten(arr) {
+    return arr.reduce((acc, val) => Array.isArray(val) ? acc.concat(deepFlatten(val)) : acc.concat(val), []);
+  }
+  const flat = deepFlatten(jsonData).filter(
+    item => item && typeof item === 'object' && !Array.isArray(item) && typeof item.time === 'string' && typeof item.title === 'string'
   );
   return flat.length > 0 ? flat : null;
 }
