@@ -218,61 +218,18 @@ const Day = () => {
         return;
       }
       
-      // Try multiple ways to extract JSON
-      let jsonData = null;
-      
-      // Method 1: Look for JSON array pattern
-      const jsonMatch = response.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      if (jsonMatch) {
-        try {
-          jsonData = JSON.parse(jsonMatch[0]);
-        } catch (e) {
-          console.error('Failed to parse JSON match:', e);
-        }
-      }
-      
-      // Method 2: If no match, try parsing the entire response
-      if (!jsonData) {
-        try {
-          jsonData = JSON.parse(response.trim());
-        } catch (e) {
-          console.error('Failed to parse full response as JSON:', e);
-        }
-      }
-      
-      // Method 3: Try to extract JSON from markdown code blocks
-      if (!jsonData) {
-        const codeBlockMatch = response.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-        if (codeBlockMatch) {
-          try {
-            jsonData = JSON.parse(codeBlockMatch[1]);
-          } catch (e) {
-            console.error('Failed to parse code block JSON:', e);
-          }
-        }
-      }
-
-      if (!jsonData || !Array.isArray(jsonData)) {
-        console.error('AI Response:', response);
-        throw new Error('Could not parse AI response into valid activity list. Please try again.');
-      }
-
-      // Defensive flattening and validation
-      let flatJsonData = [];
-      if (Array.isArray(jsonData)) {
-        flatJsonData = jsonData.flat(Infinity).filter(item => item && typeof item === 'object' && !Array.isArray(item));
-      }
-      console.log('[Day Plan] AI raw jsonData:', jsonData);
-      console.log('[Day Plan] Flattened plan data:', flatJsonData);
-      if (!Array.isArray(flatJsonData) || flatJsonData.some(item => typeof item !== 'object' || Array.isArray(item))) {
-        console.error('[Day Plan] Malformed plan data:', flatJsonData);
-        throw new Error('AI returned invalid plan data. Please try again.');
+      // Robust AI response parsing and normalization
+      const flatJsonData = normalizePlanResponse(response);
+      if (!flatJsonData) {
+        setPlanError('AI did not return a valid plan. Please try again.');
+        setIsGenerating(false);
+        console.error('[Day Plan] Could not normalize AI response:', response);
+        return;
       }
       // Validate and format activities
       let formattedPlan = [];
       try {
         formattedPlan = flatJsonData
-          .filter(activity => typeof activity.time === 'string' && activity.title)
           .map((activity, index) => ({
             id: `activity_${Date.now()}_${index}`,
             time: activity.time || '09:00',
@@ -289,11 +246,15 @@ const Day = () => {
           }))
           .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
       } catch (sortError) {
+        setPlanError('Failed to process plan data. Please try again.');
+        setIsGenerating(false);
         console.error('[Day Plan] Error during plan formatting/sorting:', sortError, flatJsonData);
-        throw new Error('Failed to process plan data. Please try again.');
+        return;
       }
       if (formattedPlan.length === 0) {
-        throw new Error('No valid activities were generated. Please try again.');
+        setPlanError('No valid activities were generated. Please try again.');
+        setIsGenerating(false);
+        return;
       }
       setDailyPlan(formattedPlan);
       saveDailyPlan(formattedPlan);
@@ -846,5 +807,45 @@ const Day = () => {
     </div>
   );
 };
+
+// Utility to robustly extract and normalize AI response into a valid array of activity objects
+function normalizePlanResponse(response) {
+  let jsonData = null;
+  // Try to extract JSON array from markdown
+  const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    try {
+      jsonData = JSON.parse(codeBlockMatch[1]);
+    } catch {}
+  }
+  // Try to extract JSON array pattern
+  if (!jsonData) {
+    const jsonMatch = response.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (jsonMatch) {
+      try {
+        jsonData = JSON.parse(jsonMatch[0]);
+      } catch {}
+    }
+  }
+  // Try to parse the whole response
+  if (!jsonData) {
+    try {
+      jsonData = JSON.parse(response.trim());
+    } catch {}
+  }
+  // Fallback: if jsonData is a single object, wrap in array
+  if (jsonData && !Array.isArray(jsonData) && typeof jsonData === 'object') {
+    jsonData = [jsonData];
+  }
+  // If still not an array, give up
+  if (!jsonData || !Array.isArray(jsonData)) {
+    return null;
+  }
+  // Flatten and filter for valid activity objects
+  const flat = jsonData.flat(Infinity).filter(
+    item => item && typeof item === 'object' && !Array.isArray(item) && typeof item.time === 'string' && item.title
+  );
+  return flat.length > 0 ? flat : null;
+}
 
 export default Day; 
