@@ -137,28 +137,8 @@ const GoalsDashboard = () => {
 
   const safeGoals = Array.isArray(goals) ? goals : [];
 
-  if (!safeGoals.length) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header showDownloadMenu={showDownloadMenu} setShowDownloadMenu={setShowDownloadMenu} />
-        <main className="pt-20 pb-24 md:pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {showOnboarding && <OnboardingModal open={showOnboarding} onClose={handleDismissOnboarding} />}
-            {updateStatus && (
-              <div className="bg-info text-info-content px-4 py-2 text-center">
-                {updateStatus}
-              </div>
-            )}
-            <div className="text-center py-16">
-              <h1 className="text-2xl font-heading-bold text-text-primary mb-4">No Goals Yet</h1>
-              <p className="text-text-secondary mb-8">Start by creating your first goal to unlock achievements and progress tracking.</p>
-              <button onClick={handleCreateGoal} className="btn btn-primary">Create Goal</button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  // Remove the early return for !safeGoals.length
+  // Always render the main dashboard layout
 
   return (
     <div className="min-h-screen bg-background">
@@ -204,10 +184,11 @@ const GoalsDashboard = () => {
               ))}
             </div>
           ) : (
-            <EmptyState
-              onCreateGoal={handleCreateGoal}
-              filterType={activeFilter}
-            />
+            <div className="text-center py-16">
+              <h1 className="text-2xl font-heading-bold text-text-primary mb-4">No Goals Yet</h1>
+              <p className="text-text-secondary mb-8">Start by creating your first goal to unlock achievements and progress tracking.</p>
+              <button onClick={handleCreateGoal} className="btn btn-primary">Create Goal</button>
+            </div>
           )}
         </div>
       </main>
