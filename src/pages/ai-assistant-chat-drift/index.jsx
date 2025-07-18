@@ -812,6 +812,23 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
   // Utility to get user-specific API key
   const getUserApiKey = () => (user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : null);
 
+  // Always re-initialize Gemini and update connection state when user or key changes
+  useEffect(() => {
+    const checkGeminiConnection = async () => {
+      const apiKey = getUserApiKey();
+      if (apiKey) {
+        geminiService.initialize(apiKey);
+        const connection = await geminiService.testConnection(apiKey);
+        setIsConnected(connection.success);
+        setIsInitialized(true);
+      } else {
+        setIsConnected(false);
+        setIsInitialized(true);
+      }
+    };
+    checkGeminiConnection();
+  }, [user && user.id, localStorage.getItem(`gemini_api_key_${user && user.id}`)]);
+
   // In every AI call (generateText, etc):
   const ensureGeminiReady = async () => {
     const apiKey = getUserApiKey();
@@ -1335,13 +1352,28 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
               {/* Quick Actions */}
               <QuickActionChips onAction={handleQuickAction} />
 
+              {/* Gemini Connection Status */}
+              <div className="mb-2 text-sm">
+                {isInitialized && (
+                  isConnected ? (
+                    <span className="text-success">API Key Connected</span>
+                  ) : (
+                    <span className="text-error">API Key Required. Please configure your Gemini API key in Settings to start chatting.</span>
+                  )
+                )}
+              </div>
+
               {/* Message Input */}
-              <MessageInput
-                message={message}
-                setMessage={setMessage}
-                onSubmit={handleSubmit}
-                isProcessing={isProcessing}
-              />
+              {isConnected ? (
+                <MessageInput
+                  message={message}
+                  setMessage={setMessage}
+                  onSubmit={handleSubmit}
+                  isProcessing={isProcessing}
+                />
+              ) : (
+                <div className="text-error text-center mt-4">API Key Required. Please configure your Gemini API key in Settings to start chatting.</div>
+              )}
             </>
           )}
         </div>

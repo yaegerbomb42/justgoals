@@ -360,6 +360,9 @@ const Day = () => {
 
   const progressStats = getProgressStats();
 
+  // In all places where dailyPlan is used, ensure it is always a valid array
+  const safeDailyPlan = Array.isArray(dailyPlan) && dailyPlan.every(item => item && typeof item === 'object' && typeof item.time === 'string' && typeof item.title === 'string') ? dailyPlan : [];
+
   if (!isAuthenticated) {
     return <div>Please log in to access your daily plan.</div>;
   }
@@ -463,24 +466,7 @@ const Day = () => {
                   <strong>{planError}</strong>
                 </div>
               )}
-              {(!Array.isArray(dailyPlan) || dailyPlan.some(item => typeof item !== 'object' || Array.isArray(item) || typeof item.time !== 'string' || typeof item.title !== 'string')) ? (
-                <div className="text-center py-12">
-                  <Icon name="AlertTriangle" size={48} className="text-error mx-auto mb-4" />
-                  <h3 className="text-lg font-heading-medium text-error mb-2">Invalid plan data</h3>
-                  <p className="text-text-secondary mb-4">
-                    The plan data is corrupted or invalid. Please generate a new plan.
-                  </p>
-                  <Button
-                    onClick={generateDailyPlan}
-                    disabled={isGenerating}
-                    loading={isGenerating}
-                    iconName="Zap"
-                    iconPosition="left"
-                  >
-                    Generate My Day
-                  </Button>
-                </div>
-              ) : dailyPlan.length === 0 ? (
+              {safeDailyPlan.length === 0 ? (
                 <div className="text-center py-12">
                   <Icon name="Calendar" size={48} className="text-text-muted mx-auto mb-4" />
                   <h3 className="text-lg font-heading-medium text-text-primary mb-2">No plan for today</h3>
@@ -498,8 +484,8 @@ const Day = () => {
                   </Button>
                 </div>
               ) : (
-                dailyPlan
-                  .sort((a, b) => a.time.localeCompare(b.time))
+                safeDailyPlan
+                  .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
                   .map((activity) => (
                     <motion.div
                       key={activity.id}
