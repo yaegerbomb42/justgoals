@@ -4,8 +4,8 @@ import Header from '../../components/ui/Header';
 import { useAuth } from '../../context/AuthContext';
 import { useAchievements } from '../../context/AchievementContext';
 import { useSettings } from '../../context/SettingsContext';
-import * as entityService from '../../services/entityManagementService'; // Import the service
-import { calculateUserStreak } from '../../utils/goalUtils'; // Import streak calculation
+import * as entityService from '../../services/entityManagementService';
+import { calculateUserStreak } from '../../utils/goalUtils';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 import WelcomeHero from './components/WelcomeHero';
 import QuickActions from './components/QuickActions';
@@ -13,7 +13,6 @@ import FilterSortControls from './components/FilterSortControls';
 import GoalCard from './components/GoalCard';
 import EmptyState from './components/EmptyState';
 import Icon from '../../components/AppIcon';
-import GoalCreationModal from './components/GoalCreationModal';
 
 // Onboarding Modal Component
 function OnboardingModal({ open, onClose }) {
@@ -42,8 +41,6 @@ const GoalsDashboard = () => {
   const [filteredGoals, setFilteredGoals] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [activeSort, setActiveSort] = useState('deadline');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { user, isAuthenticated } = useAuth();
   const { checkAchievements } = useAchievements();
   const { settings } = useSettings();
@@ -56,14 +53,11 @@ const GoalsDashboard = () => {
 
   // Load goals using the entity service
   useEffect(() => {
-    setIsLoading(true);
+    setGoals([]);
     if (isAuthenticated && user) {
       const userGoals = entityService.getGoals(user);
       setGoals(userGoals);
-    } else {
-      setGoals([]); // Not authenticated or no user
     }
-    setIsLoading(false);
   }, [isAuthenticated, user]);
 
   // User data for WelcomeHero - will be derived from 'user' and 'goals'
@@ -71,7 +65,7 @@ const GoalsDashboard = () => {
     name: "User",
     totalGoals: 0,
     completedGoals: 0,
-    streakDays: 0 // Streak calculation is complex, defaulting to 0 for now
+    streakDays: 0
   });
 
   useEffect(() => {
@@ -79,10 +73,10 @@ const GoalsDashboard = () => {
       const total = Array.isArray(goals) ? goals.length : 0;
       const completed = Array.isArray(goals) ? goals.filter(goal => goal.progress >= 100).length : 0;
       setDisplayUserStats({
-        name: user.name || "User", // Use user's name from AuthContext
+        name: user.name || "User",
         totalGoals: total,
         completedGoals: completed,
-        streakDays: calculateUserStreak(user.id).currentStreak // Calculate real streak
+        streakDays: calculateUserStreak(user.id).currentStreak
       });
     } else {
       setDisplayUserStats({ name: "User", totalGoals: 0, completedGoals: 0, streakDays: 0 });
@@ -103,120 +97,44 @@ const GoalsDashboard = () => {
     localStorage.setItem('onboardingDismissed', '1');
   };
 
-
   // Filter and sort goals
   useEffect(() => {
-    let filtered = Array.isArray(goals) ? [...goals] : [];
-
-    // Apply filters
-    switch (activeFilter) {
-      case 'active':
-        filtered = filtered.filter(goal => goal.progress < 100);
-        break;
-      case 'completed':
-        filtered = filtered.filter(goal => goal.progress >= 100);
-        break;
-      case 'overdue':
-        filtered = filtered.filter(goal => {
-          const deadline = new Date(goal.deadline);
-          const now = new Date();
-          return deadline < now && goal.progress < 100;
-        });
-        break;
-      case 'high-priority':
-        filtered = filtered.filter(goal => goal.priority === 'high');
-        break;
-      default:
-        // 'all' - no filtering
-        break;
+    let filtered = [...goals];
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter(goal => goal.category === activeFilter);
     }
-
-    // Apply sorting
-    switch (activeSort) {
-      case 'deadline':
-        filtered.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-        break;
-      case 'priority':
-        const priorityOrder = { high: 3, medium: 2, low: 1 };
-        filtered.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
-        break;
-      case 'progress':
-        filtered.sort((a, b) => b.progress - a.progress);
-        break;
-      case 'created':
-        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
-      case 'alphabetical':
-        filtered.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      default:
-        break;
+    if (activeSort === 'deadline') {
+      filtered.sort((a, b) => new Date(a.targetDate || a.deadline) - new Date(b.targetDate || b.deadline));
+    } else if (activeSort === 'progress') {
+      filtered.sort((a, b) => (b.progress || 0) - (a.progress || 0));
     }
-
     setFilteredGoals(filtered);
   }, [goals, activeFilter, activeSort]);
 
-  // Restore wizard-based goal creation
+  // Always use wizard-based goal creation
   const handleCreateGoal = () => {
     navigate('/goal-creation-management');
   };
 
   const handleDeleteGoal = (goalId) => {
-    setGoals(prevGoals => prevGoals.filter(goal => goal.id !== goalId));
+    if (user) {
+      const success = entityService.deleteGoal(user, goalId);
+      if (success) {
+        setGoals(prevGoals => prevGoals.filter(goal => goal.id !== goalId));
+      }
+    }
   };
 
   const handleGoalUpdate = (updatedGoal) => {
-    setGoals(prevGoals => 
-      prevGoals.map(goal => goal.id === updatedGoal.id ? updatedGoal : goal)
-    );
+    setGoals(prevGoals => prevGoals.map(goal => goal.id === updatedGoal.id ? updatedGoal : goal));
   };
 
-  const handleGoalDelete = (goalId) => {
-    setGoals(prevGoals => prevGoals.filter(goal => goal.id !== goalId));
-  };
+  const handleFilterChange = (filter) => setActiveFilter(filter);
+  const handleSortChange = (sort) => setActiveSort(sort);
+  const handleOpenDrift = () => navigate('/ai-assistant-chat-drift');
 
-  const handleFocusMode = (goal) => {
-    // Navigate to focus mode with the selected goal
-    navigate('/focus-mode', { state: { selectedGoal: goal } });
-  };
-
-  const handleOpenDrift = () => {
-    navigate('/ai-assistant-chat-drift');
-  };
-
-  const handleFilterChange = (filter) => {
-    setActiveFilter(filter);
-  };
-
-  const handleSortChange = (sort) => {
-    setActiveSort(sort);
-  };
-
-  // Defensive: ensure goals and achievements are always arrays
   const safeGoals = Array.isArray(goals) ? goals : [];
-  const safeAchievements = Array.isArray(checkAchievements) ? checkAchievements : [];
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-20 pb-24 md:pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Loading Skeleton */}
-            <div className="animate-pulse">
-              <div className="bg-surface rounded-xl h-32 mb-8"></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-surface rounded-xl h-64"></div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-  // Show error if no goals or achievements
   if (!safeGoals.length) {
     return (
       <div className="min-h-screen bg-background">
@@ -279,7 +197,7 @@ const GoalsDashboard = () => {
                   key={goal.id}
                   goal={goal}
                   onGoalUpdate={handleGoalUpdate}
-                  onGoalDelete={handleGoalDelete}
+                  onGoalDelete={handleDeleteGoal}
                 />
               ))}
             </div>
