@@ -262,24 +262,36 @@ const Day = () => {
       if (Array.isArray(jsonData)) {
         flatJsonData = jsonData.flat(Infinity).filter(item => item && typeof item === 'object' && !Array.isArray(item));
       }
+      console.log('[Day Plan] AI raw jsonData:', jsonData);
+      console.log('[Day Plan] Flattened plan data:', flatJsonData);
+      if (!Array.isArray(flatJsonData) || flatJsonData.some(item => typeof item !== 'object' || Array.isArray(item))) {
+        console.error('[Day Plan] Malformed plan data:', flatJsonData);
+        throw new Error('AI returned invalid plan data. Please try again.');
+      }
       // Validate and format activities
-      const formattedPlan = flatJsonData
-        .filter(activity => typeof activity.time === 'string' && activity.title)
-        .map((activity, index) => ({
-          id: `activity_${Date.now()}_${index}`,
-          time: activity.time || '09:00',
-          title: activity.title || 'Untitled Activity',
-          description: activity.description || 'No description provided',
-          category: activity.category || 'general',
-          duration: parseInt(activity.duration) || 60,
-          priority: activity.priority || 'medium',
-          goalId: activity.goalId || null,
-          goalRelated: activity.goalRelated || false,
-          relatedGoalTitle: activity.relatedGoalTitle || null,
-          completed: false,
-          createdAt: new Date().toISOString()
-        }))
-        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      let formattedPlan = [];
+      try {
+        formattedPlan = flatJsonData
+          .filter(activity => typeof activity.time === 'string' && activity.title)
+          .map((activity, index) => ({
+            id: `activity_${Date.now()}_${index}`,
+            time: activity.time || '09:00',
+            title: activity.title || 'Untitled Activity',
+            description: activity.description || 'No description provided',
+            category: activity.category || 'general',
+            duration: parseInt(activity.duration) || 60,
+            priority: activity.priority || 'medium',
+            goalId: activity.goalId || null,
+            goalRelated: activity.goalRelated || false,
+            relatedGoalTitle: activity.relatedGoalTitle || null,
+            completed: false,
+            createdAt: new Date().toISOString()
+          }))
+          .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      } catch (sortError) {
+        console.error('[Day Plan] Error during plan formatting/sorting:', sortError, flatJsonData);
+        throw new Error('Failed to process plan data. Please try again.');
+      }
       if (formattedPlan.length === 0) {
         throw new Error('No valid activities were generated. Please try again.');
       }
