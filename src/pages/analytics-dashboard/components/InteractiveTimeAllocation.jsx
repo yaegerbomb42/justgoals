@@ -11,62 +11,43 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
   const timeData = useMemo(() => {
     const safeData = data && typeof data === 'object' ? data : {};
     
-    // Mock time allocation data if not available
+    // Use only real data, no mock values
     const categories = [
-      { 
-        name: 'Deep Work', 
-        value: safeData.deepWork || 25, 
+      {
+        name: 'Deep Work',
+        value: safeData.deepWork || 0, // No mock fallback
         color: '#3b82f6',
-        subcategories: [
-          { name: 'Focus Sessions', value: 15, color: '#60a5fa' },
-          { name: 'Problem Solving', value: 10, color: '#1d4ed8' }
-        ]
+        subcategories: safeData.deepWorkSubcategories || [], // No mock fallback
       },
-      { 
-        name: 'Goal Planning', 
-        value: safeData.goalPlanning || 20, 
+      {
+        name: 'Goal Planning',
+        value: safeData.goalPlanning || 0, // No mock fallback
         color: '#22c55e',
-        subcategories: [
-          { name: 'Goal Setting', value: 8, color: '#4ade80' },
-          { name: 'Progress Review', value: 7, color: '#16a34a' },
-          { name: 'Strategy', value: 5, color: '#15803d' }
-        ]
+        subcategories: safeData.goalPlanningSubcategories || [], // No mock fallback
       },
-      { 
-        name: 'Learning', 
-        value: safeData.learning || 18, 
+      {
+        name: 'Learning',
+        value: safeData.learning || 0, // No mock fallback
         color: '#f59e0b',
-        subcategories: [
-          { name: 'Skill Development', value: 12, color: '#fbbf24' },
-          { name: 'Research', value: 6, color: '#d97706' }
-        ]
+        subcategories: safeData.learningSubcategories || [], // No mock fallback
       },
-      { 
-        name: 'Communication', 
-        value: safeData.communication || 15, 
+      {
+        name: 'Communication',
+        value: safeData.communication || 0, // No mock fallback
         color: '#8b5cf6',
-        subcategories: [
-          { name: 'Meetings', value: 10, color: '#a78bfa' },
-          { name: 'Email', value: 5, color: '#7c3aed' }
-        ]
+        subcategories: safeData.communicationSubcategories || [], // No mock fallback
       },
       { 
         name: 'Administrative', 
-        value: safeData.administrative || 12, 
+        value: safeData.administrative || 0, // No mock fallback
         color: '#ef4444',
-        subcategories: [
-          { name: 'Documentation', value: 7, color: '#f87171' },
-          { name: 'Organization', value: 5, color: '#dc2626' }
-        ]
+        subcategories: safeData.administrativeSubcategories || [], // No mock fallback
       },
       { 
         name: 'Break Time', 
-        value: safeData.breakTime || 10, 
+        value: safeData.breakTime || 0, // No mock fallback
         color: '#06b6d4',
-        subcategories: [
-          { name: 'Rest', value: 6, color: '#22d3ee' },
-          { name: 'Exercise', value: 4, color: '#0891b2' }
-        ]
+        subcategories: safeData.breakTimeSubcategories || [], // No mock fallback
       }
     ];
 

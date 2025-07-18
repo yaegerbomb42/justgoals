@@ -14,13 +14,13 @@ const GoalPerformanceMatrix = ({ data = {} }) => {
       id: goal.id || index,
       title: goal.title || `Goal ${index + 1}`,
       progress: goal.progress || 0,
-      difficulty: goal.difficulty || Math.random() * 100, // Mock difficulty if not available
-      timeSpent: goal.timeSpent || Math.random() * 40,
-      completionRate: goal.completionRate || (goal.progress || 0),
-      urgency: goal.urgency || Math.random() * 100,
-      impact: goal.impact || Math.random() * 100,
+      difficulty: goal.difficulty ?? null, // No random fallback
+      timeSpent: goal.timeSpent ?? 0, // No random fallback
+      completionRate: goal.completionRate ?? (goal.progress || 0),
+      urgency: goal.urgency ?? null, // No random fallback
+      impact: goal.impact ?? null, // No random fallback
       category: goal.category || 'General',
-      daysActive: goal.daysActive || Math.floor(Math.random() * 30) + 1,
+      daysActive: goal.daysActive ?? null, // No random fallback
       lastUpdate: goal.lastUpdate || new Date().toISOString(),
       tags: goal.tags || []
     }));

@@ -29,23 +29,29 @@ const StreakAnalytics = ({ data = {} }) => {
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      
-      // Simulate streak data if not available
+      // Use only real data, no mock values
       const dayData = {
         date: date.toISOString().split('T')[0],
         displayDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        dailyCheckins: Math.random() > 0.3 ? 1 : 0, // 70% activity rate
-        focusSessions: Math.floor(Math.random() * 4), // 0-3 focus sessions
-        goalUpdates: Math.floor(Math.random() * 3), // 0-2 goal updates
+        dailyCheckins: 0, // No mock fallback
+        focusSessions: 0, // No mock fallback
+        goalUpdates: 0, // No mock fallback
         totalActivity: 0
       };
-
-      dayData.totalActivity = dayData.dailyCheckins + dayData.focusSessions + dayData.goalUpdates;
+      // Optionally, fill from safeData if available
+      if (safeData.streakHistory && Array.isArray(safeData.streakHistory)) {
+        const found = safeData.streakHistory.find(d => d.date === dayData.date);
+        if (found) {
+          dayData.dailyCheckins = found.dailyCheckins || 0;
+          dayData.focusSessions = found.focusSessions || 0;
+          dayData.goalUpdates = found.goalUpdates || 0;
+          dayData.totalActivity = dayData.dailyCheckins + dayData.focusSessions + dayData.goalUpdates;
+        }
+      }
       history.push(dayData);
     }
-
     return history;
-  }, []);
+  }, [safeData]);
 
   // Calculate streak patterns
   const streakPatterns = useMemo(() => {

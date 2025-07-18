@@ -216,10 +216,20 @@ class CacheService {
     this.isPrefetching = false;
   }
 
-  // Prefetch item (to be implemented by specific services)
-  async prefetchItem(key) {
-    // This will be overridden by specific implementations
-    console.log('Prefetching:', key);
+  // Prefetch item (fetches and caches if fetchFn provided)
+  async prefetchItem(key, fetchFn) {
+    if (typeof fetchFn === 'function') {
+      try {
+        const item = await fetchFn(key);
+        this.set(key, item);
+        return item;
+      } catch (e) {
+        console.error('CacheService: Failed to prefetch item:', key, e);
+      }
+    } else {
+      console.warn('CacheService: No fetch function provided for prefetchItem:', key);
+    }
+    return null;
   }
 
   // Lazy loading with cache

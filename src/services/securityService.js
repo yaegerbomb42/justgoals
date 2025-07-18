@@ -404,9 +404,17 @@ class SecurityService {
     this.reportToSecurityService(activity);
   }
 
-  // Get client IP (simplified - in real app, this would come from server)
-  getClientIP() {
-    // This is a placeholder - in a real application, the IP would be provided by the server
+  // Get client IP (tries external service, falls back to 'unknown')
+  async getClientIP() {
+    try {
+      if (typeof window !== 'undefined') {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip || 'unknown';
+      }
+    } catch (e) {
+      console.warn('SecurityService: Failed to fetch client IP:', e);
+    }
     return 'unknown';
   }
 

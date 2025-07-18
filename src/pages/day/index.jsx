@@ -257,9 +257,14 @@ const Day = () => {
         throw new Error('Could not parse AI response into valid activity list. Please try again.');
       }
 
+      // Defensive flattening and validation
+      let flatJsonData = [];
+      if (Array.isArray(jsonData)) {
+        flatJsonData = jsonData.flat(Infinity).filter(item => item && typeof item === 'object' && !Array.isArray(item));
+      }
       // Validate and format activities
-      const formattedPlan = (Array.isArray(jsonData) ? jsonData : [])
-        .filter(activity => activity && typeof activity === 'object' && typeof activity.time === 'string' && activity.title)
+      const formattedPlan = flatJsonData
+        .filter(activity => typeof activity.time === 'string' && activity.title)
         .map((activity, index) => ({
           id: `activity_${Date.now()}_${index}`,
           time: activity.time || '09:00',
@@ -275,11 +280,9 @@ const Day = () => {
           createdAt: new Date().toISOString()
         }))
         .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-
       if (formattedPlan.length === 0) {
         throw new Error('No valid activities were generated. Please try again.');
       }
-      
       setDailyPlan(formattedPlan);
       saveDailyPlan(formattedPlan);
       

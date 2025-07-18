@@ -34,6 +34,7 @@ export const SettingsProvider = ({ children }) => {
   const [settingsLoadFailures, setSettingsLoadFailures] = useState(0); // Give up counter
   const saveTimeout = useRef(null);
   const isLoadingRef = useRef(false);
+  const [hasGivenUp, setHasGivenUp] = useState(false);
 
   const getAppSettingsKey = useCallback(() => {
     if (user && user.id) {
@@ -82,6 +83,10 @@ export const SettingsProvider = ({ children }) => {
 
   // Load settings from localStorage/Firestore robustly
   useEffect(() => {
+    if (hasGivenUp) {
+      console.warn('[Settings] Skipping reload: too many failures.');
+      return;
+    }
     const MAX_SIZE = 1024 * 1024; // 1MB
     let timeoutId = null;
     let didTimeout = false;
@@ -180,14 +185,14 @@ export const SettingsProvider = ({ children }) => {
     if (settingsLoadFailures < MAX_FAILURES) {
       loadSettings();
     } else {
-      // Give up after too many failures
       setSettings(getDefaultSettings());
       setIsLoading(false);
       isLoadingRef.current = false;
+      setHasGivenUp(true);
       console.error('[Settings] Too many load failures. Using safe defaults and not retrying.');
     }
     return () => { clearTimeout(timeoutId); cancelled = true; isLoadingRef.current = false; };
-  }, [getAppSettingsKey, user, getDefaultSettings, settingsLoadFailures]);
+  }, [getAppSettingsKey, user, getDefaultSettings]);
 
   // Apply accent colors to CSS variables
   useEffect(() => {

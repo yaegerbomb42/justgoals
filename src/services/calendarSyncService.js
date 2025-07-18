@@ -121,10 +121,15 @@ class CalendarSyncService {
     }
   }
 
-  // Get Google access token
+  // Get Google access token (checks localStorage for demo, real app would use OAuth)
   async getGoogleAccessToken() {
-    // This would integrate with your Google OAuth flow
-    // For now, return null to indicate no auth
+    try {
+      const token = localStorage.getItem('google_access_token');
+      if (token) return token;
+    } catch (e) {
+      console.warn('CalendarSyncService: Failed to get Google access token:', e);
+    }
+    // In a real app, integrate with Google OAuth flow here
     return null;
   }
 
