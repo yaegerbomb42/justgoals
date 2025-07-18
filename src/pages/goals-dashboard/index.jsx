@@ -102,15 +102,22 @@ const GoalsDashboard = () => {
       if (isAuthenticated && user && user.id) {
         try {
           const appSettings = await firestoreService.getAppSettings(user.id);
+          // Fallback to localStorage if onboardingDismissed is not found
+          let onboardingDismissed = appSettings.onboardingDismissed;
+          if (typeof onboardingDismissed === 'undefined') {
+            onboardingDismissed = localStorage.getItem(`onboardingDismissed_${user.id}`) === 'true';
+          }
           if (!cancelled) {
-            setShowOnboarding(!appSettings.onboardingDismissed);
+            setShowOnboarding(!onboardingDismissed);
             setOnboardingError(null);
             sessionFlag = true;
           }
         } catch (e) {
           console.error('Onboarding Firestore error:', e);
+          // Fallback to localStorage if error
+          const onboardingDismissed = localStorage.getItem(`onboardingDismissed_${user?.id}`) === 'true';
           if (!cancelled && !sessionFlag) {
-            setShowOnboarding(true);
+            setShowOnboarding(!onboardingDismissed);
             setOnboardingError('Could not check onboarding status. Please check your connection or permissions.');
             sessionFlag = true;
           }
@@ -130,8 +137,10 @@ const GoalsDashboard = () => {
       try {
         const appSettings = await firestoreService.getAppSettings(user.id);
         await firestoreService.saveAppSettings(user.id, { ...appSettings, onboardingDismissed: true });
+        localStorage.setItem(`onboardingDismissed_${user.id}`, 'true'); // Always persist in localStorage as well
       } catch (e) {
-        // Ignore Firestore errors, but still hide modal for this session
+        // If Firestore fails, persist in localStorage
+        localStorage.setItem(`onboardingDismissed_${user.id}`, 'true');
       }
     }
   };

@@ -16,7 +16,22 @@ import { useAchievements } from '../../context/AchievementContext';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
-  const [messages, setMessages] = useState([]);
+  // Persist messages in localStorage by user id (if available)
+  const getMessagesStorageKey = () => {
+    if (isAuthenticated && user && user.id) {
+      return `drift_chat_messages_${user.id}`;
+    }
+    return 'drift_chat_messages_guest';
+  };
+
+  // Load messages from localStorage on mount
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(getMessagesStorageKey());
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
   const [isTyping, setIsTyping] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -35,6 +50,13 @@ const AiAssistantChatDrift = () => {
   const [updatedMilestones, setUpdatedMilestones] = useState([]);
   const [lastProactiveCheck, setLastProactiveCheck] = useState(0);
 
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(getMessagesStorageKey(), JSON.stringify(messages));
+    } catch (e) {}
+  }, [messages, isAuthenticated, user?.id]);
+
   // Clean up session state when user changes
   useEffect(() => {
     setUpdatedMilestones([]);
@@ -46,7 +68,15 @@ const AiAssistantChatDrift = () => {
     setDayPlanEditData({});
     // Clear old milestone questions when user changes
     localStorage.removeItem('aiAskedMilestones');
-  }, [user?.id]);
+    // Optionally clear chat if you want a fresh chat per user:
+    // setMessages([]);
+    // Or, restore chat for the new user:
+    try {
+      const saved = localStorage.getItem(getMessagesStorageKey());
+      if (saved) setMessages(JSON.parse(saved));
+      else setMessages([]);
+    } catch (e) { setMessages([]); }
+  }, [user?.id, isAuthenticated]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -780,14 +810,15 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
 
       // Get user context for better responses
       const userContext = {
-        journalEntries: JSON.parse(localStorage.getItem(getUserSpecificKey('journal_entries')) || '[]').slice(0, 5),
+        journalEntries: JSON.parse(localStorage.getItem(getUserSpecificKey('journal_entries')) || '[]'), // all journal entries
         goals: JSON.parse(localStorage.getItem(getUserSpecificKey('goals_data')) || '[]'),
+        events: JSON.parse(localStorage.getItem(getUserSpecificKey('events_data')) || '[]'), // all events
         timeSpent: JSON.parse(localStorage.getItem(getUserSpecificKey('focus_session_stats')) || '{}'),
         permanentNotes: JSON.parse(localStorage.getItem(getUserSpecificKey('focus_permanent_notes')) || '[]')
       };
 
-      // Include recent chat history (e.g., last 6 messages)
-      const recentHistory = messages.slice(-6).map(msg => {
+      // Include recent chat history (last 15 messages)
+      const recentHistory = messages.slice(-15).map(msg => {
         return `${msg.isUser ? 'User' : 'Drift'}: ${msg.content}`;
       }).join('\n');
 
@@ -796,36 +827,30 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
 
       const prompt = `
         You are Drift, an AI assistant specialized in goal achievement and personal development.
-        You have access to the user's journal entries, time tracking data, permanent session notes, and recent conversation history.
+        You have access to the user's journal entries, events, time tracking data, permanent session notes, and recent conversation history.
 
         Recent Conversation History (if any):
         ${recentHistory || "No recent conversation history."}
-        
-        Current User message: "${userMessageContent}"
-        
-        Detected User Intent: ${userIntent}
-        
-        Additional Context:
+        \nCurrent User message: "${userMessageContent}"
+        \nDetected User Intent: ${userIntent}
+        \nAdditional Context:
         - Recent journal entries: ${userContext.journalEntries.length > 0 ? userContext.journalEntries.map(entry => `${entry.date}: ${entry.content}`).join('\n') : 'No recent entries'}
+        - Events: ${userContext.events.length > 0 ? userContext.events.map(event => `${event.date}: ${event.title || event.name || ''}`).join('\n') : 'No events'}
         - Active goals: ${userContext.goals.length > 0 ? userContext.goals.map(goal => goal.title).join(', ') : 'No active goals'}
         - Total focus time: ${Math.round((userContext.timeSpent.totalFocusTime || 0) / 60)} minutes
         - Permanent session notes: ${userContext.permanentNotes.length > 0 ? userContext.permanentNotes.map(note => `${note.createdAt}: ${note.content}`).join('\n') : 'No permanent notes'}
-        
-
-        Your Capabilities:
+        \nYour Capabilities:
         - You can engage in general conversation, provide advice, and help users reflect.
         - **Goal Creation:** You can help users create new goals through natural conversation. If a user expresses a desire to create a goal, you can guide them through an interactive process by asking questions about their goal. You can also help with milestone creation, progress tracking, and goal management.
         - **Proactive Assistance:** Based on the user's context, proactively suggest relevant actions, insights, or next steps.
-        - **Contextual Understanding:** Use the user's goals, journal entries, and focus time to provide personalized advice.
+        - **Contextual Understanding:** Use the user's goals, journal entries, events, and focus time to provide personalized advice.
         - **Intelligent Recommendations:** Suggest milestones, focus sessions, or journal prompts based on their current situation.
         - (Future capabilities like modifying goals, creating milestones, starting focus sessions will be listed here as they are implemented.)
-
-        Interaction Style:
+        \nInteraction Style:
         Respond as Drift. Be personalized, encouraging, specific, and reference their context (including past conversation if relevant) when helpful.
         Keep responses concise (e.g., under 150-200 words) unless asked for detail.
         If the user asks about something from much earlier in the conversation that isn't in the recent history, you can say you don't have access to it.
-        
-        Proactive Suggestions:
+        \nProactive Suggestions:
         - If they have goals but no recent progress, suggest next steps or milestones
         - If they have low focus time, suggest focus sessions or time management tips
         - If they have journal entries, reference patterns or insights from them
