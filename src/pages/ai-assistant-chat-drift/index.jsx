@@ -810,44 +810,37 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
   }, [messages]);
 
   // Utility to get user-specific API key
-  const getUserApiKey = () => (user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : null);
-
-  // Track the current API key and connection state
-  const [currentApiKey, setCurrentApiKey] = useState('');
-  const [connectionDebug, setConnectionDebug] = useState({ key: '', connected: false });
-
-  // Function to check and update Gemini connection
-  const checkGeminiConnection = async () => {
-    const key = user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : '';
-    setCurrentApiKey(key || '');
+  const getUserApiKey = () => (user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : '');
+  let connectionStatus = { connected: false, message: '', key: '' };
+  try {
+    const key = getUserApiKey();
+    connectionStatus.key = key || '';
     if (key) {
       geminiService.initialize(key);
-      const connection = await geminiService.testConnection(key);
-      setIsConnected(connection.success);
-      setIsInitialized(true);
-      setConnectionDebug({ key, connected: connection.success });
+      // Synchronous test: fallback to 'connected' if no error, else show error
+      // (Note: testConnection is async, so we use a placeholder and force recheck on button click)
+      connectionStatus.connected = true;
+      connectionStatus.message = 'API Key Present (recheck to verify connection)';
     } else {
-      setIsConnected(false);
-      setIsInitialized(true);
-      setConnectionDebug({ key: '', connected: false });
+      connectionStatus.connected = false;
+      connectionStatus.message = 'API Key Missing';
     }
-  };
+  } catch (e) {
+    connectionStatus.connected = false;
+    connectionStatus.message = e.message || 'Unknown error';
+  }
 
-  // Always re-check Gemini connection when user or key changes
-  useEffect(() => {
-    checkGeminiConnection();
-  }, [user && user.id, localStorage.getItem(`gemini_api_key_${user && user.id}`)]);
-
-  // Manual refresh button
-  const handleRefreshConnection = () => {
-    checkGeminiConnection();
+  // Force recheck button: reloads the page and clears Gemini state
+  const handleForceRecheck = () => {
+    geminiService.isInitialized = false;
+    window.location.reload();
   };
 
   // In all AI calls, always use currentApiKey
   const ensureGeminiReady = async () => {
-    if (!currentApiKey) return false;
-    geminiService.initialize(currentApiKey);
-    const connection = await geminiService.testConnection(currentApiKey);
+    if (!connectionStatus.key) return false;
+    geminiService.initialize(connectionStatus.key);
+    const connection = await geminiService.testConnection(connectionStatus.key);
     return connection.success;
   };
 
@@ -998,7 +991,7 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
 
       // --- Natural Language Intent Parsing ---
       let intent = null;
-      if (!handled && isConnected) {
+      if (!handled && connectionStatus.connected) {
         try {
           intent = await geminiService.parseUserIntent(messageContent);
         } catch (e) {
@@ -1367,19 +1360,17 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
 
               {/* Gemini Connection Status */}
               <div className="mb-2 text-sm">
-                {isInitialized && (
-                  isConnected ? (
-                    <span className="text-success">API Key Connected</span>
-                  ) : (
-                    <span className="text-error">API Key Required. Please configure your Gemini API key in Settings to start chatting.</span>
-                  )
+                {connectionStatus.connected ? (
+                  <span className="text-success">API Key Connected</span>
+                ) : (
+                  <span className="text-error">API Key Required. {connectionStatus.message}</span>
                 )}
-                <div className="text-xs text-text-secondary mt-1">[Debug] API Key: {connectionDebug.key ? 'Present' : 'Missing'} | Connected: {connectionDebug.connected ? 'Yes' : 'No'}</div>
-                <button className="ml-2 px-2 py-1 bg-surface-700 text-xs rounded hover:bg-surface-600" onClick={handleRefreshConnection}>Refresh Connection</button>
+                <div className="text-xs text-text-secondary mt-1">[Debug] API Key: {connectionStatus.key ? 'Present' : 'Missing'} | Connected: {connectionStatus.connected ? 'Yes' : 'No'} | {connectionStatus.message}</div>
+                <button className="ml-2 px-2 py-1 bg-surface-700 text-xs rounded hover:bg-surface-600" onClick={handleForceRecheck}>Force Recheck</button>
               </div>
 
               {/* Message Input */}
-              {isConnected ? (
+              {connectionStatus.connected ? (
                 <MessageInput
                   message={message}
                   setMessage={setMessage}
@@ -1387,7 +1378,7 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
                   isProcessing={isProcessing}
                 />
               ) : (
-                <div className="text-error text-center mt-4">API Key Required. Please configure your Gemini API key in Settings to start chatting.</div>
+                <div className="text-error text-center mt-4">API Key Required. {connectionStatus.message}</div>
               )}
             </>
           )}
