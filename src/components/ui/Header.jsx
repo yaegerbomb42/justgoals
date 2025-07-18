@@ -112,14 +112,14 @@ const Header = () => {
               {showDownloadMenu && (
                 <div className="absolute left-0 mt-2 w-48 bg-surface-800 border border-border rounded shadow-lg z-50">
                   <a
-                    href="/out/make/YaegerGoals-0.1.0-x64.dmg"
+                    href="/YaegerGoals-0.1.0-x64.dmg"
                     download
                     className="block px-4 py-2 text-sm text-text-primary hover:bg-surface-700 rounded-t"
                   >
                     Mac (DMG)
                   </a>
                   <a
-                    href="/out/make/zip/darwin/x64/YaegerGoals-darwin-x64-0.1.0.zip"
+                    href="/YaegerGoals-darwin-x64-0.1.0.zip"
                     download
                     className="block px-4 py-2 text-sm text-text-primary hover:bg-surface-700"
                   >

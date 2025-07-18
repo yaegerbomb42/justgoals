@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, createContext, useContext, useState } from 'react';
+import React, { useEffect, useCallback, createContext, useContext, useState, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import * as backupService from '../services/backupService';
 
@@ -31,6 +31,7 @@ export const SettingsProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [settings, setSettings] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const saveTimeout = useRef(null);
 
   const getAppSettingsKey = useCallback(() => {
     if (user && user.id) {
@@ -212,21 +213,22 @@ export const SettingsProvider = ({ children }) => {
     }
   }, [settings?.appearance?.backgroundEffect]);
 
-  // Save settings to localStorage
+  // Save settings to localStorage (debounced)
   const updateSettings = useCallback((newSettings) => {
     const settingsKey = getAppSettingsKey();
     try {
-      // Save user-specific settings (excluding API key)
-      if (settingsKey) {
-        const { apiKey, ...settingsToSave } = newSettings;
-        localStorage.setItem(settingsKey, JSON.stringify(settingsToSave));
-      }
-      
-      // Save API key to user-specific storage
-      if (user && user.id && newSettings.apiKey !== undefined) {
-        localStorage.setItem(`gemini_api_key_${user.id}`, newSettings.apiKey);
-      }
-      
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      saveTimeout.current = setTimeout(() => {
+        // Save user-specific settings (excluding API key)
+        if (settingsKey) {
+          const { apiKey, ...settingsToSave } = newSettings;
+          localStorage.setItem(settingsKey, JSON.stringify(settingsToSave));
+        }
+        // Save API key to user-specific storage
+        if (user && user.id && newSettings.apiKey !== undefined) {
+          localStorage.setItem(`gemini_api_key_${user.id}`, newSettings.apiKey);
+        }
+      }, 200);
       setSettings(newSettings);
     } catch (e) {
       console.error("Failed to save settings to localStorage", e);
