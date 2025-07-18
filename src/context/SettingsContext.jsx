@@ -31,6 +31,7 @@ export const SettingsProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [settings, setSettings] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [settingsLoadFailures, setSettingsLoadFailures] = useState(0); // Give up counter
   const saveTimeout = useRef(null);
 
   const getAppSettingsKey = useCallback(() => {
@@ -83,6 +84,7 @@ export const SettingsProvider = ({ children }) => {
     const MAX_SIZE = 1024 * 1024; // 1MB
     let timeoutId = null;
     let didTimeout = false;
+    const MAX_FAILURES = 3;
     const loadSettings = () => {
       const settingsKey = getAppSettingsKey();
       const defaultSettings = getDefaultSettings();
@@ -93,7 +95,7 @@ export const SettingsProvider = ({ children }) => {
           try {
             savedSettings = localStorage.getItem(settingsKey);
             if (savedSettings && savedSettings.length > MAX_SIZE) {
-              console.warn('Settings value too large, clearing:', settingsKey);
+              console.warn('[Settings] Value too large, clearing:', settingsKey);
               localStorage.removeItem(settingsKey);
               savedSettings = null;
             }
@@ -106,12 +108,12 @@ export const SettingsProvider = ({ children }) => {
               if (parsedSettings && typeof parsedSettings === 'object') {
                 loadedSettings = { ...defaultSettings, ...parsedSettings };
               } else {
-                console.warn('Settings value not an object, clearing:', settingsKey);
+                console.warn('[Settings] Value not an object, clearing:', settingsKey);
                 localStorage.removeItem(settingsKey);
                 loadedSettings = defaultSettings;
               }
             } catch (e) {
-              console.warn('Settings value corrupt JSON, clearing:', settingsKey);
+              console.warn('[Settings] Value corrupt JSON, clearing:', settingsKey);
               localStorage.removeItem(settingsKey);
               loadedSettings = defaultSettings;
             }
@@ -122,7 +124,7 @@ export const SettingsProvider = ({ children }) => {
           try {
             userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
             if (userApiKey && userApiKey.length > MAX_SIZE) {
-              console.warn('API key value too large, clearing:', `gemini_api_key_${user.id}`);
+              console.warn('[Settings] API key value too large, clearing:', `gemini_api_key_${user.id}`);
               localStorage.removeItem(`gemini_api_key_${user.id}`);
               userApiKey = null;
             }
@@ -132,7 +134,7 @@ export const SettingsProvider = ({ children }) => {
           if (userApiKey) {
             try {
               if (typeof userApiKey !== 'string') {
-                console.warn('API key value not a string, clearing:', `gemini_api_key_${user.id}`);
+                console.warn('[Settings] API key value not a string, clearing:', `gemini_api_key_${user.id}`);
                 localStorage.removeItem(`gemini_api_key_${user.id}`);
               } else {
                 loadedSettings.apiKey = userApiKey;
@@ -142,22 +144,39 @@ export const SettingsProvider = ({ children }) => {
             }
           }
         }
-        if (!didTimeout) setSettings(loadedSettings);
+        if (!didTimeout) {
+          setSettings(loadedSettings);
+          setSettingsLoadFailures(0);
+          console.log('[Settings] Loaded successfully:', loadedSettings);
+        }
       } catch (e) {
-        if (!didTimeout) setSettings(defaultSettings);
+        if (!didTimeout) {
+          setSettings(defaultSettings);
+          setSettingsLoadFailures(f => f + 1);
+          console.error('[Settings] Load failed, using defaults. Failure count:', settingsLoadFailures + 1, e);
+        }
       } finally {
         if (!didTimeout) setIsLoading(false);
       }
     };
     timeoutId = setTimeout(() => {
       didTimeout = true;
-      console.warn('Settings loading timed out, clearing all localStorage and reloading.');
-      localStorage.clear();
-      window.location.reload();
-    }, 1000);
-    loadSettings();
+      setSettingsLoadFailures(f => f + 1);
+      console.warn('[Settings] Loading timed out. Failure count:', settingsLoadFailures + 1);
+      // Do NOT clear all localStorage or reload. Just use defaults and show a warning.
+      setSettings(getDefaultSettings());
+      setIsLoading(false);
+    }, 2000);
+    if (settingsLoadFailures < MAX_FAILURES) {
+      loadSettings();
+    } else {
+      // Give up after too many failures
+      setSettings(getDefaultSettings());
+      setIsLoading(false);
+      console.error('[Settings] Too many load failures. Using safe defaults and not retrying.');
+    }
     return () => clearTimeout(timeoutId);
-  }, [getAppSettingsKey, user, getDefaultSettings]);
+  }, [getAppSettingsKey, user, getDefaultSettings, settingsLoadFailures]);
 
   // Apply accent colors to CSS variables
   useEffect(() => {
