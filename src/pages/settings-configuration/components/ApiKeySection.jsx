@@ -81,6 +81,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
     setLocalApiKey(value);
     onApiKeyChange(value);
     setHasTested(false); // Allow re-testing after change
+    setConnectionMessage(''); // Reset connection message on change
     if (user && user.id) {
       localStorage.setItem(`gemini_api_key_${user.id}`, value);
       setCloudStatus('syncing');
@@ -97,18 +98,20 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
   const handleTestConnection = async () => {
     if (!localApiKey.trim()) {
       setConnectionMessage('');
+      onTestConnection('');
       return;
     }
     setConnectionMessage('');
     try {
       const result = await geminiService.testConnection(localApiKey);
-      setConnectionMessage(result.message || '');
+      setConnectionMessage(result.message || (result.success ? 'Connection successful!' : 'Connection failed.'));
       onTestConnection(result.success ? 'success' : 'error');
+      setHasTested(true);
       console.log('[API Key] Connection tested:', result);
     } catch (error) {
-      console.error('Connection test failed:', error);
       setConnectionMessage(error.message || 'Unknown error');
       onTestConnection('error');
+      setHasTested(true);
     }
   };
 
@@ -240,7 +243,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             Test Connection
           </Button>
 
-          {connectionStatus && (
+          {connectionStatus && hasTested && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -248,9 +251,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             >
               <Icon name={getConnectionStatusIcon()} size={16} />
               <span className="text-sm font-caption">
-                {connectionStatus === 'success' && 'Connection successful'}
-                {connectionStatus === 'error' && 'Connection failed'}
-                {connectionStatus === 'testing' && 'Testing connection...'}
+                {connectionMessage}
               </span>
             </motion.div>
           )}
