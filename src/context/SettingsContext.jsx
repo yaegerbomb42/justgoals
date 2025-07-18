@@ -80,6 +80,7 @@ export const SettingsProvider = ({ children }) => {
 
   // Load settings from localStorage
   useEffect(() => {
+    const MAX_SIZE = 1024 * 1024; // 1MB
     const loadSettings = () => {
       const settingsKey = getAppSettingsKey();
       const defaultSettings = getDefaultSettings();
@@ -89,8 +90,12 @@ export const SettingsProvider = ({ children }) => {
           let savedSettings = null;
           try {
             savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings && savedSettings.length > MAX_SIZE) {
+              console.warn('Settings value too large, clearing:', settingsKey);
+              localStorage.removeItem(settingsKey);
+              savedSettings = null;
+            }
           } catch (e) {
-            // If getItem fails, clear it
             localStorage.removeItem(settingsKey);
           }
           if (savedSettings) {
@@ -99,12 +104,12 @@ export const SettingsProvider = ({ children }) => {
               if (parsedSettings && typeof parsedSettings === 'object') {
                 loadedSettings = { ...defaultSettings, ...parsedSettings };
               } else {
-                // Not an object, clear
+                console.warn('Settings value not an object, clearing:', settingsKey);
                 localStorage.removeItem(settingsKey);
                 loadedSettings = defaultSettings;
               }
             } catch (e) {
-              // Corrupt JSON, clear
+              console.warn('Settings value corrupt JSON, clearing:', settingsKey);
               localStorage.removeItem(settingsKey);
               loadedSettings = defaultSettings;
             }
@@ -114,13 +119,18 @@ export const SettingsProvider = ({ children }) => {
           let userApiKey = null;
           try {
             userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
+            if (userApiKey && userApiKey.length > MAX_SIZE) {
+              console.warn('API key value too large, clearing:', `gemini_api_key_${user.id}`);
+              localStorage.removeItem(`gemini_api_key_${user.id}`);
+              userApiKey = null;
+            }
           } catch (e) {
             localStorage.removeItem(`gemini_api_key_${user.id}`);
           }
           if (userApiKey) {
             try {
-              // If it's not a string, clear
               if (typeof userApiKey !== 'string') {
+                console.warn('API key value not a string, clearing:', `gemini_api_key_${user.id}`);
                 localStorage.removeItem(`gemini_api_key_${user.id}`);
               } else {
                 loadedSettings.apiKey = userApiKey;
