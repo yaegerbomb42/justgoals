@@ -50,31 +50,33 @@ export const createGoal = async (user, goalData) => {
   }
 
   try {
+    // Always set createdAt to a valid ISO string if not present
+    const now = new Date().toISOString();
+    const goalToSave = {
+      ...goalData,
+      createdAt: goalData.createdAt || now,
+    };
     // Save to Firestore for cross-device sync
-    const savedGoal = await firestoreService.saveGoal(user.id, goalData);
-    
+    const savedGoal = await firestoreService.saveGoal(user.id, goalToSave);
     // Also save to localStorage for offline fallback
     const storageKey = getGoalStorageKey(user.id);
     const goals = getItems(storageKey);
     const updatedGoals = [...goals, savedGoal];
     saveItems(storageKey, updatedGoals);
-    
     return savedGoal;
   } catch (error) {
     console.error("Error creating goal:", error);
-    
     // Fallback to localStorage only
     const storageKey = getGoalStorageKey(user.id);
     const goals = getItems(storageKey);
-
+    const now = new Date().toISOString();
     const newGoal = {
       id: Date.now().toString(),
       ...goalData,
       progress: goalData.progress || 0,
-      createdAt: new Date().toISOString(),
+      createdAt: goalData.createdAt || now,
       userId: user.id,
     };
-
     const updatedGoals = [...goals, newGoal];
     saveItems(storageKey, updatedGoals);
     return newGoal;

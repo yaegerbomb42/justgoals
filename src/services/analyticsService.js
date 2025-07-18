@@ -26,106 +26,32 @@ class AnalyticsService {
     }
   }
 
-  // Get default data for when fetching fails
+  // Get default data for when fetching fails (only for unauthenticated/demo)
   getDefaultData(type) {
     switch (type) {
       case 'heatmap':
-        return this.generateDefaultHeatmap();
       case 'trends':
-        return this.generateDefaultTrends();
       case 'focusTimes':
-        return this.generateDefaultFocusTimes();
-      case 'goalDependencies':
-        return {};
-      case 'habits':
-        return this.generateDefaultHabits();
       case 'insights':
         return [];
+      case 'goalDependencies':
+      case 'habits':
+        return {};
       default:
         return {};
     }
   }
 
-  // Generate default heatmap data
-  generateDefaultHeatmap() {
-    const heatmap = [];
-    const now = new Date();
-    const daysInWeek = 7;
-    const hoursInDay = 24;
-
-    for (let day = 0; day < daysInWeek; day++) {
-      for (let hour = 0; hour < hoursInDay; hour++) {
-        heatmap.push({
-          day,
-          hour,
-          value: Math.floor(Math.random() * 5), // Random activity level 0-4
-          date: new Date(now.getTime() - (daysInWeek - day) * 24 * 60 * 60 * 1000)
-        });
-      }
-    }
-    return heatmap;
-  }
-
-  // Generate default trends data
-  generateDefaultTrends() {
-    const trends = [];
-    const days = 30;
-    const now = new Date();
-
-    for (let i = 0; i < days; i++) {
-      trends.push({
-        date: new Date(now.getTime() - (days - i) * 24 * 60 * 60 * 1000),
-        productivity: Math.floor(Math.random() * 100),
-        focusTime: Math.floor(Math.random() * 8),
-        goalsCompleted: Math.floor(Math.random() * 5),
-        tasksCompleted: Math.floor(Math.random() * 10)
-      });
-    }
-    return trends;
-  }
-
-  // Generate default focus times data
-  generateDefaultFocusTimes() {
-    return [
-      { hour: 9, productivity: 85, sessions: 3 },
-      { hour: 10, productivity: 90, sessions: 4 },
-      { hour: 11, productivity: 75, sessions: 2 },
-      { hour: 14, productivity: 80, sessions: 3 },
-      { hour: 15, productivity: 85, sessions: 4 },
-      { hour: 16, productivity: 70, sessions: 2 }
-    ];
-  }
-
-  // Generate default habits data
-  generateDefaultHabits() {
-    return {
-      focusSessions: {
-        totalTime: 0,
-        averageDuration: 0,
-        totalSessions: 0
-      },
-      dailyCheckins: {
-        currentStreak: 0,
-        longestStreak: 0,
-        totalCheckins: 0
-      },
-      goalCompletion: {
-        completedToday: 0,
-        completedThisWeek: 0,
-        completionRate: 0
-      }
-    };
-  }
-
   // Main analytics method
   async getUserAnalytics(userId, timeRange = 'month') {
     if (!userId) {
+      // Only return empty data for unauthenticated
       return {
-        heatmap: this.generateDefaultHeatmap(),
-        trends: this.generateDefaultTrends(),
-        focusTimes: this.generateDefaultFocusTimes(),
+        heatmap: [],
+        trends: [],
+        focusTimes: [],
         goalDependencies: {},
-        habits: this.generateDefaultHabits(),
+        habits: {},
         insights: [],
         permissionError: false
       };
@@ -134,34 +60,31 @@ class AnalyticsService {
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      
       if (!user) {
         throw new Error('User not authenticated');
       }
-
       // Try to get data from Firestore
       const docRef = firestore.collection('users').doc(user.uid).collection('analytics').doc('dashboard');
       const doc = await docRef.get();
-      
       if (doc.exists) {
         const data = doc.data();
         return {
-          heatmap: data.heatmap || this.generateDefaultHeatmap(),
-          trends: data.trends || this.generateDefaultTrends(),
-          focusTimes: data.focusTimes || this.generateDefaultFocusTimes(),
-          goalDependencies: data.goalDependencies || {},
-          habits: data.habits || this.generateDefaultHabits(),
-          insights: data.insights || [],
+          heatmap: Array.isArray(data.heatmap) ? data.heatmap : [],
+          trends: Array.isArray(data.trends) ? data.trends : [],
+          focusTimes: Array.isArray(data.focusTimes) ? data.focusTimes : [],
+          goalDependencies: typeof data.goalDependencies === 'object' && data.goalDependencies !== null ? data.goalDependencies : {},
+          habits: typeof data.habits === 'object' && data.habits !== null ? data.habits : {},
+          insights: Array.isArray(data.insights) ? data.insights : [],
           permissionError: false
         };
       } else {
-        // Return default data if no analytics exist
+        // No analytics data yet, return empty
         return {
-          heatmap: this.generateDefaultHeatmap(),
-          trends: this.generateDefaultTrends(),
-          focusTimes: this.generateDefaultFocusTimes(),
+          heatmap: [],
+          trends: [],
+          focusTimes: [],
           goalDependencies: {},
-          habits: this.generateDefaultHabits(),
+          habits: {},
           insights: [],
           permissionError: false
         };
@@ -169,11 +92,11 @@ class AnalyticsService {
     } catch (error) {
       console.error('Error fetching analytics:', error);
       return {
-        heatmap: this.generateDefaultHeatmap(),
-        trends: this.generateDefaultTrends(),
-        focusTimes: this.generateDefaultFocusTimes(),
+        heatmap: [],
+        trends: [],
+        focusTimes: [],
         goalDependencies: {},
-        habits: this.generateDefaultHabits(),
+        habits: {},
         insights: [],
         permissionError: false
       };

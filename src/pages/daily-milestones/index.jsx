@@ -36,13 +36,15 @@ const DailyMilestones = () => {
   // Load goals using the entity service
   useEffect(() => {
     if (isAuthenticated && user) {
-      try {
-        const userGoals = entityService.getGoals(user);
-        setGoals(Array.isArray(userGoals) ? userGoals : []);
-      } catch (e) {
-        setGoals([]);
-        setError('Failed to load goals. Please check your connection or permissions.');
-      }
+      (async () => {
+        try {
+          const userGoals = await entityService.getGoals(user);
+          setGoals(Array.isArray(userGoals) ? userGoals : []);
+        } catch (e) {
+          setGoals([]);
+          setError('Failed to load goals. Please check your connection or permissions.');
+        }
+      })();
     } else {
       setGoals([]);
     }

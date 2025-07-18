@@ -2,28 +2,30 @@ import React, { useState, useMemo } from 'react';
 import Icon from '../../../components/AppIcon';
 
 const HabitTracking = ({ data }) => {
-  if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+  // Defensive: always use safe defaults
+  const safeData = data && typeof data === 'object' ? data : {};
+  const safeDailyCheckins = safeData.dailyCheckins || { currentStreak: 0, maxStreak: 0, totalActiveDays: 0 };
+  const safeFocusSessions = safeData.focusSessions || { hourlyPatterns: [] };
+  const safeMoodTracking = safeData.moodTracking || { moodByActivity: [], moodByTime: [] };
+  const safeMilestoneCompletions = safeData.milestoneCompletions || { completionRate: 0, averageCompletionTime: 0 };
+  const safeGoalUpdates = safeData.goalUpdates || { activeGoals: 0, completedGoals: 0, averageProgress: 0 };
+
+  if (!data || Object.keys(safeData).length === 0) {
     return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning text-center">No habit data yet. Start tracking habits to see your progress!</div>;
   }
-  const [selectedHabit, setSelectedHabit] = useState(null);
 
-  const safeDailyCheckins = data.dailyCheckins || { currentStreak: 0, maxStreak: 0, totalActiveDays: 0 };
-  const safeFocusSessions = data.focusSessions || { hourlyPatterns: [] };
-  const safeMoodTracking = data.moodTracking || { moodByActivity: [], moodByTime: [] };
+  const [selectedHabit, setSelectedHabit] = useState(null);
 
   const habitStrength = useMemo(() => {
     if (!safeDailyCheckins) return 0;
-    
     const { currentStreak, maxStreak, totalActiveDays } = safeDailyCheckins;
     const consistency = totalActiveDays / Math.max(1, 30); // Assuming 30 days
     const streakFactor = maxStreak > 0 ? currentStreak / maxStreak : 0;
-    
     return Math.round((consistency * 0.4 + streakFactor * 0.6) * 100);
   }, [safeDailyCheckins]);
 
   const optimalWorkTimes = useMemo(() => {
     if (!safeFocusSessions.hourlyPatterns) return [];
-    
     return safeFocusSessions.hourlyPatterns
       .map((hour, index) => ({ hour: index, ...hour }))
       .filter(h => h.sessions > 0)
@@ -33,23 +35,11 @@ const HabitTracking = ({ data }) => {
 
   const moodCorrelation = useMemo(() => {
     if (!safeMoodTracking) return null;
-    
     const { moodByActivity, moodByTime } = safeMoodTracking;
     const bestMoodActivity = Array.isArray(moodByActivity) && moodByActivity.length > 0 ? moodByActivity.sort((a, b) => b.avgMood - a.avgMood)[0] : null;
     const bestMoodTime = Array.isArray(moodByTime) && moodByTime.length > 0 ? moodByTime.sort((a, b) => b.avgMood - a.avgMood)[0] : null;
-    
     return { bestMoodActivity, bestMoodTime };
   }, [safeMoodTracking]);
-
-  if (!safeDailyCheckins) {
-    return (
-      <div className="text-center py-8 text-text-secondary">
-        <Icon name="Repeat" size={48} className="mx-auto mb-4 opacity-50" />
-        <p>No habit tracking data available.</p>
-        <p className="text-sm">Start using the app daily to build productive habits.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -70,14 +60,13 @@ const HabitTracking = ({ data }) => {
             <div className="w-full bg-surface-600 rounded-full h-2 mb-2">
               <div
                 className="bg-warning h-2 rounded-full transition-all duration-500"
-                style={{ width: `${(safeDailyCheckins.currentStreak / Math.max(1, safeDailyCheckins.maxStreak)) * 100}%` }}
+                style={{ width: `${(safeDailyCheckins.currentStreak / Math.max(1, safeDailyCheckins.maxStreak || 1)) * 100}%` }}
               />
             </div>
             <div className="text-xs text-text-secondary">
               Best: {safeDailyCheckins.maxStreak} days
             </div>
           </div>
-          
           <div className="bg-surface-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
@@ -98,7 +87,6 @@ const HabitTracking = ({ data }) => {
               {habitStrength >= 80 ? 'Excellent' : habitStrength >= 60 ? 'Good' : habitStrength >= 40 ? 'Fair' : 'Needs Work'}
             </div>
           </div>
-          
           <div className="bg-surface-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
@@ -147,13 +135,13 @@ const HabitTracking = ({ data }) => {
                         {time.hour === 0 ? '12 AM' : time.hour < 12 ? `${time.hour} AM` : time.hour === 12 ? '12 PM' : `${time.hour - 12} PM`}
                       </div>
                       <div className="text-xs text-text-secondary">
-                        {time.sessions} sessions, {time.avgDuration.toFixed(1)}h avg
+                        {time.sessions} sessions, {time.avgDuration ? time.avgDuration.toFixed(1) : 0}h avg
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-body-medium text-success">
-                      {time.productivity.toFixed(1)}
+                      {time.productivity ? time.productivity.toFixed(1) : 0}
                     </div>
                     <div className="text-xs text-text-secondary">productivity</div>
                   </div>
@@ -179,14 +167,13 @@ const HabitTracking = ({ data }) => {
                   {moodCorrelation.bestMoodActivity.activity}
                 </div>
                 <div className="text-sm text-text-secondary">
-                  Avg mood: {moodCorrelation.bestMoodActivity.avgMood.toFixed(1)}/5
+                  Avg mood: {moodCorrelation.bestMoodActivity.avgMood ? moodCorrelation.bestMoodActivity.avgMood.toFixed(1) : 0}/5
                 </div>
                 <div className="text-xs text-text-secondary">
                   {moodCorrelation.bestMoodActivity.count} sessions
                 </div>
               </div>
             )}
-            
             {moodCorrelation.bestMoodTime && (
               <div className="bg-surface-700 rounded-lg p-4">
                 <div className="flex items-center space-x-2 mb-3">
@@ -200,7 +187,7 @@ const HabitTracking = ({ data }) => {
                    `${moodCorrelation.bestMoodTime.hour - 12} PM`}
                 </div>
                 <div className="text-sm text-text-secondary">
-                  Avg mood: {moodCorrelation.bestMoodTime.avgMood.toFixed(1)}/5
+                  Avg mood: {moodCorrelation.bestMoodTime.avgMood ? moodCorrelation.bestMoodTime.avgMood.toFixed(1) : 0}/5
                 </div>
                 <div className="text-xs text-text-secondary">
                   {moodCorrelation.bestMoodTime.count} sessions
@@ -212,31 +199,31 @@ const HabitTracking = ({ data }) => {
       )}
 
       {/* Focus Sessions */}
-      {data.focusSessions && (
+      {safeFocusSessions && (
         <div>
           <h4 className="text-sm font-body-medium text-text-primary mb-3">Focus Sessions</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-surface-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-heading-bold text-primary">
-                {data.focusSessions.totalSessions}
+                {safeFocusSessions.totalSessions || 0}
               </div>
               <div className="text-xs text-text-secondary">Total Sessions</div>
             </div>
             <div className="bg-surface-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-heading-bold text-accent">
-                {data.focusSessions.totalTime.toFixed(1)}
+                {safeFocusSessions.totalTime ? safeFocusSessions.totalTime.toFixed(1) : 0}
               </div>
               <div className="text-xs text-text-secondary">Total Hours</div>
             </div>
             <div className="bg-surface-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-heading-bold text-success">
-                {data.focusSessions.averageDuration.toFixed(1)}
+                {safeFocusSessions.averageDuration ? safeFocusSessions.averageDuration.toFixed(1) : 0}
               </div>
               <div className="text-xs text-text-secondary">Avg Duration (h)</div>
             </div>
             <div className="bg-surface-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-heading-bold text-warning">
-                {data.focusSessions.goalFocusPercentage.toFixed(0)}%
+                {safeFocusSessions.goalFocusPercentage ? safeFocusSessions.goalFocusPercentage.toFixed(0) : 0}%
               </div>
               <div className="text-xs text-text-secondary">Goal Focused</div>
             </div>
@@ -245,7 +232,7 @@ const HabitTracking = ({ data }) => {
       )}
 
       {/* Milestone Patterns */}
-      {data.milestoneCompletions && (
+      {safeMilestoneCompletions && (
         <div>
           <h4 className="text-sm font-body-medium text-text-primary mb-3">Milestone Patterns</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -253,13 +240,13 @@ const HabitTracking = ({ data }) => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-text-secondary">Completion Rate</span>
                 <span className="text-lg font-heading-bold text-success">
-                  {data.milestoneCompletions.completionRate.toFixed(0)}%
+                  {safeMilestoneCompletions.completionRate ? safeMilestoneCompletions.completionRate.toFixed(0) : 0}%
                 </span>
               </div>
               <div className="w-full bg-surface-600 rounded-full h-2">
                 <div
                   className="bg-success h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${data.milestoneCompletions.completionRate}%` }}
+                  style={{ width: `${safeMilestoneCompletions.completionRate ? safeMilestoneCompletions.completionRate : 0}%` }}
                 />
               </div>
             </div>
@@ -267,8 +254,8 @@ const HabitTracking = ({ data }) => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-text-secondary">Avg Completion Time</span>
                 <span className="text-lg font-heading-bold text-accent">
-                  {data.milestoneCompletions.averageCompletionTime > 0 
-                    ? Math.round(data.milestoneCompletions.averageCompletionTime / (1000 * 60 * 60 * 24))
+                  {safeMilestoneCompletions.averageCompletionTime > 0 
+                    ? Math.round(safeMilestoneCompletions.averageCompletionTime / (1000 * 60 * 60 * 24))
                     : 0
                   } days
                 </span>
@@ -279,25 +266,25 @@ const HabitTracking = ({ data }) => {
       )}
 
       {/* Goal Update Patterns */}
-      {data.goalUpdates && (
+      {safeGoalUpdates && (
         <div>
           <h4 className="text-sm font-body-medium text-text-primary mb-3">Goal Activity</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-surface-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-heading-bold text-primary">
-                {data.goalUpdates.activeGoals}
+                {safeGoalUpdates.activeGoals || 0}
               </div>
               <div className="text-xs text-text-secondary">Active Goals</div>
             </div>
             <div className="bg-surface-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-heading-bold text-success">
-                {data.goalUpdates.completedGoals}
+                {safeGoalUpdates.completedGoals || 0}
               </div>
               <div className="text-xs text-text-secondary">Completed Goals</div>
             </div>
             <div className="bg-surface-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-heading-bold text-accent">
-                {data.goalUpdates.averageProgress.toFixed(0)}%
+                {safeGoalUpdates.averageProgress ? safeGoalUpdates.averageProgress.toFixed(0) : 0}%
               </div>
               <div className="text-xs text-text-secondary">Avg Progress</div>
             </div>
