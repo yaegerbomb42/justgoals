@@ -33,6 +33,7 @@ export const SettingsProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [settingsLoadFailures, setSettingsLoadFailures] = useState(0); // Give up counter
   const saveTimeout = useRef(null);
+  const isLoadingRef = useRef(false);
 
   const getAppSettingsKey = useCallback(() => {
     if (user && user.id) {
@@ -79,13 +80,19 @@ export const SettingsProvider = ({ children }) => {
     };
   }, []);
 
-  // Load settings from localStorage
+  // Load settings from localStorage/Firestore robustly
   useEffect(() => {
     const MAX_SIZE = 1024 * 1024; // 1MB
     let timeoutId = null;
     let didTimeout = false;
     const MAX_FAILURES = 3;
-    const loadSettings = () => {
+    let cancelled = false;
+    const loadSettings = async () => {
+      if (isLoadingRef.current) {
+        console.log('[Settings] Load already in progress, skipping.');
+        return;
+      }
+      isLoadingRef.current = true;
       const settingsKey = getAppSettingsKey();
       const defaultSettings = getDefaultSettings();
       try {
@@ -144,38 +151,42 @@ export const SettingsProvider = ({ children }) => {
             }
           }
         }
-        if (!didTimeout) {
+        if (!didTimeout && !cancelled) {
           setSettings(loadedSettings);
           setSettingsLoadFailures(0);
+          setIsLoading(false);
+          isLoadingRef.current = false;
           console.log('[Settings] Loaded successfully:', loadedSettings);
         }
       } catch (e) {
-        if (!didTimeout) {
+        if (!didTimeout && !cancelled) {
           setSettings(defaultSettings);
           setSettingsLoadFailures(f => f + 1);
+          setIsLoading(false);
+          isLoadingRef.current = false;
           console.error('[Settings] Load failed, using defaults. Failure count:', settingsLoadFailures + 1, e);
         }
-      } finally {
-        if (!didTimeout) setIsLoading(false);
       }
     };
     timeoutId = setTimeout(() => {
       didTimeout = true;
       setSettingsLoadFailures(f => f + 1);
+      setIsLoading(false);
+      isLoadingRef.current = false;
       console.warn('[Settings] Loading timed out. Failure count:', settingsLoadFailures + 1);
       // Do NOT clear all localStorage or reload. Just use defaults and show a warning.
       setSettings(getDefaultSettings());
-      setIsLoading(false);
-    }, 2000);
+    }, 8000);
     if (settingsLoadFailures < MAX_FAILURES) {
       loadSettings();
     } else {
       // Give up after too many failures
       setSettings(getDefaultSettings());
       setIsLoading(false);
+      isLoadingRef.current = false;
       console.error('[Settings] Too many load failures. Using safe defaults and not retrying.');
     }
-    return () => clearTimeout(timeoutId);
+    return () => { clearTimeout(timeoutId); cancelled = true; isLoadingRef.current = false; };
   }, [getAppSettingsKey, user, getDefaultSettings, settingsLoadFailures]);
 
   // Apply accent colors to CSS variables

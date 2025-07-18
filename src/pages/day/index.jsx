@@ -10,9 +10,11 @@ import * as entityService from '../../services/entityManagementService';
 import { getGoals, formatDate, getDaysUntilDeadline } from '../../utils/goalUtils';
 import geminiService from '../../services/geminiService';
 import DayProgressTracker from './components/DayProgressTracker';
+import { useSettings } from '../../context/SettingsContext';
 
 const Day = () => {
   const { user, isAuthenticated } = useAuth();
+  const { settings, isLoading: settingsLoading } = useSettings();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dailyPlan, setDailyPlan] = useState([]);
@@ -29,6 +31,7 @@ const Day = () => {
     taskDensity: 'balanced', // 'more_tasks', 'balanced', 'less_tasks'
     customInstructions: ''
   });
+  const [planError, setPlanError] = useState(null);
 
   // Load planner preferences
   useEffect(() => {
@@ -117,16 +120,21 @@ const Day = () => {
       alert('Please log in to generate a daily plan.');
       return;
     }
-
-    const apiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
-    if (!apiKey) {
-      alert('Please configure your Gemini API key in Settings to generate intelligent daily plans.');
+    if (settingsLoading) {
+      setPlanError('Settings are still loading. Please wait and try again.');
       return;
     }
-
+    if (isGenerating) return; // Prevent multiple generations
     setIsGenerating(true);
+    setPlanError(null);
     try {
       // Test connection first
+      const apiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
+      if (!apiKey) {
+        setPlanError('Please configure your Gemini API key in Settings to generate intelligent daily plans.');
+        setIsGenerating(false);
+        return;
+      }
       const connectionTest = await geminiService.testConnection(apiKey);
       if (!connectionTest.success) {
         throw new Error('API connection failed. Please check your API key.');
@@ -195,7 +203,20 @@ const Day = () => {
         IMPORTANT: Return ONLY the JSON array, no other text or explanation.
       `;
 
-      const response = await geminiService.generateText(prompt, apiKey);
+      // Timeout wrapper for Gemini API call
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Plan generation timed out. Please try again later.')), 30000));
+      let response;
+      try {
+        response = await Promise.race([
+          geminiService.generateText(prompt, apiKey),
+          timeoutPromise
+        ]);
+      } catch (err) {
+        setPlanError(err.message || 'Plan generation failed.');
+        setIsGenerating(false);
+        console.error('[Day Plan] Generation error:', err);
+        return;
+      }
       
       // Try multiple ways to extract JSON
       let jsonData = null;
@@ -263,10 +284,9 @@ const Day = () => {
       saveDailyPlan(formattedPlan);
       
     } catch (error) {
-      console.error('Error generating daily plan:', error);
-      alert(`Failed to generate daily plan: ${error.message}. Please check your API key and try again.`);
-    } finally {
+      setPlanError(error.message || 'Plan generation failed.');
       setIsGenerating(false);
+      console.error('[Day Plan] Generation error:', error);
     }
   };
 
@@ -448,6 +468,11 @@ const Day = () => {
           {/* Content based on active tab */}
           {activeTab === 'plan' ? (
             <div className="space-y-4">
+              {planError && (
+                <div className="bg-error/10 border border-error/20 text-error text-center p-4 mb-4 rounded">
+                  <strong>{planError}</strong>
+                </div>
+              )}
               {dailyPlan.length === 0 ? (
                 <div className="text-center py-12">
                   <Icon name="Calendar" size={48} className="text-text-muted mx-auto mb-4" />
