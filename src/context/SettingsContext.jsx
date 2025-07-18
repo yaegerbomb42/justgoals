@@ -86,20 +86,48 @@ export const SettingsProvider = ({ children }) => {
       try {
         let loadedSettings = defaultSettings;
         if (settingsKey) {
-          const savedSettings = localStorage.getItem(settingsKey);
+          let savedSettings = null;
+          try {
+            savedSettings = localStorage.getItem(settingsKey);
+          } catch (e) {
+            // If getItem fails, clear it
+            localStorage.removeItem(settingsKey);
+          }
           if (savedSettings) {
             try {
               const parsedSettings = JSON.parse(savedSettings);
-              loadedSettings = { ...defaultSettings, ...parsedSettings };
+              if (parsedSettings && typeof parsedSettings === 'object') {
+                loadedSettings = { ...defaultSettings, ...parsedSettings };
+              } else {
+                // Not an object, clear
+                localStorage.removeItem(settingsKey);
+                loadedSettings = defaultSettings;
+              }
             } catch (e) {
+              // Corrupt JSON, clear
+              localStorage.removeItem(settingsKey);
               loadedSettings = defaultSettings;
             }
           }
         }
         if (user && user.id) {
-          const userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
+          let userApiKey = null;
+          try {
+            userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
+          } catch (e) {
+            localStorage.removeItem(`gemini_api_key_${user.id}`);
+          }
           if (userApiKey) {
-            loadedSettings.apiKey = userApiKey;
+            try {
+              // If it's not a string, clear
+              if (typeof userApiKey !== 'string') {
+                localStorage.removeItem(`gemini_api_key_${user.id}`);
+              } else {
+                loadedSettings.apiKey = userApiKey;
+              }
+            } catch (e) {
+              localStorage.removeItem(`gemini_api_key_${user.id}`);
+            }
           }
         }
         setSettings(loadedSettings);
