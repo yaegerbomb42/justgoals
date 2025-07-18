@@ -129,11 +129,14 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
 
           {/* Right Side */}
           <div className="flex items-center space-x-3">
-            {/* Achievement Points */}
-            <div className="hidden sm:flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg">
+            {/* Achievement Points - Clickable */}
+            <button
+              onClick={() => navigate('/achievements')}
+              className="hidden sm:flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg hover:bg-surface-600 transition-colors cursor-pointer"
+            >
               <Icon name="Trophy" size={16} className="text-primary" />
               <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
-            </div>
+            </button>
 
             {/* Download Icon */}
             <div className="relative" ref={downloadMenuRef}>
@@ -187,7 +190,26 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
                     <p className="text-sm font-body-medium text-text-primary truncate max-w-[140px] md:max-w-[200px] lg:max-w-[300px]" title={user?.name}>{user?.name}</p>
                     <p className="text-xs text-text-secondary">{user?.email}</p>
                   </div>
-                  {/* Only remove View Achievements button here, keep sign out and user icon */}
+                  <button
+                    onClick={() => {
+                      navigate('/achievements');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
+                  >
+                    <Icon name="Trophy" size={16} />
+                    <span>View Achievements</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/settings-configuration');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
+                  >
+                    <Icon name="Settings" size={16} />
+                    <span>Settings</span>
+                  </button>
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
@@ -235,7 +257,16 @@ const Header = ({ showDownloadMenu, setShowDownloadMenu }) => {
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between px-3 py-2">
                 <span className="text-sm text-text-secondary">Points:</span>
-                <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
+                <button
+                  onClick={() => {
+                    navigate('/achievements');
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-2 text-sm font-body-medium text-text-primary hover:text-primary"
+                >
+                  <Icon name="Trophy" size={16} />
+                  <span>{userPoints}</span>
+                </button>
               </div>
             </div>
           </div>

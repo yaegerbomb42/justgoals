@@ -1,89 +1,119 @@
 import React from 'react';
+import Icon from '../../../components/AppIcon';
 
 const GoalDependencyGraph = ({ data = {} }) => {
-  if (!data || !data.categories || Object.keys(data.categories).length === 0) {
+  if (!data || Object.keys(data).length === 0) {
     return (
-      <div className="text-center py-8 text-text-secondary">
-        <p>No goal dependency data yet. Create and complete goals to see dependencies!</p>
+      <div className="text-center py-8">
+        <Icon name="Target" size={48} className="text-text-muted mx-auto mb-4" />
+        <p className="text-text-secondary">No goal dependency data available</p>
       </div>
     );
   }
 
+  const goals = Object.keys(data);
+  const maxDependencies = Math.max(...goals.map(goal => data[goal]?.dependencies?.length || 0));
+
   return (
     <div className="space-y-6">
-      {/* Category Distribution */}
-      <div>
-        <h4 className="text-sm font-body-medium text-text-primary mb-3">Goal Categories</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.categoryDistribution?.map((category) => (
-            <div key={category.category} className="bg-surface-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-body-medium text-text-primary">{category.category}</span>
-                <span className="text-sm text-text-secondary">
-                  {category.completed}/{category.count}
-                </span>
-              </div>
-              <div className="w-full bg-surface-600 rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${(category.completed / category.count) * 100}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-text-secondary mt-1">
-                <span>{category.count} total</span>
-                <span>{Math.round((category.completed / category.count) * 100)}% complete</span>
-              </div>
+      {/* Dependency Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="text-center">
+            <div className="text-2xl font-heading-bold text-primary">{goals.length}</div>
+            <div className="text-sm text-text-secondary">Total Goals</div>
+          </div>
+        </div>
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="text-center">
+            <div className="text-2xl font-heading-bold text-accent">{maxDependencies}</div>
+            <div className="text-sm text-text-secondary">Max Dependencies</div>
+          </div>
+        </div>
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="text-center">
+            <div className="text-2xl font-heading-bold text-success">
+              {goals.filter(goal => (data[goal]?.dependencies?.length || 0) === 0).length}
             </div>
-          ))}
+            <div className="text-sm text-text-secondary">Independent Goals</div>
+          </div>
         </div>
       </div>
 
-      {/* Dependencies */}
-      {data.dependencies && data.dependencies.length > 0 && (
-        <div>
-          <h4 className="text-sm font-body-medium text-text-primary mb-3">Goal Dependencies</h4>
-          <div className="bg-surface-700 rounded-lg p-4">
-            <div className="space-y-2">
-              {data.dependencies.slice(0, 10).map((dep, index) => (
-                <div key={index} className="flex items-center space-x-3 text-sm">
-                  <div className={`w-2 h-2 rounded-full ${dep.type === 'strong' ? 'bg-warning' : 'bg-accent'}`} />
-                  <span className="text-text-secondary">Goal {dep.source.slice(0, 8)}...</span>
-                  <span className="text-text-secondary">→</span>
-                  <span className="text-text-secondary">Goal {dep.target.slice(0, 8)}...</span>
-                  <span className="text-xs text-text-secondary">
-                    ({Math.round(dep.strength * 100)}% similarity)
-                  </span>
+      {/* Goal Dependency List */}
+      <div className="space-y-4">
+        <h4 className="text-lg font-heading-semibold text-text-primary">Goal Dependencies</h4>
+        {goals.map(goal => {
+          const goalData = data[goal];
+          const dependencies = goalData?.dependencies || [];
+          const isBlocked = dependencies.some(dep => !data[dep]?.completed);
+          
+          return (
+            <div
+              key={goal}
+              className={`bg-surface-700 rounded-lg p-4 border transition-colors ${
+                isBlocked ? 'border-warning/20' : 'border-border'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${
+                    goalData?.completed ? 'bg-success' : 
+                    isBlocked ? 'bg-warning' : 'bg-text-muted'
+                  }`} />
+                  <h5 className="font-body-medium text-text-primary">{goal}</h5>
                 </div>
-              ))}
+                <div className="text-sm text-text-secondary">
+                  {dependencies.length} dependency{dependencies.length !== 1 ? 'ies' : 'y'}
+                </div>
+              </div>
+              
+              {dependencies.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs text-text-secondary">Depends on:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {dependencies.map(dep => (
+                      <div
+                        key={dep}
+                        className={`px-2 py-1 rounded text-xs font-body-medium ${
+                          data[dep]?.completed
+                            ? 'bg-success/10 text-success border border-success/20'
+                            : 'bg-warning/10 text-warning border border-warning/20'
+                        }`}
+                      >
+                        {dep}
+                        {data[dep]?.completed && (
+                          <Icon name="Check" size={12} className="ml-1 inline" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {isBlocked && (
+                <div className="mt-3 p-2 bg-warning/10 border border-warning/20 rounded text-xs text-warning">
+                  ⚠️ This goal is blocked by incomplete dependencies
+                </div>
+              )}
             </div>
-            {data.dependencies.length > 10 && (
-              <p className="text-xs text-text-secondary mt-2">
-                ... and {data.dependencies.length - 10} more dependencies
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="text-center">
-          <div className="text-2xl font-heading-bold text-primary">
-            {data.totalGoals || 0}
-          </div>
-          <div className="text-xs text-text-secondary">Total Goals</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-heading-bold text-accent">
-            {data.dependencies?.length || 0}
-          </div>
-          <div className="text-xs text-text-secondary">Dependencies</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-heading-bold text-success">
-            {data.categoryDistribution?.length || 0}
-          </div>
-          <div className="text-xs text-text-secondary">Categories</div>
+      {/* Recommendations */}
+      <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+        <h4 className="text-sm font-body-medium text-primary mb-2">Recommendations</h4>
+        <div className="space-y-2 text-sm text-text-secondary">
+          <p>
+            🎯 <strong>Focus on independent goals first</strong> - These can be completed without waiting for others
+          </p>
+          <p>
+            ⚡ <strong>Complete blocking goals</strong> - Finish goals that others depend on to unblock progress
+          </p>
+          <p>
+            📊 <strong>Track dependencies</strong> - Keep an eye on goal relationships to optimize your workflow
+          </p>
         </div>
       </div>
     </div>

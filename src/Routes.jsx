@@ -17,7 +17,7 @@ import LoginPage from "pages/auth/LoginPage";
 import SignUpPage from "pages/auth/SignUpPage";
 import AnalyticsDashboard from "pages/analytics-dashboard";
 import Day from "pages/day";
-import AchievementModal from "./components/ui/AchievementModal";
+import AchievementsPage from "pages/achievements";
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -55,7 +55,7 @@ const Routes = () => {
         <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
         <Route path="/analytics-dashboard" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
         <Route path="/day" element={<ProtectedRoute><Day /></ProtectedRoute>} />
-        <Route path="/achievements" element={<ProtectedRoute><AchievementModal showAllAchievementsModal={true} /></ProtectedRoute>} />
+        <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
 
         {/* Default route */}
         <Route
