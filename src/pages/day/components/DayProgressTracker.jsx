@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../context/AuthContext';
+import { normalizePlanResponse } from '../index'; // Import normalization utility from day/index.jsx
 
 const DayProgressTracker = () => {
   const { user } = useAuth();
@@ -17,36 +18,34 @@ const DayProgressTracker = () => {
 
   const loadProgressHistory = () => {
     if (!user?.id) return;
-
     const history = [];
     const today = new Date();
     const startDate = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days ago
-
     for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
       const planKey = `daily_plan_${user.id}_${dateStr}`;
       const savedPlan = localStorage.getItem(planKey);
-      
       if (savedPlan) {
         try {
-          const plan = JSON.parse(savedPlan);
-          const total = plan.length;
-          const completed = plan.filter(activity => activity.completed).length;
-          const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-          
-          history.push({
-            date: dateStr,
-            total,
-            completed,
-            percentage,
-            plan
-          });
+          const parsed = JSON.parse(savedPlan);
+          const normalized = normalizePlanResponse(JSON.stringify(parsed));
+          if (normalized) {
+            const total = normalized.length;
+            const completed = normalized.filter(activity => activity.completed).length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            history.push({
+              date: dateStr,
+              total,
+              completed,
+              percentage,
+              plan: normalized
+            });
+          } // else skip invalid plan
         } catch (error) {
-          console.error('Error parsing plan for date:', dateStr, error);
+          // skip invalid plan
         }
       }
     }
-
     setProgressHistory(history);
   };
 

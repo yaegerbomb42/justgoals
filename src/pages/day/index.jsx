@@ -882,4 +882,5 @@ function normalizePlanResponse(response) {
   return flat.length > 0 ? flat : null;
 }
 
+export { normalizePlanResponse };
 export default Day; 

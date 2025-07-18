@@ -792,8 +792,21 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
     scrollToBottom();
   }, [messages]);
 
+  // Utility to get user-specific API key
+  const getUserApiKey = () => (user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : null);
+
+  // In every AI call (generateText, etc):
+  const ensureGeminiReady = async () => {
+    const apiKey = getUserApiKey();
+    if (!apiKey) return false;
+    geminiService.initialize(apiKey);
+    const connection = await geminiService.testConnection(apiKey);
+    return connection.success;
+  };
+
   const generateAiResponse = async (userMessageContent) => {
-    if (!isConnected) {
+    const ready = await ensureGeminiReady();
+    if (!ready) {
       return "I'm not connected to the Gemini API. Please check your API key in Settings.";
     }
 
