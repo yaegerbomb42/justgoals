@@ -11,35 +11,54 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
   const { user } = useAuth();
   const [localApiKey, setLocalApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [connectionMessage, setConnectionMessage] = useState(''); // New state for error/success message
+  const [connectionMessage, setConnectionMessage] = useState('');
   const [cloudStatus, setCloudStatus] = useState('idle'); // idle, syncing, success, error
+  const [loadError, setLoadError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load API key from Firestore, then localStorage
+  // Robustly load API key from Firestore, fallback to localStorage
   useEffect(() => {
-    if (user && user.id) {
-      (async () => {
+    let cancelled = false;
+    async function loadApiKey() {
+      if (user && user.id) {
+        setIsLoading(true);
         setCloudStatus('syncing');
+        setLoadError(null);
         try {
           const cloudKey = await firestoreService.loadApiKey(user.id);
-          if (cloudKey) {
+          if (!cancelled && cloudKey) {
             setLocalApiKey(cloudKey);
             onApiKeyChange(cloudKey);
             localStorage.setItem(`gemini_api_key_${user.id}`, cloudKey);
             setCloudStatus('success');
+            setIsLoading(false);
             return;
           }
         } catch (e) {
-          setCloudStatus('error');
+          if (!cancelled) {
+            setCloudStatus('error');
+            setLoadError('Failed to load API key from cloud.');
+            console.error('[API Key] Firestore load error:', e);
+          }
         }
         // Fallback to localStorage
         const userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
-        if (userApiKey) {
-          setLocalApiKey(userApiKey);
-          onApiKeyChange(userApiKey);
-          setCloudStatus('idle');
+        if (!cancelled) {
+          if (userApiKey) {
+            setLocalApiKey(userApiKey);
+            onApiKeyChange(userApiKey);
+            setCloudStatus('idle');
+          } else {
+            setLocalApiKey('');
+            onApiKeyChange('');
+            setCloudStatus('idle');
+          }
+          setIsLoading(false);
         }
-      })();
+      }
     }
+    loadApiKey();
+    return () => { cancelled = true; };
   }, [user, onApiKeyChange]);
 
   const handleApiKeyChange = (value) => {
@@ -50,7 +69,11 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
       setCloudStatus('syncing');
       firestoreService.saveApiKey(user.id, value)
         .then(() => setCloudStatus('success'))
-        .catch(() => setCloudStatus('error'));
+        .catch((e) => {
+          setCloudStatus('error');
+          setLoadError('Failed to sync API key to cloud.');
+          console.error('[API Key] Firestore save error:', e);
+        });
     }
   };
 
@@ -59,7 +82,6 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
       alert('Please enter an API key first');
       return;
     }
-
     setConnectionMessage('');
     try {
       const result = await geminiService.testConnection(localApiKey);
@@ -133,6 +155,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
               value={localApiKey}
               onChange={(e) => handleApiKeyChange(e.target.value)}
               className="pr-12"
+              disabled={isLoading}
             />
             <button
               type="button"
@@ -142,6 +165,12 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
               <Icon name={showKey ? "EyeOff" : "Eye"} size={16} />
             </button>
           </div>
+          {isLoading && (
+            <div className="text-xs text-info mt-2">Loading API key...</div>
+          )}
+          {loadError && (
+            <div className="text-xs text-error mt-2">{loadError}</div>
+          )}
           <div className="flex items-center justify-between mt-2">
             <p className="text-xs text-text-secondary">
               Get your API key from the{' '}
@@ -154,14 +183,14 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
                 Google AI Studio dashboard
               </a>
             </p>
-            {localApiKey && (
+            {localApiKey && !isLoading && (
               <span className="text-xs text-success">
                 ✓ Key saved locally
               </span>
             )}
           </div>
           {/* Cloud sync status */}
-          {user && localApiKey && (
+          {user && localApiKey && !isLoading && (
             <div className="flex items-center space-x-2 mt-1 text-xs">
               <Icon name={cloudStatus === 'success' ? 'CloudCheck' : cloudStatus === 'syncing' ? 'CloudSync' : cloudStatus === 'error' ? 'CloudOff' : 'Cloud'} size={14} className={
                 cloudStatus === 'success' ? 'text-success' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'

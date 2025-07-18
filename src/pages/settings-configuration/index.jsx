@@ -35,6 +35,48 @@ const SettingsConfiguration = () => {
   const navigate = useNavigate();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { syncStatus, lastSync, errorLogs } = useAchievements();
+  const [settingsError, setSettingsError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Robust updateSettings with error handling
+  const robustUpdateSettings = async (newSettings) => {
+    setIsSaving(true);
+    setSettingsError(null);
+    try {
+      if (JSON.stringify(settings) !== JSON.stringify(newSettings)) {
+        await updateSettings(newSettings);
+        console.log('[Settings] Updated:', newSettings);
+      }
+    } catch (e) {
+      setSettingsError('Failed to update settings. Please try again.');
+      console.error('[Settings] Update error:', e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const robustUpdateSetting = async (section, key, value) => {
+    setIsSaving(true);
+    setSettingsError(null);
+    try {
+      const newSettings = {
+        ...settings,
+        [section]: {
+          ...settings[section],
+          [key]: value
+        }
+      };
+      if (JSON.stringify(settings) !== JSON.stringify(newSettings)) {
+        await updateSettings(newSettings);
+        console.log(`[Settings] Updated ${section}.${key}:`, value);
+      }
+    } catch (e) {
+      setSettingsError('Failed to update setting. Please try again.');
+      console.error('[Settings] Update error:', e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const getAppSettingsKey = () => {
     if (user && user.id) {
@@ -45,11 +87,11 @@ const SettingsConfiguration = () => {
 
   // Handle API key changes
   const handleApiKeyChange = (apiKey) => {
-    updateSettings({ ...settings, apiKey });
+    robustUpdateSettings({ ...settings, apiKey });
   };
 
   const handleTestConnection = (result) => {
-    updateSettings({ ...settings, connectionStatus: result ? 'success' : 'error' });
+    robustUpdateSettings({ ...settings, connectionStatus: result ? 'success' : 'error' });
   };
 
   const handleResetAllData = () => {
@@ -100,13 +142,13 @@ const SettingsConfiguration = () => {
   // Handle background effect change
   const handleBackgroundChange = (effect) => {
     setSelectedBackground(effect);
-    updateSetting('appearance.backgroundEffect', effect);
+    robustUpdateSetting('appearance', 'backgroundEffect', effect);
   };
 
   // Handle theme change
   const handleThemeChange = (theme) => {
     setSelectedTheme(theme);
-    updateSetting('appearance.theme', theme);
+    robustUpdateSetting('appearance', 'theme', theme);
   };
 
   const menuItems = [
@@ -134,37 +176,37 @@ const SettingsConfiguration = () => {
         return (
           <AppearanceSection
             settings={safeSettings}
-            onSettingChange={updateSetting}
+            onSettingChange={robustUpdateSetting}
           />
         );
       case 'notifications':
         return (
           <NotificationSection
             settings={safeSettings}
-            onSettingChange={updateSetting}
+            onSettingChange={robustUpdateSetting}
           />
         );
       case 'progress':
         return (
           <ProgressMeterSection
             settings={safeSettings}
-            onSettingChange={updateSetting}
+            onSettingChange={robustUpdateSetting}
           />
         );
       case 'focus':
         return (
           <FocusModeSection
             settings={safeSettings}
-            onSettingChange={updateSetting}
+            onSettingChange={robustUpdateSetting}
           />
         );
       case 'data':
         return (
           <DataManagementSection
             autoBackup={safeSettings.dataManagement?.autoBackup || false}
-            onAutoBackupChange={(value) => updateSetting('dataManagement', 'autoBackup', value)}
+            onAutoBackupChange={(value) => robustUpdateSetting('dataManagement', 'autoBackup', value)}
             backupFrequency={safeSettings.dataManagement?.backupFrequency || 'daily'}
-            onBackupFrequencyChange={(value) => updateSetting('dataManagement', 'backupFrequency', value)}
+            onBackupFrequencyChange={(value) => robustUpdateSetting('dataManagement', 'backupFrequency', value)}
             onExportData={() => {}} // Handled internally in DataManagementSection
             onImportData={() => {}} // Handled internally in DataManagementSection
             onResetAllData={handleResetAllData}
@@ -227,6 +269,16 @@ const SettingsConfiguration = () => {
       {(!settings || typeof settings !== 'object') && (
         <div className="bg-error/10 border border-error/20 text-error text-center p-4 mb-4 rounded">
           <strong>Settings data is missing or corrupted.</strong> The app is using safe defaults. Please check your connection or try reloading.
+        </div>
+      )}
+      {settingsError && (
+        <div className="bg-error/10 border border-error/20 text-error text-center p-4 mb-4 rounded">
+          <strong>{settingsError}</strong>
+        </div>
+      )}
+      {isSaving && (
+        <div className="bg-info/10 border border-info/20 text-info text-center p-4 mb-4 rounded">
+          <strong>Saving settings...</strong>
         </div>
       )}
       
