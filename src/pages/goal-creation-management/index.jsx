@@ -35,10 +35,10 @@ const GoalCreationManagement = () => {
     setCurrentStep(step);
   };
 
-  const handleGoalSave = (goalData) => {
+  const handleGoalSave = async (goalData) => {
     // goalData comes from GoalFormWizard
     if (user) {
-      const createdGoal = entityService.createGoal(user, goalData); // entityService handles id, createdAt, progress
+      const createdGoal = await entityService.createGoal(user, goalData); // Await the async function
       if (createdGoal) {
         setExistingGoals(prevGoals => [...prevGoals, createdGoal]);
         setSavedGoalTitle(createdGoal.title);
