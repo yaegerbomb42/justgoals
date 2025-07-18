@@ -13,9 +13,11 @@ import { useAuth } from '../../context/AuthContext';
 import { saveGoal } from '../../utils/goalUtils'; // Import the saveGoal utility
 import * as entityService from '../../services/entityManagementService'; // For milestone management
 import { useAchievements } from '../../context/AchievementContext';
+import { useGemini } from '../../context/GeminiContext';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
+  const { apiKey, isConnected, connectionError, setApiKey, resetGemini } = useGemini();
   // Persist messages in localStorage by user id (if available)
   const getMessagesStorageKey = () => {
     if (isAuthenticated && user && user.id) {
@@ -35,7 +37,6 @@ const AiAssistantChatDrift = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [pendingGoalForConfirmation, setPendingGoalForConfirmation] = useState(null); // For AI goal creation
   const [goalCreationFlow, setGoalCreationFlow] = useState(null); // Track goal creation conversation state
@@ -836,11 +837,11 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
     window.location.reload();
   };
 
-  // In all AI calls, always use currentApiKey
+  // In all AI calls, always use apiKey from context
   const ensureGeminiReady = async () => {
-    if (!connectionStatus.key) return false;
-    geminiService.initialize(connectionStatus.key);
-    const connection = await geminiService.testConnection(connectionStatus.key);
+    if (!apiKey) return false;
+    geminiService.initialize(apiKey);
+    const connection = await geminiService.testConnection(apiKey);
     return connection.success;
   };
 
@@ -991,7 +992,7 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
 
       // --- Natural Language Intent Parsing ---
       let intent = null;
-      if (!handled && connectionStatus.connected) {
+      if (!handled && apiKey) { // Use apiKey from context
         try {
           intent = await geminiService.parseUserIntent(messageContent);
         } catch (e) {
@@ -1240,13 +1241,8 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
         else {
           // If no specific intent was detected, use the general AI chat
           try {
-            const apiKey = getUserSpecificKey('gemini_api_key');
-            if (apiKey) {
-              const response = await geminiService.generateText(messageContent, apiKey);
-              aiResponseContent = response;
-            } else {
-              aiResponseContent = "I'd love to help you with that! Please configure your Gemini API key in Settings to enable AI chat features.";
-            }
+            const response = await geminiService.generateText(messageContent, apiKey);
+            aiResponseContent = response;
           } catch (error) {
             console.error('Error generating AI response:', error);
             aiResponseContent = "I'm having trouble processing your request right now. Please try again or check your API key configuration.";
@@ -1330,7 +1326,7 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
           )}
 
           {/* Chat Interface */}
-          {messages.length > 0 && (
+          {isConnected ? (
             <>
               {/* Conversation Header */}
               <ConversationHeader onClearChat={handleClearChat} />
@@ -1358,29 +1354,16 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
               {/* Quick Actions */}
               <QuickActionChips onAction={handleQuickAction} />
 
-              {/* Gemini Connection Status */}
-              <div className="mb-2 text-sm">
-                {connectionStatus.connected ? (
-                  <span className="text-success">API Key Connected</span>
-                ) : (
-                  <span className="text-error">API Key Required. {connectionStatus.message}</span>
-                )}
-                <div className="text-xs text-text-secondary mt-1">[Debug] API Key: {connectionStatus.key ? 'Present' : 'Missing'} | Connected: {connectionStatus.connected ? 'Yes' : 'No'} | {connectionStatus.message}</div>
-                <button className="ml-2 px-2 py-1 bg-surface-700 text-xs rounded hover:bg-surface-600" onClick={handleForceRecheck}>Force Recheck</button>
-              </div>
-
               {/* Message Input */}
-              {connectionStatus.connected ? (
-                <MessageInput
-                  message={message}
-                  setMessage={setMessage}
-                  onSubmit={handleSubmit}
-                  isProcessing={isProcessing}
-                />
-              ) : (
-                <div className="text-error text-center mt-4">API Key Required. {connectionStatus.message}</div>
-              )}
+              <MessageInput
+                message={message}
+                setMessage={setMessage}
+                onSubmit={handleSubmit}
+                isProcessing={isProcessing}
+              />
             </>
+          ) : (
+            <div className="text-error text-center mt-4">API Key Required. {connectionError}</div>
           )}
         </div>
       </div>

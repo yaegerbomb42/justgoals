@@ -11,6 +11,7 @@ import { getGoals, formatDate, getDaysUntilDeadline } from '../../utils/goalUtil
 import geminiService from '../../services/geminiService';
 import DayProgressTracker from './components/DayProgressTracker';
 import { useSettings } from '../../context/SettingsContext';
+import { usePlanData } from '../../context/PlanDataContext';
 
 // Error boundary for the day planner
 class DayErrorBoundary extends React.Component {
@@ -34,6 +35,7 @@ class DayErrorBoundary extends React.Component {
 
 const Day = () => {
   const { user, isAuthenticated } = useAuth();
+  const { plan, setPlan, planError, resetAllPlans } = usePlanData();
   const { settings, isLoading: settingsLoading } = useSettings();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -51,7 +53,6 @@ const Day = () => {
     taskDensity: 'balanced', // 'more_tasks', 'balanced', 'less_tasks'
     customInstructions: ''
   });
-  const [planError, setPlanError] = useState(null);
 
   // On app load, clean all daily_plan_* keys in localStorage if not valid
   useEffect(() => {
@@ -113,16 +114,15 @@ const Day = () => {
     }
   }, [user?.id]);
 
-  // Load user data
+  // Load user goals and milestones as before
   useEffect(() => {
     if (isAuthenticated && user) {
       const userGoals = getGoals(user.id);
       const userMilestones = entityService.getMilestones(user);
       setGoals(userGoals);
       setMilestones(userMilestones);
-      loadDailyPlan(selectedDate);
     }
-  }, [isAuthenticated, user, selectedDate]);
+  }, [isAuthenticated, user]);
 
   // Load daily plan for selected date
   const loadDailyPlan = useCallback((date) => {
@@ -407,18 +407,9 @@ const Day = () => {
   };
 
   // In all places where dailyPlan is used, log and check the plan
-  let safeDailyPlan = [];
-  try {
-    console.log('[Day Planner] Raw dailyPlan:', dailyPlan, typeof dailyPlan);
-    safeDailyPlan = Array.isArray(dailyPlan) && dailyPlan.every(item => item && typeof item === 'object' && typeof item.time === 'string' && typeof item.title === 'string') ? dailyPlan : [];
-    if (!Array.isArray(dailyPlan)) {
-      console.error('[Day Planner] dailyPlan is not an array:', dailyPlan);
-    }
-  } catch (e) {
-    safeDailyPlan = [];
-    setPlanError && setPlanError('Plan data was corrupted and has been reset.');
-    console.error('[Day Planner] Error processing plan:', e);
-  }
+  // Remove all localStorage and state-based plan logic
+  // Use plan from context for all rendering and processing
+  const safeDailyPlan = Array.isArray(plan) ? plan : [];
 
   if (!isAuthenticated) {
     return <div>Please log in to access your daily plan.</div>;
@@ -431,7 +422,7 @@ const Day = () => {
         
         <div className="pt-16 pb-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <button className="mb-4 px-4 py-2 bg-error text-white rounded" onClick={handleResetPlanData}>Reset Plan Data</button>
+            <button className="mb-4 px-4 py-2 bg-error text-white rounded" onClick={resetAllPlans}>Reset Plan Data</button>
             {/* Header */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
