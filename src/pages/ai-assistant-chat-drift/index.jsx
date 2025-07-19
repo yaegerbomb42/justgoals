@@ -13,12 +13,16 @@ import { useAuth } from '../../context/AuthContext';
 import { saveGoal } from '../../utils/goalUtils';
 import * as entityService from '../../services/entityManagementService';
 import { useAchievements } from '../../context/AchievementContext';
-import { useGemini } from '../../context/GeminiContext';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
-  const { apiKey, isConnected, connectionError, setApiKey, resetGemini } = useGemini();
   const { addAchievement } = useAchievements();
+  
+  // Local state for API key and connection
+  const [apiKey, setApiKey] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Persist messages in localStorage by user id (if available)
   const getMessagesStorageKey = () => {
@@ -51,6 +55,34 @@ const AiAssistantChatDrift = () => {
   const chatContainerRef = useRef(null);
   const [updatedMilestones, setUpdatedMilestones] = useState([]);
   const [lastProactiveCheck, setLastProactiveCheck] = useState(0);
+
+  // Load API key and test connection on mount
+  useEffect(() => {
+    const loadApiKeyAndTest = async () => {
+      try {
+        const storedKey = localStorage.getItem('gemini_api_key_global') || '';
+        setApiKey(storedKey);
+        
+        if (storedKey) {
+          geminiService.initialize(storedKey);
+          const result = await geminiService.testConnection(storedKey);
+          setIsConnected(result.success);
+          setConnectionError(result.success ? '' : result.message || 'Connection failed');
+        } else {
+          setIsConnected(false);
+          setConnectionError('No API key set');
+        }
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Error loading API key:', error);
+        setIsConnected(false);
+        setConnectionError(error.message || 'Unknown error');
+        setIsInitialized(true);
+      }
+    };
+    
+    loadApiKeyAndTest();
+  }, []);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
@@ -118,6 +150,16 @@ const AiAssistantChatDrift = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Reset Gemini state
+  const resetGemini = () => {
+    setApiKey('');
+    setIsConnected(false);
+    setConnectionError('');
+    setIsInitialized(false);
+    localStorage.removeItem('gemini_api_key_global');
+    geminiService.isInitialized = false;
   };
 
   // Detect goal creation intent from natural language
@@ -525,16 +567,6 @@ const AiAssistantChatDrift = () => {
     }
   };
 
-  const handleForceRecheck = () => {
-    // This function is no longer needed as we use context
-    return "Connection status is managed automatically. If you're having issues, try refreshing the page.";
-  };
-
-  const ensureGeminiReady = async () => {
-    // This function is no longer needed as we use context
-    return isConnected;
-  };
-
   const generateAiResponse = async (userMessageContent) => {
     if (!apiKey) {
       return "Please configure your Gemini API key in Settings to chat with me.";
@@ -734,23 +766,14 @@ const AiAssistantChatDrift = () => {
       <Header title="Drift AI Assistant" />
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Connection Status and Debug Info */}
-        <div className="mb-4 p-4 bg-surface-800 rounded-lg border border-border">
-          {isConnected ? (
-            <span className="text-success">API Key Connected</span>
-          ) : (
-            <span className="text-error">API Key Required. {connectionError}</span>
-          )}
-          <div className="text-xs text-text-secondary mt-1">
-            [Debug] API Key: {apiKey ? 'Present' : 'Missing'} | Connected: {isConnected ? 'Yes' : 'No'} | {connectionError}
+        {/* Simple Connection Status */}
+        {!isConnected && (
+          <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
+            <div className="text-sm text-error">
+              ⚠️ API Key not connected. Please configure your Gemini API key in Settings.
+            </div>
           </div>
-          <button 
-            className="ml-2 px-2 py-1 bg-surface-700 text-xs rounded hover:bg-surface-600" 
-            onClick={resetGemini}
-          >
-            Reset Gemini State
-          </button>
-        </div>
+        )}
 
         {/* Chat Interface */}
         {isConnected ? (
@@ -791,7 +814,17 @@ const AiAssistantChatDrift = () => {
             )}
           </>
         ) : (
-          <div className="text-error text-center mt-4">API Key Required. {connectionError}</div>
+          <div className="text-center py-12">
+            <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
+            <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
+            <p className="text-text-secondary mb-6">Please configure your Gemini API key in Settings to chat with Drift.</p>
+            <button 
+              className="px-4 py-2 bg-surface-700 text-text-secondary rounded hover:bg-surface-600 transition-colors" 
+              onClick={resetGemini}
+            >
+              Reset Connection
+            </button>
+          </div>
         )}
 
         {/* Search Modal */}

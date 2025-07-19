@@ -2,7 +2,48 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../context/AuthContext';
-import { normalizePlanData } from '../index'; // Import new general normalization utility
+
+// Simple plan data normalization
+function normalizePlanData(input) {
+  if (!input) return [];
+  
+  let data = input;
+  if (typeof input === 'string') {
+    try { 
+      data = JSON.parse(input); 
+    } catch { 
+      return []; 
+    }
+  }
+  
+  if (!Array.isArray(data)) {
+    if (data && typeof data === 'object') {
+      data = [data];
+    } else {
+      return [];
+    }
+  }
+  
+  // Deep flatten and validate
+  function deepFlatten(arr) {
+    return arr.reduce((acc, val) => {
+      if (Array.isArray(val)) {
+        return acc.concat(deepFlatten(val));
+      } else if (val && typeof val === 'object') {
+        return acc.concat(val);
+      }
+      return acc;
+    }, []);
+  }
+  
+  const flat = deepFlatten(data).filter(
+    item => item && typeof item === 'object' && 
+    typeof item.time === 'string' && 
+    typeof item.title === 'string'
+  );
+  
+  return flat;
+}
 
 const DayProgressTracker = () => {
   const { user } = useAuth();
@@ -28,7 +69,7 @@ const DayProgressTracker = () => {
       if (savedPlan) {
         try {
           const parsed = JSON.parse(savedPlan);
-          const normalized = normalizePlanData(JSON.stringify(parsed));
+          const normalized = normalizePlanData(parsed);
           if (normalized) {
             const total = normalized.length;
             const completed = normalized.filter(activity => activity.completed).length;
