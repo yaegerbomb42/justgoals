@@ -32,119 +32,304 @@ class DayErrorBoundary extends React.Component {
   }
 }
 
-// Enhanced JSON parsing with 4-stage fallback strategy
+// Ultra-defensive AI response parsing with comprehensive fallback strategy
 function parseAIResponse(response) {
-  if (!response || typeof response !== 'string') {
+  console.log('[Day Planner] Starting to parse AI response:', typeof response, response?.length);
+  
+  if (!response || typeof response !== 'string' || response.trim().length === 0) {
+    console.error('[Day Planner] Invalid response input:', response);
     throw new Error('Invalid response: must be a non-empty string');
   }
 
-  // Stage 1: Extract from markdown code blocks
-  const codeBlockMatch = response.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    try {
-      const parsed = JSON.parse(codeBlockMatch[1]);
-      if (Array.isArray(parsed)) {
-        return parsed;
+  const parseStrategies = [
+    // Strategy 1: Extract from markdown code blocks
+    (text) => {
+      const patterns = [
+        /```(?:json)?\s*(\[[\s\S]*?\])\s*```/g,
+        /```(?:javascript|js)?\s*(\[[\s\S]*?\])\s*```/g,
+        /```\s*(\[[\s\S]*?\])\s*```/g
+      ];
+      
+      for (const pattern of patterns) {
+        const matches = [...text.matchAll(pattern)];
+        for (const match of matches) {
+          if (match[1]) {
+            try {
+              const parsed = JSON.parse(match[1]);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                console.log('[Day Planner] Strategy 1 success with pattern:', pattern);
+                return parsed;
+              }
+            } catch (e) {
+              console.warn('[Day Planner] Strategy 1 parse failed:', e.message);
+            }
+          }
+        }
       }
-    } catch (error) {
-      console.warn('Stage 1 parsing failed:', error);
+      return null;
+    },
+
+    // Strategy 2: Find JSON array patterns with multiple approaches
+    (text) => {
+      const patterns = [
+        /\[\s*\{[^}]*"time"[^}]*\}[\s\S]*?\]/g,
+        /\[\s*\{[\s\S]*?\}\s*(?:,\s*\{[\s\S]*?\}\s*)*\]/g,
+        /\[[\s\S]*?"time"[\s\S]*?\]/g
+      ];
+      
+      for (const pattern of patterns) {
+        const matches = [...text.matchAll(pattern)];
+        for (const match of matches) {
+          try {
+            const parsed = JSON.parse(match[0]);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              console.log('[Day Planner] Strategy 2 success with pattern:', pattern);
+              return parsed;
+            }
+          } catch (e) {
+            console.warn('[Day Planner] Strategy 2 parse failed:', e.message);
+          }
+        }
+      }
+      return null;
+    },
+
+    // Strategy 3: Extract between brackets with validation
+    (text) => {
+      const firstBracket = text.indexOf('[');
+      const lastBracket = text.lastIndexOf(']');
+      
+      if (firstBracket !== -1 && lastBracket !== -1 && firstBracket < lastBracket) {
+        try {
+          const jsonSubstring = text.substring(firstBracket, lastBracket + 1);
+          const parsed = JSON.parse(jsonSubstring);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log('[Day Planner] Strategy 3 success');
+            return parsed;
+          }
+        } catch (e) {
+          console.warn('[Day Planner] Strategy 3 parse failed:', e.message);
+        }
+      }
+      return null;
+    },
+
+    // Strategy 4: Try parsing entire response
+    (text) => {
+      try {
+        const cleanResponse = text.trim();
+        const parsed = JSON.parse(cleanResponse);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          console.log('[Day Planner] Strategy 4 success');
+          return parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          // Extract arrays from object properties
+          const possibleArrays = Object.values(parsed).filter(val => 
+            Array.isArray(val) && val.length > 0
+          );
+          if (possibleArrays.length > 0) {
+            console.log('[Day Planner] Strategy 4 success (extracted array from object)');
+            return possibleArrays[0];
+          }
+        }
+      } catch (e) {
+        console.warn('[Day Planner] Strategy 4 parse failed:', e.message);
+      }
+      return null;
+    },
+
+    // Strategy 5: Line-by-line extraction for malformed JSON
+    (text) => {
+      try {
+        const lines = text.split('\n');
+        const jsonLines = lines.filter(line => 
+          line.trim().includes('"time"') || 
+          line.trim().includes('"title"') ||
+          line.trim().startsWith('{') ||
+          line.trim().startsWith('[')
+        );
+        
+        if (jsonLines.length > 0) {
+          const reconstructed = '[' + jsonLines.join(',').replace(/,+/g, ',') + ']';
+          const parsed = JSON.parse(reconstructed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log('[Day Planner] Strategy 5 success (line reconstruction)');
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('[Day Planner] Strategy 5 parse failed:', e.message);
+      }
+      return null;
+    }
+  ];
+
+  // Try each strategy
+  for (let i = 0; i < parseStrategies.length; i++) {
+    console.log(`[Day Planner] Trying parsing strategy ${i + 1}...`);
+    const result = parseStrategies[i](response);
+    if (result) {
+      console.log(`[Day Planner] Strategy ${i + 1} successful, returned ${result.length} items`);
+      return result;
     }
   }
 
-  // Stage 2: Find JSON array patterns
-  const jsonMatch = response.match(/\[\s*\{[\s\S]*\}\s*\]/);
-  if (jsonMatch && jsonMatch[0]) {
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch (error) {
-      console.warn('Stage 2 parsing failed:', error);
-    }
-  }
-
-  // Stage 3: Extract between first [ and last ]
-  const firstBracket = response.indexOf('[');
-  const lastBracket = response.lastIndexOf(']');
-  if (firstBracket !== -1 && lastBracket !== -1 && firstBracket < lastBracket) {
-    try {
-      const jsonSubstring = response.substring(firstBracket, lastBracket + 1);
-      const parsed = JSON.parse(jsonSubstring);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch (error) {
-      console.warn('Stage 3 parsing failed:', error);
-    }
-  }
-
-  // Stage 4: Parse entire response as fallback
-  try {
-    const cleanResponse = response.trim();
-    const parsed = JSON.parse(cleanResponse);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    } else if (parsed && typeof parsed === 'object') {
-      // If it's an object, try to extract an array property
-      const possibleArrays = Object.values(parsed).filter(Array.isArray);
-      if (possibleArrays.length > 0) {
-        return possibleArrays[0];
-      }
-    }
-  } catch (error) {
-    console.warn('Stage 4 parsing failed:', error);
-  }
-
-  throw new Error('Invalid response format: Could not extract valid JSON array from AI response');
+  console.error('[Day Planner] All parsing strategies failed for response:', response);
+  throw new Error('Unable to parse AI response into valid activity array. Please try regenerating the plan.');
 }
 
-// Robust plan data normalization
+// Ultra-robust plan data normalization with comprehensive validation
 function normalizePlanData(input) {
-  if (!input) return [];
+  console.log('[Day Planner] Normalizing plan data:', typeof input, Array.isArray(input));
+  
+  // Handle null/undefined/empty
+  if (!input) {
+    console.log('[Day Planner] Input is null/undefined/empty, returning empty array');
+    return [];
+  }
   
   let data = input;
+  
+  // Handle string input
   if (typeof input === 'string') {
     try { 
       data = JSON.parse(input); 
-    } catch { 
+      console.log('[Day Planner] Parsed string input successfully');
+    } catch (e) { 
+      console.warn('[Day Planner] Failed to parse string input:', e.message);
       return []; 
     }
   }
   
+  // Ensure we have an array
   if (!Array.isArray(data)) {
     if (data && typeof data === 'object') {
-      data = [data];
+      // Check if it's a single activity object
+      if (data.time && data.title) {
+        console.log('[Day Planner] Converting single object to array');
+        data = [data];
+      } else {
+        // Try to extract arrays from object properties
+        const possibleArrays = Object.values(data).filter(val => Array.isArray(val));
+        if (possibleArrays.length > 0) {
+          console.log('[Day Planner] Extracted array from object property');
+          data = possibleArrays[0];
+        } else {
+          console.warn('[Day Planner] Object does not contain valid activity data');
+          return [];
+        }
+      }
     } else {
+      console.warn('[Day Planner] Data is not an array or object:', typeof data);
       return [];
     }
   }
   
-  // Deep flatten and validate
-  function deepFlatten(arr) {
+  // Deep flatten with safety checks
+  function safeDeepFlatten(arr) {
+    if (!Array.isArray(arr)) return [];
+    
     return arr.reduce((acc, val) => {
-      if (Array.isArray(val)) {
-        return acc.concat(deepFlatten(val));
-      } else if (val && typeof val === 'object') {
-        return acc.concat(val);
+      if (val === null || val === undefined) {
+        return acc; // Skip null/undefined items
       }
-      return acc;
+      
+      if (Array.isArray(val)) {
+        return acc.concat(safeDeepFlatten(val));
+      } else if (val && typeof val === 'object') {
+        // Validate activity structure
+        if (typeof val.time === 'string' && typeof val.title === 'string') {
+          return acc.concat(val);
+        } else {
+          console.warn('[Day Planner] Invalid activity object:', val);
+          return acc;
+        }
+      } else {
+        console.warn('[Day Planner] Unexpected value type:', typeof val, val);
+        return acc;
+      }
     }, []);
   }
   
-  const flat = deepFlatten(data).filter(
-    item => item && typeof item === 'object' && 
-    typeof item.time === 'string' && 
-    typeof item.title === 'string'
-  );
+  const flattened = safeDeepFlatten(data);
+  console.log('[Day Planner] Flattened to', flattened.length, 'items');
   
-  return Array.isArray(flat) ? flat : [];
+  // Additional validation and enhancement
+  const normalized = flattened
+    .filter(item => {
+      // Basic structure validation
+      if (!item || typeof item !== 'object') return false;
+      if (!item.time || typeof item.time !== 'string') return false;
+      if (!item.title || typeof item.title !== 'string') return false;
+      return true;
+    })
+    .map((item, index) => ({
+      // Ensure required fields
+      id: item.id || `activity-${Date.now()}-${index}`,
+      time: item.time.trim(),
+      title: item.title.trim(),
+      description: item.description || '',
+      category: item.category || 'personal',
+      priority: item.priority || 'medium',
+      duration: item.duration || '60 minutes',
+      completed: item.completed || false,
+      completedAt: item.completedAt || null
+    }));
+  
+  console.log('[Day Planner] Final normalized data:', normalized.length, 'valid activities');
+  
+  // Final safety check - must be array
+  if (!Array.isArray(normalized)) {
+    console.error('[Day Planner] Normalization result is not an array!');
+    return [];
+  }
+  
+  return normalized;
 }
 
-// Always normalize before setting dailyPlan
+// Ultra-safe daily plan setter with validation
 function safeSetDailyPlan(setDailyPlan, plan) {
-  const normalized = normalizePlanData(plan);
-  setDailyPlan(normalized);
+  console.log('[Day Planner] safeSetDailyPlan called with:', typeof plan, Array.isArray(plan));
+  
+  try {
+    const normalized = normalizePlanData(plan);
+    
+    // Final validation
+    if (!Array.isArray(normalized)) {
+      console.error('[Day Planner] Normalized data is not an array:', typeof normalized);
+      setDailyPlan([]);
+      return;
+    }
+    
+    // Validate each item has filter-safe structure
+    const validated = normalized.filter(item => {
+      if (!item || typeof item !== 'object') {
+        console.warn('[Day Planner] Filtering out invalid item:', item);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log('[Day Planner] Setting daily plan with', validated.length, 'validated activities');
+    setDailyPlan(validated);
+  } catch (error) {
+    console.error('[Day Planner] Error in safeSetDailyPlan:', error);
+    setDailyPlan([]);
+  }
+}
+
+// Additional safety wrapper for any operations on dailyPlan
+function safePlanOperation(plan, operation, fallback = []) {
+  try {
+    if (!Array.isArray(plan)) {
+      console.warn('[Day Planner] Plan is not an array in operation:', typeof plan);
+      return fallback;
+    }
+    return operation(plan);
+  } catch (error) {
+    console.error('[Day Planner] Error in plan operation:', error);
+    return fallback;
+  }
 }
 
 const Day = () => {
@@ -502,15 +687,15 @@ const Day = () => {
     }
   };
 
-  // Get progress statistics
+  // Get progress statistics with ultra-safe handling
   const getProgressStats = () => {
-    // Ensure dailyPlan is always an array
-    console.log('DEBUG dailyPlan before filter:', dailyPlan, typeof dailyPlan, Array.isArray(dailyPlan));
-    const planArray = Array.isArray(dailyPlan) ? dailyPlan : [];
-    const total = planArray.length;
-    const completed = planArray.filter(activity => activity && activity.completed).length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { total, completed, percentage };
+    return safePlanOperation(dailyPlan, (planArray) => {
+      console.log('[Day Planner] getProgressStats called with planArray:', planArray.length, 'items');
+      const total = planArray.length;
+      const completed = planArray.filter(activity => activity && activity.completed).length;
+      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      return { total, completed, percentage };
+    }, { total: 0, completed: 0, percentage: 0 });
   };
 
   const progressStats = getProgressStats();
@@ -530,8 +715,8 @@ const Day = () => {
     return <div>Please log in to access your daily plan.</div>;
   }
 
-  // Ensure dailyPlan is always an array for rendering
-  const safeDailyPlan = Array.isArray(dailyPlan) ? dailyPlan : [];
+  // Ensure dailyPlan is always an array for rendering with ultra-safe handling
+  const safeDailyPlan = safePlanOperation(dailyPlan, (plan) => plan, []);
 
   return (
     <DayErrorBoundary>
@@ -539,8 +724,19 @@ const Day = () => {
         <Header />
         {/* DEBUG PANEL */}
         <div style={{background:'#222',color:'#fff',padding:'8px',marginBottom:'8px',fontSize:'12px'}}>
+          <strong>DAY PLANNER DEBUG PANEL</strong><br/>
+          Model: {geminiService.getModelInfo().model} ({geminiService.getModelInfo().provider})<br/>
           dailyPlan typeof: {typeof dailyPlan}, Array.isArray: {Array.isArray(dailyPlan) ? 'true' : 'false'}<br/>
-          Value: {JSON.stringify(dailyPlan)}
+          dailyPlan length: {Array.isArray(dailyPlan) ? dailyPlan.length : 'N/A'}<br/>
+          isConnected: {isConnected ? 'true' : 'false'}<br/>
+          planError: {planError || 'none'}<br/>
+          Sample activity: {dailyPlan?.[0] ? JSON.stringify(dailyPlan[0], null, 1) : 'none'}<br/>
+          <button 
+            onClick={handleResetPlanData}
+            style={{background:'#444',border:'1px solid #666',color:'#fff',padding:'4px 8px',marginTop:'4px'}}
+          >
+            Reset All Plan Data
+          </button>
         </div>
         <div className="pt-16 pb-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

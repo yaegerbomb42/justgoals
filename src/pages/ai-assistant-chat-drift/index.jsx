@@ -65,6 +65,7 @@ const AiAssistantChatDrift = () => {
       setIsTestingConnection(true);
       try {
         const key = geminiService.getApiKey(user?.id);
+        console.log('[Drift] Loading API key on mount:', key ? 'KEY FOUND' : 'NO KEY');
         setApiKey(key);
         if (key) {
           geminiService.initialize(key);
@@ -74,6 +75,11 @@ const AiAssistantChatDrift = () => {
           console.log('[Drift] Initial result message:', result.message);
           setIsConnected(result.success);
           setConnectionError(result.success ? '' : result.message || 'Connection failed');
+          
+          // If connected successfully, ensure we show the connected UI
+          if (result.success) {
+            console.log('[Drift] Connection successful, should show chat interface');
+          }
         } else {
           setIsConnected(false);
           setConnectionError('No API key set');
@@ -84,6 +90,7 @@ const AiAssistantChatDrift = () => {
         setConnectionError(error.message || 'Unknown error');
       } finally {
         setIsTestingConnection(false);
+        console.log('[Drift] Connection test completed, isConnected:', isConnected);
       }
     };
     loadApiKeyAndTest();
@@ -93,6 +100,7 @@ const AiAssistantChatDrift = () => {
   useEffect(() => {
     const handleApiKeyChange = async (event) => {
       const newApiKey = event.detail.apiKey;
+      console.log('[Drift] API key change event received:', newApiKey ? 'NEW KEY SET' : 'KEY CLEARED');
       setApiKey(newApiKey);
       setIsTestingConnection(true);
       try {
@@ -104,6 +112,15 @@ const AiAssistantChatDrift = () => {
           console.log('[Drift] API key change result message:', result.message);
           setIsConnected(result.success);
           setConnectionError(result.success ? '' : result.message || 'Connection failed');
+          
+          // Force UI update if connected successfully
+          if (result.success) {
+            console.log('[Drift] API key change successful, forcing UI update');
+            // Small delay to ensure state updates
+            setTimeout(() => {
+              console.log('[Drift] State after API key change - isConnected:', result.success, 'apiKey:', newApiKey ? 'SET' : 'UNSET');
+            }, 100);
+          }
         } else {
           setIsConnected(false);
           setConnectionError('No API key set');
@@ -114,6 +131,7 @@ const AiAssistantChatDrift = () => {
         setConnectionError(error.message || 'Unknown error');
       } finally {
         setIsTestingConnection(false);
+        console.log('[Drift] API key change test completed');
       }
     };
     window.addEventListener('apiKeyChanged', handleApiKeyChange);
@@ -826,12 +844,15 @@ const AiAssistantChatDrift = () => {
     <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
       {/* DEBUG PANEL */}
       <div style={{background:'#222',color:'#fff',padding:'8px',marginBottom:'8px',fontSize:'12px'}}>
+        <strong>DRIFT DEBUG PANEL</strong><br/>
+        Model: {geminiService.getModelInfo().model} ({geminiService.getModelInfo().provider})<br/>
         apiKey: {apiKey ? 'SET' : 'NOT SET'}<br/>
         isConnected: {isConnected ? 'true' : 'false'}<br/>
         isTestingConnection: {isTestingConnection ? 'true' : 'false'}<br/>
         connectionError: {connectionError || 'none'}<br/>
         user-specific key: {user?.id ? (localStorage.getItem(`gemini_api_key_${user.id}`) ? 'EXISTS' : 'NOT FOUND') : 'NO USER'}<br/>
         global key: {localStorage.getItem('gemini_api_key_global') ? 'EXISTS' : 'NOT FOUND'}<br/>
+        messages count: {messages.length}<br/>
         <button 
           onClick={() => {
             const key = geminiService.getApiKey(user?.id);

@@ -9,7 +9,9 @@ class GeminiService {
     this.apiKey = null;
     this.isInitialized = false;
     // Use Gemini 2.5 Flash from Google AI Studio
-    this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    this.model = 'gemini-2.5-flash';
+    this.baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
+    console.log('[GeminiService] Initialized with model:', this.model);
   }
 
   initialize(apiKey = null) {
@@ -21,11 +23,12 @@ class GeminiService {
     if (apiKey && apiKey.trim()) {
       this.apiKey = apiKey.trim();
       this.isInitialized = true;
-      console.log('GeminiService initialized successfully');
+      console.log('[GeminiService] Initialized successfully with model:', this.model);
+      console.log('[GeminiService] Base URL:', this.baseUrl);
       return true;
     } else {
       this.isInitialized = false;
-      console.warn('GeminiService: No API key provided');
+      console.warn('[GeminiService] No API key provided');
       return false;
     }
   }
@@ -103,6 +106,19 @@ class GeminiService {
     if (apiKey && apiKey.trim()) {
       this.initialize(apiKey);
     }
+  }
+
+  /**
+   * Get model information
+   * @returns {object} Model information
+   */
+  getModelInfo() {
+    return {
+      model: this.model,
+      baseUrl: this.baseUrl,
+      isInitialized: this.isInitialized,
+      provider: 'Google AI Studio'
+    };
   }
 
   /**
@@ -640,6 +656,7 @@ export const parseUserIntent = (userInputText) => geminiService.parseUserIntent(
 export const getApiKey = (userId) => geminiService.getApiKey(userId);
 export const setApiKey = (apiKey, userId) => geminiService.setApiKey(apiKey, userId);
 export const checkConnection = (userId) => geminiService.checkConnection(userId);
+export const getModelInfo = () => geminiService.getModelInfo();
 
 // Export properties
 export const isInitialized = () => geminiService.isInitialized;
