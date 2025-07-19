@@ -9,26 +9,26 @@ class GeminiService {
     this.apiKey = null;
     this.isInitialized = false;
     // Use Gemini 2.5 Flash from Google AI Studio
-    this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    this.model = 'gemini-2.5-flash';
+    this.baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
+    console.log('[GeminiService] Initialized with model:', this.model);
   }
 
   initialize(apiKey = null) {
-    // If no API key provided, try to get from current user's storage
+    // If no API key provided, try to get using standardized method
     if (!apiKey) {
-      const userId = this.getCurrentUserId();
-      if (userId) {
-        apiKey = localStorage.getItem(`gemini_api_key_${userId}`);
-      }
+      apiKey = this.getApiKey();
     }
 
     if (apiKey && apiKey.trim()) {
       this.apiKey = apiKey.trim();
       this.isInitialized = true;
-      console.log('GeminiService initialized successfully');
+      console.log('[GeminiService] Initialized successfully with model:', this.model);
+      console.log('[GeminiService] Base URL:', this.baseUrl);
       return true;
     } else {
       this.isInitialized = false;
-      console.warn('GeminiService: No API key provided');
+      console.warn('[GeminiService] No API key provided');
       return false;
     }
   }
@@ -45,6 +45,98 @@ class GeminiService {
       console.error('Error getting current user ID:', e);
     }
     return null;
+  }
+
+  /**
+   * Get API key with fallback logic for user-specific and global keys
+   * @param {string} userId - Optional user ID. If not provided, uses current user ID
+   * @returns {string} API key or empty string if not found
+   */
+  getApiKey(userId = null) {
+    const targetUserId = userId || this.getCurrentUserId();
+    
+    // Try user-specific key first
+    if (targetUserId) {
+      const userKey = localStorage.getItem(`gemini_api_key_${targetUserId}`);
+      if (userKey && userKey.trim()) {
+        return userKey.trim();
+      }
+    }
+    
+    // Fallback to global key
+    const globalKey = localStorage.getItem('gemini_api_key_global');
+    if (globalKey && globalKey.trim()) {
+      return globalKey.trim();
+    }
+    
+    // Final fallback to legacy key
+    const legacyKey = localStorage.getItem('gemini_api_key');
+    if (legacyKey && legacyKey.trim()) {
+      return legacyKey.trim();
+    }
+    
+    return '';
+  }
+
+  /**
+   * Set API key for user or globally
+   * @param {string} apiKey - The API key to store
+   * @param {string} userId - Optional user ID. If not provided, uses current user ID or stores globally
+   */
+  setApiKey(apiKey, userId = null) {
+    const targetUserId = userId || this.getCurrentUserId();
+    
+    if (targetUserId) {
+      // Store user-specific key
+      if (apiKey && apiKey.trim()) {
+        localStorage.setItem(`gemini_api_key_${targetUserId}`, apiKey.trim());
+      } else {
+        localStorage.removeItem(`gemini_api_key_${targetUserId}`);
+      }
+    } else {
+      // Store global key if no user ID available
+      if (apiKey && apiKey.trim()) {
+        localStorage.setItem('gemini_api_key_global', apiKey.trim());
+      } else {
+        localStorage.removeItem('gemini_api_key_global');
+      }
+    }
+    
+    // Initialize with the new key
+    if (apiKey && apiKey.trim()) {
+      this.initialize(apiKey);
+    }
+  }
+
+  /**
+   * Get model information
+   * @returns {object} Model information
+   */
+  getModelInfo() {
+    return {
+      model: this.model,
+      baseUrl: this.baseUrl,
+      isInitialized: this.isInitialized,
+      provider: 'Google AI Studio'
+    };
+  }
+
+  /**
+   * Check connection using user's API key
+   * @param {string} userId - Optional user ID. If not provided, uses current user ID
+   * @returns {Promise<object>} Connection test result
+   */
+  async checkConnection(userId = null) {
+    const apiKey = this.getApiKey(userId);
+    if (!apiKey) {
+      return { 
+        success: false, 
+        status: 'no_key', 
+        message: 'No API key found. Please configure your Gemini API key.' 
+      };
+    }
+    
+    return this.testConnection(apiKey);
   }
 
   /**
@@ -559,6 +651,12 @@ export const getFocusSessionRecommendations = (goalData, previousSessions) => ge
 export const getMotivationalMessage = (userContext) => geminiService.getMotivationalMessage(userContext);
 export const parseGoalFromString = (userInputText) => geminiService.parseGoalFromString(userInputText);
 export const parseUserIntent = (userInputText) => geminiService.parseUserIntent(userInputText);
+
+// Export new standardized API key methods
+export const getApiKey = (userId) => geminiService.getApiKey(userId);
+export const setApiKey = (apiKey, userId) => geminiService.setApiKey(apiKey, userId);
+export const checkConnection = (userId) => geminiService.checkConnection(userId);
+export const getModelInfo = () => geminiService.getModelInfo();
 
 // Export properties
 export const isInitialized = () => geminiService.isInitialized;

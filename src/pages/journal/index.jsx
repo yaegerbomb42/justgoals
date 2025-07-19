@@ -131,8 +131,8 @@ const Journal = () => {
     setIsAIInsightsOpen(true);
     
     try {
-      // Get API key from localStorage
-      const apiKey = localStorage.getItem('gemini_api_key');
+      // Get API key using standardized method
+      const apiKey = geminiService.getApiKey(user?.id);
       if (!apiKey) {
         throw new Error('Please configure your Gemini API key in Settings');
       }
