@@ -3,6 +3,8 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AchievementProvider } from './context/AchievementContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { GeminiProvider } from './context/GeminiContext';
+import { PlanDataProvider } from './context/PlanDataContext';
 import Routes from './Routes';
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
@@ -16,13 +18,17 @@ function App() {
       <Router>
         <AuthProvider>
           <SettingsProvider>
-            <AchievementProvider>
-              <div className="App">
-                <FlowingParticlesBackground />
-                <ScrollToTop />
-                <Routes />
-              </div>
-            </AchievementProvider>
+            <GeminiProvider>
+              <PlanDataProvider>
+                <AchievementProvider>
+                  <div className="App">
+                    <FlowingParticlesBackground />
+                    <ScrollToTop />
+                    <Routes />
+                  </div>
+                </AchievementProvider>
+              </PlanDataProvider>
+            </GeminiProvider>
           </SettingsProvider>
         </AuthProvider>
       </Router>

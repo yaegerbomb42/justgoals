@@ -10,14 +10,16 @@ import WelcomeScreen from './components/WelcomeScreen';
 import Icon from '../../components/AppIcon';
 import geminiService from '../../services/geminiService';
 import { useAuth } from '../../context/AuthContext';
-import { saveGoal } from '../../utils/goalUtils'; // Import the saveGoal utility
-import * as entityService from '../../services/entityManagementService'; // For milestone management
+import { saveGoal } from '../../utils/goalUtils';
+import * as entityService from '../../services/entityManagementService';
 import { useAchievements } from '../../context/AchievementContext';
 import { useGemini } from '../../context/GeminiContext';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
   const { apiKey, isConnected, connectionError, setApiKey, resetGemini } = useGemini();
+  const { addAchievement } = useAchievements();
+  
   // Persist messages in localStorage by user id (if available)
   const getMessagesStorageKey = () => {
     if (isAuthenticated && user && user.id) {
@@ -34,20 +36,19 @@ const AiAssistantChatDrift = () => {
     } catch (e) {}
     return [];
   });
-  const [isTyping, setIsTyping] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [pendingGoalForConfirmation, setPendingGoalForConfirmation] = useState(null); // For AI goal creation
-  const [goalCreationFlow, setGoalCreationFlow] = useState(null); // Track goal creation conversation state
-  const [goalCreationData, setGoalCreationData] = useState({}); // Store goal data during creation flow
-  const [milestoneCreationFlow, setMilestoneCreationFlow] = useState(null); // Track milestone creation flow
-  const [milestoneCreationData, setMilestoneCreationData] = useState({}); // Store milestone data during creation
-  const [dayPlanEditFlow, setDayPlanEditFlow] = useState(null); // Track day plan editing flow
-  const [dayPlanEditData, setDayPlanEditData] = useState({}); // Store day plan edit data
+  const [pendingGoalForConfirmation, setPendingGoalForConfirmation] = useState(null);
+  const [goalCreationFlow, setGoalCreationFlow] = useState(null);
+  const [goalCreationData, setGoalCreationData] = useState({});
+  const [milestoneCreationFlow, setMilestoneCreationFlow] = useState(null);
+  const [milestoneCreationData, setMilestoneCreationData] = useState({});
+  const [dayPlanEditFlow, setDayPlanEditFlow] = useState(null);
+  const [dayPlanEditData, setDayPlanEditData] = useState({});
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
-  // Track milestones updated in this session
   const [updatedMilestones, setUpdatedMilestones] = useState([]);
   const [lastProactiveCheck, setLastProactiveCheck] = useState(0);
 
@@ -67,11 +68,7 @@ const AiAssistantChatDrift = () => {
     setMilestoneCreationData({});
     setDayPlanEditFlow(null);
     setDayPlanEditData({});
-    // Clear old milestone questions when user changes
     localStorage.removeItem('aiAskedMilestones');
-    // Optionally clear chat if you want a fresh chat per user:
-    // setMessages([]);
-    // Or, restore chat for the new user:
     try {
       const saved = localStorage.getItem(getMessagesStorageKey());
       if (saved) setMessages(JSON.parse(saved));
@@ -82,7 +79,6 @@ const AiAssistantChatDrift = () => {
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      // Clear session-specific data when component unmounts
       localStorage.removeItem('aiAskedMilestones');
       setGoalCreationFlow(null);
       setGoalCreationData({});
@@ -92,49 +88,6 @@ const AiAssistantChatDrift = () => {
       setDayPlanEditData({});
     };
   }, []);
-
-  // Initialize Gemini service
-  useEffect(() => {
-    const initializeGemini = async () => {
-      try {
-        const apiKey = localStorage.getItem('gemini_api_key');
-        if (apiKey) {
-          geminiService.initialize(apiKey);
-          const connected = await geminiService.testConnection();
-          setIsConnected(connected);
-          setIsInitialized(true);
-        } else {
-          // If no API key is found, we are still "initialized" from the perspective
-          // of the loading screen, but we are not connected.
-          setIsConnected(false);
-          setIsInitialized(true);
-        }
-      } catch (error) {
-        console.error('Failed to initialize Gemini:', error);
-        setIsConnected(false);
-        setIsInitialized(true); // Ensure we always move past initializing, even on error
-      }
-    };
-
-    initializeGemini();
-  }, []);
-
-  // Add a useEffect to re-check Gemini connection whenever the API key changes
-  useEffect(() => {
-    const checkGeminiConnection = async () => {
-      const apiKey = getUserApiKey();
-      if (apiKey) {
-        geminiService.initialize(apiKey);
-        const connection = await geminiService.testConnection(apiKey);
-        setIsConnected(connection.success);
-        setIsInitialized(true);
-      } else {
-        setIsConnected(false);
-        setIsInitialized(true);
-      }
-    };
-    checkGeminiConnection();
-  }, [user && user.id, localStorage.getItem(`gemini_api_key_${user && user.id}`)]);
 
   useEffect(() => {
     // Listen for post-focus-session AI prompt
@@ -149,8 +102,8 @@ const AiAssistantChatDrift = () => {
               {
                 id: Date.now(),
                 content: prompt,
-                isUser: false,
-                timestamp: new Date()
+                sender: 'ai',
+                timestamp: new Date().toISOString()
               }
             ]);
           }
@@ -185,7 +138,6 @@ const AiAssistantChatDrift = () => {
       return "Please log in to create goals.";
     }
 
-    const apiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
     if (!apiKey) {
       return "Please configure your Gemini API key in Settings to create intelligent goals.";
     }
@@ -199,372 +151,172 @@ const AiAssistantChatDrift = () => {
         Extract and structure the following information:
         1. Goal title (clear, concise, actionable)
         2. Goal description (detailed explanation)
-        3. Category (Learning, Health & Fitness, Career & Work, Personal Development, Relationships, Hobbies & Recreation, Financial, General)
-        4. Priority (high, medium, low)
-        5. Deadline (if mentioned, in YYYY-MM-DD format)
-        6. Target value and unit (if measurable)
-        7. Specific milestones or sub-goals
+        3. Goal category (health, career, learning, personal, financial, etc.)
+        4. Priority level (high, medium, low)
+        5. Target completion date (if mentioned, otherwise suggest a reasonable timeframe)
+        6. Success criteria (how will we know when this goal is achieved?)
         
-        Return ONLY a JSON object with this structure:
-        {
-          "title": "Goal Title",
-          "description": "Detailed description",
-          "category": "Category",
-          "priority": "priority",
-          "deadline": "YYYY-MM-DD or null",
-          "targetValue": "value or null",
-          "unit": "unit or null",
-          "milestones": ["milestone1", "milestone2"],
-          "confidence": 0.8
-        }
+        Respond with a JSON object containing these fields. If any information is missing, make reasonable assumptions based on the context.
       `;
 
-      const analysisResponse = await geminiService.generateText(analysisPrompt, apiKey);
-      let goalData = null;
+      const analysisResponse = await geminiService.generateResponse(analysisPrompt, apiKey);
+      let goalData;
       
       try {
-        const jsonMatch = analysisResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          goalData = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        console.error('Failed to parse goal analysis:', e);
+        goalData = JSON.parse(analysisResponse);
+      } catch (parseError) {
+        // If JSON parsing fails, try to extract information manually
+        goalData = {
+          title: userInput.split(' ').slice(0, 5).join(' '),
+          description: userInput,
+          category: 'personal',
+          priority: 'medium',
+          targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          successCriteria: 'Goal completion will be determined by user assessment'
+        };
       }
 
-      if (!goalData) {
-        return "I couldn't understand your goal request. Please try being more specific about what you want to achieve.";
-      }
-
-      // Step 2: Validate and refine the goal
-      const validationPrompt = `
-        Validate and improve this goal:
-        ${JSON.stringify(goalData, null, 2)}
+      // Step 2: Generate confirmation message
+      const confirmationMessage = `
+        I've analyzed your goal request. Here's what I understand:
         
-        Check for:
-        1. Is the title clear and actionable?
-        2. Is the description detailed enough?
-        3. Is the category appropriate?
-        4. Is the priority reasonable?
-        5. Is the deadline realistic?
-        6. Are the milestones specific and achievable?
+        **Goal Title:** ${goalData.title}
+        **Description:** ${goalData.description}
+        **Category:** ${goalData.category}
+        **Priority:** ${goalData.priority}
+        **Target Date:** ${goalData.targetDate}
+        **Success Criteria:** ${goalData.successCriteria}
         
-        If any issues are found, fix them. Return the improved goal as JSON.
-        If the goal is good, return it as-is.
+        Does this look correct? You can say "yes" to confirm, or tell me what you'd like to change.
       `;
 
-      const validationResponse = await geminiService.generateText(validationPrompt, apiKey);
-      let validatedGoal = null;
+      setGoalCreationData(goalData);
+      setGoalCreationFlow('confirmation');
       
-      try {
-        const jsonMatch = validationResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          validatedGoal = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        validatedGoal = goalData; // Fallback to original
-      }
-
-      // Step 3: Generate SMART goal criteria
-      const smartPrompt = `
-        Make this goal SMART (Specific, Measurable, Achievable, Relevant, Time-bound):
-        ${JSON.stringify(validatedGoal, null, 2)}
-        
-        Enhance the goal to be:
-        - Specific: Clear and unambiguous
-        - Measurable: Quantifiable progress
-        - Achievable: Realistic and attainable
-        - Relevant: Aligned with user's values
-        - Time-bound: Clear timeline
-        
-        Return the enhanced goal as JSON.
-      `;
-
-      const smartResponse = await geminiService.generateText(smartPrompt, apiKey);
-      let finalGoal = null;
-      
-      try {
-        const jsonMatch = smartResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          finalGoal = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        finalGoal = validatedGoal; // Fallback to validated goal
-      }
-
-      // Step 4: Create the goal
-      try {
-        const savedGoal = saveGoal(finalGoal, user.id);
-        
-        // Step 5: Generate initial milestones
-        if (finalGoal.milestones && finalGoal.milestones.length > 0) {
-          for (const milestoneTitle of finalGoal.milestones) {
-            const milestoneData = {
-              title: milestoneTitle,
-              description: `Milestone for: ${finalGoal.title}`,
-              goalId: savedGoal.id,
-              dueDate: finalGoal.deadline ? new Date(finalGoal.deadline).toISOString().split('T')[0] : null,
-              priority: finalGoal.priority
-            };
-            entityService.createMilestone(user, milestoneData);
-          }
-        }
-
-        return `✅ Goal created successfully!
-
-**${finalGoal.title}**
-${finalGoal.description}
-
-**Category:** ${finalGoal.category}
-**Priority:** ${finalGoal.priority}
-**Deadline:** ${finalGoal.deadline ? formatDate(finalGoal.deadline) : 'No deadline'}
-${finalGoal.targetValue ? `**Target:** ${finalGoal.targetValue} ${finalGoal.unit}` : ''}
-
-${finalGoal.milestones && finalGoal.milestones.length > 0 ? `**Initial Milestones:**\n${finalGoal.milestones.map(m => `• ${m}`).join('\n')}` : ''}
-
-Your goal has been saved and is ready to track! You can view it in the Goals dashboard or create milestones to break it down further.`;
-        
-      } catch (error) {
-        console.error('Error saving goal:', error);
-        return "I created the goal but had trouble saving it. Please try creating it manually in the Goals dashboard.";
-      }
-
+      return confirmationMessage;
     } catch (error) {
       console.error('Error in goal creation flow:', error);
-      return "I'm having trouble processing your goal request. Please try again or create your goal manually in the Goals dashboard.";
+      return "I encountered an error while processing your goal request. Please try again or rephrase your request.";
     }
   };
 
-  // Handle goal creation conversation flow
   const handleGoalCreationStep = async (userInput, currentStep) => {
-    switch (currentStep) {
-      case 'title':
-        // Use Gemini to polish the title
-        try {
-          const polishedTitle = await geminiService.generateText(`
-            As Drift, polish this user's goal title into a clear, professional, and motivating title:
-            "${userInput}"
-            
-            Make it:
-            - Clear and specific
-            - Professional but personal
-            - Motivating and inspiring
-            - Under 5 words if possible
-            - Action-oriented
-            
-            Return only the polished title, no additional text.
-          `);
+    if (currentStep === 'confirmation') {
+      const lowerInput = userInput.toLowerCase();
+      if (lowerInput.includes('yes') || lowerInput.includes('correct') || lowerInput.includes('confirm')) {
+        // Create the goal
+        const result = await createGoalFromData();
+        setGoalCreationFlow(null);
+        setGoalCreationData({});
+        return result;
+      } else if (lowerInput.includes('no') || lowerInput.includes('change') || lowerInput.includes('modify')) {
+        // Ask for specific changes
+        setGoalCreationFlow('modification');
+        return "What would you like to change about the goal? Please be specific about what needs to be modified.";
+      } else {
+        // Ambiguous response, ask for clarification
+        return "I'm not sure if you want to confirm or modify the goal. Please say 'yes' to confirm or tell me what you'd like to change.";
+      }
+    } else if (currentStep === 'modification') {
+      // Handle goal modification
+      try {
+        const modificationPrompt = `
+          The user wants to modify this goal:
+          ${JSON.stringify(goalCreationData)}
           
-          setGoalCreationData(prev => ({ ...prev, title: polishedTitle }));
-          setGoalCreationFlow('description');
-          return `Perfect! I've polished your title to: "${polishedTitle}"\n\nNow tell me a bit more about this goal. What does success look like for you? (I'll help polish this into a clear, professional description)`;
-        } catch (error) {
-          setGoalCreationData(prev => ({ ...prev, title: userInput }));
-          setGoalCreationFlow('description');
-          return "Great! Now tell me a bit more about this goal. What does success look like for you? (I'll help polish this into a clear, professional description)";
-        }
-        
-      case 'description':
-        // Use Gemini to polish the description
-        try {
-          const polishedDescription = await geminiService.generateText(`
-            As Drift, polish this user's goal description into a clear, professional, and motivating description:
-            "${userInput}"
-            
-            Make it:
-            - Specific and actionable
-            - Professional but personal
-            - Motivating and inspiring
-            - Clear about what success looks like
-            - Under 2 sentences
-            
-            Return only the polished description, no additional text.
-          `);
+          User's modification request: "${userInput}"
           
-          setGoalCreationData(prev => ({ ...prev, description: polishedDescription }));
-          setGoalCreationFlow('category');
-          return `Perfect! I've polished your description to: "${polishedDescription}"\n\nWhat category would this goal fall under?\n\n• Learning (skills, education)\n• Health & Fitness\n• Career & Work\n• Personal Development\n• Relationships\n• Hobbies & Recreation\n• Financial\n• Other`;
-        } catch (error) {
-          setGoalCreationData(prev => ({ ...prev, description: userInput }));
-          setGoalCreationFlow('category');
-          return "What category would this goal fall under?\n\n• Learning (skills, education)\n• Health & Fitness\n• Career & Work\n• Personal Development\n• Relationships\n• Hobbies & Recreation\n• Financial\n• Other";
+          Please update the goal data based on the user's request. Respond with the updated JSON object.
+        `;
+
+        const modificationResponse = await geminiService.generateResponse(modificationPrompt, apiKey);
+        let updatedGoalData;
+        
+        try {
+          updatedGoalData = JSON.parse(modificationResponse);
+        } catch (parseError) {
+          // If parsing fails, return to confirmation with original data
+          setGoalCreationFlow('confirmation');
+          return "I had trouble processing your modification. Let me show you the original goal again. Does this look correct?";
         }
+
+        setGoalCreationData(updatedGoalData);
+        setGoalCreationFlow('confirmation');
         
-      case 'category':
-        // Infer category from user input or map common responses
-        const categoryMap = {
-          'learning': 'Learning',
-          'education': 'Learning',
-          'skills': 'Learning',
-          'health': 'Health & Fitness',
-          'fitness': 'Health & Fitness',
-          'workout': 'Health & Fitness',
-          'career': 'Career & Work',
-          'work': 'Career & Work',
-          'job': 'Career & Work',
-          'personal': 'Personal Development',
-          'development': 'Personal Development',
-          'relationships': 'Relationships',
-          'hobbies': 'Hobbies & Recreation',
-          'recreation': 'Hobbies & Recreation',
-          'financial': 'Financial',
-          'money': 'Financial',
-          'other': 'Other'
-        };
-        
-        const mappedCategory = categoryMap[userInput.toLowerCase()] || userInput;
-        setGoalCreationData(prev => ({ ...prev, category: mappedCategory }));
-        
-        // Infer priority based on context and category
-        const { title: goalTitle, description } = goalCreationData;
-        let inferredPriority = 'medium';
-        if (goalTitle.toLowerCase().includes('urgent') || description.toLowerCase().includes('urgent')) {
-          inferredPriority = 'high';
-        } else if (goalTitle.toLowerCase().includes('someday') || description.toLowerCase().includes('when i have time')) {
-          inferredPriority = 'low';
-        }
-        
-        setGoalCreationFlow('priority');
-        return `I've categorized this as "${mappedCategory}". Based on your description, I think this might be a ${inferredPriority} priority goal. How important is this goal to you right now?\n\n• High - I want to focus on this immediately\n• Medium - Important but not urgent\n• Low - Something I'd like to work on when I have time\n\n(You can say "that's right" if you agree with ${inferredPriority})`;
-        
-      case 'priority':
-        // Handle "that's right" responses
-        let priority = userInput.toLowerCase();
-        if (userInput.toLowerCase().includes("that's right") || userInput.toLowerCase().includes('agree')) {
-          priority = goalCreationData.priority || 'medium';
-        }
-        setGoalCreationData(prev => ({ ...prev, priority }));
-        
-        // Suggest deadline based on category and priority
-        const { category: goalCategory } = goalCreationData;
-        let deadlineSuggestion = '';
-        if (goalCategory === 'Learning' && priority === 'high') {
-          deadlineSuggestion = '\n\n💡 Tip: For learning goals, I suggest setting a 3-6 month deadline to maintain momentum.';
-        } else if (goalCategory === 'Health & Fitness') {
-          deadlineSuggestion = '\n\n💡 Tip: For fitness goals, consider a 12-week timeframe for sustainable habits.';
-        }
-        
-        setGoalCreationFlow('deadline');
-        return `Do you have a specific deadline in mind? You can say:${deadlineSuggestion}\n\n• A specific date (e.g., 'December 31st')\n• A timeframe (e.g., 'in 3 months', 'by end of year')\n• 'No deadline' if you want to keep it flexible`;
-        
-      case 'deadline':
-        // Parse and format deadline intelligently
-        let formattedDeadline = userInput;
-        if (userInput.toLowerCase().includes('no deadline')) {
-          formattedDeadline = null;
-        } else if (userInput.toLowerCase().includes('in ') && userInput.toLowerCase().includes('month')) {
-          // Convert "in X months" to actual date
-          const months = parseInt(userInput.match(/\d+/)?.[0] || '3');
-          const futureDate = new Date();
-          futureDate.setMonth(futureDate.getMonth() + months);
-          formattedDeadline = futureDate.toISOString().split('T')[0];
-        }
-        
-        setGoalCreationData(prev => ({ ...prev, deadline: formattedDeadline }));
-        
-        // Suggest measurable targets based on goal type
-        const { title: goalTitle2, category: goalCategory2 } = goalCreationData;
-        let measurableSuggestion = '';
-        if (goalCategory2 === 'Learning') {
-          measurableSuggestion = '\n\n💡 Tip: For learning goals, consider measurable targets like "complete 3 courses" or "practice 30 minutes daily".';
-        } else if (goalCategory2 === 'Health & Fitness') {
-          measurableSuggestion = '\n\n💡 Tip: For fitness goals, consider targets like "run 5km" or "workout 3 times per week".';
-        }
-        
-        setGoalCreationFlow('measurable');
-        return `Is this a measurable goal? For example:${measurableSuggestion}\n\n• 'Read 12 books this year' (measurable)\n• 'Get better at guitar' (not measurable)\n\nIf it's measurable, tell me the target and unit (e.g., '10 books', '5km run', 'fluent in Spanish'). If not, just say 'not measurable'.`;
-        
-      case 'measurable':
-        if (userInput.toLowerCase() !== 'not measurable') {
-          // Use Gemini to polish measurable targets
-          try {
-            const polishedTarget = await geminiService.generateText(`
-              As Drift, polish this measurable goal target into a clear, specific format:
-              "${userInput}"
-              
-              Make it:
-              - Specific and quantifiable
-              - Clear about the unit of measurement
-              - Professional and actionable
-              
-              Return only the polished target, no additional text.
-            `);
-            setGoalCreationData(prev => ({ ...prev, targetValue: polishedTarget }));
-          } catch (error) {
-            setGoalCreationData(prev => ({ ...prev, targetValue: userInput }));
-          }
-        }
-        setGoalCreationFlow('confirm');
-        return generateGoalConfirmation();
-        
-      case 'confirm':
-        if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('confirm')) {
-          return await createGoalFromData();
-        } else {
-          setGoalCreationFlow(null);
-          setGoalCreationData({});
-          return "No problem! Let's start over. What would you like to create a goal for?";
-        }
-        
-      default:
-        return "I'm not sure what step we're on. Let's start over!";
+        return `
+          I've updated the goal based on your request:
+          
+          **Goal Title:** ${updatedGoalData.title}
+          **Description:** ${updatedGoalData.description}
+          **Category:** ${updatedGoalData.category}
+          **Priority:** ${updatedGoalData.priority}
+          **Target Date:** ${updatedGoalData.targetDate}
+          **Success Criteria:** ${updatedGoalData.successCriteria}
+          
+          Does this updated version look correct? Say "yes" to confirm or tell me what else you'd like to change.
+        `;
+      } catch (error) {
+        console.error('Error in goal modification:', error);
+        return "I encountered an error while processing your modification. Please try again.";
+      }
     }
   };
 
-  // Generate goal confirmation message
   const generateGoalConfirmation = () => {
-    const { title, description, category, priority, deadline, targetValue } = goalCreationData;
+    if (!goalCreationData.title) return "I couldn't extract goal information. Please try again with more details.";
     
-    let confirmation = `Perfect! Let me confirm the goal details:\n\n`;
-    confirmation += `**Title:** ${title}\n`;
-    confirmation += `**Description:** ${description}\n`;
-    confirmation += `**Category:** ${category}\n`;
-    confirmation += `**Priority:** ${priority}\n`;
-    if (deadline && deadline.toLowerCase() !== 'no deadline') {
-      confirmation += `**Deadline:** ${deadline}\n`;
-    }
-    if (targetValue) {
-      confirmation += `**Target:** ${targetValue}\n`;
-    }
-    
-    confirmation += `\nDoes this look right? Type 'yes' to create this goal, or 'no' to start over.`;
-    return confirmation;
+    return `
+      I've prepared your goal:
+      
+      **${goalCreationData.title}**
+      ${goalCreationData.description}
+      
+      Category: ${goalCreationData.category}
+      Priority: ${goalCreationData.priority}
+      Target Date: ${goalCreationData.targetDate}
+      
+      Say "confirm" to create this goal, or tell me what you'd like to change.
+    `;
   };
 
-  // Create goal from collected data
   const createGoalFromData = async () => {
-    if (!user || !user.id) {
-      setGoalCreationFlow(null);
-      setGoalCreationData({});
-      return "You need to be logged in to create goals. Please sign in and try again.";
+    if (!goalCreationData.title) {
+      return "I couldn't extract goal information. Please try again with more details.";
     }
 
     try {
-      const goalData = {
-        ...goalCreationData,
+      const goal = {
+        id: Date.now().toString(),
+        title: goalCreationData.title,
+        description: goalCreationData.description,
+        category: goalCreationData.category,
+        priority: goalCreationData.priority,
+        targetDate: goalCreationData.targetDate,
+        successCriteria: goalCreationData.successCriteria,
+        createdAt: new Date().toISOString(),
+        status: 'active',
         progress: 0,
-        createdAt: new Date().toISOString()
+        milestones: []
       };
 
-      const savedGoal = saveGoal(goalData, user.id);
-      setGoalCreationFlow(null);
-      setGoalCreationData({});
+      saveGoal(goal, user.id);
       
-      return `🎉 Excellent! I've created your goal: **"${savedGoal.title}"**\n\nYou can now see it on your goals dashboard and start tracking your progress. Would you like me to help you create some milestones for this goal? Just say "yes" and I'll guide you through creating your first milestones!`;
+      // Add achievement for goal creation
+      addAchievement('goal_creator', 'Created your first goal with AI assistance');
+      
+      return `✅ Goal "${goal.title}" has been created successfully! You can view and manage it in your Goals dashboard.`;
     } catch (error) {
-      console.error("Error creating goal:", error);
-      setGoalCreationFlow(null);
-      setGoalCreationData({});
-      return `I tried to create the goal, but something went wrong: ${error.message}. Please try again or create it manually from the goals page.`;
+      console.error('Error creating goal:', error);
+      return "I encountered an error while creating your goal. Please try again.";
     }
   };
 
-  // Handle milestone creation intent from natural language
+  // Detect milestone creation intent
   const detectMilestoneCreationIntent = (message) => {
     const lowerMessage = message.toLowerCase();
     const milestoneKeywords = [
-      'create milestone', 'make milestone', 'set milestone', 'new milestone', 'add milestone',
-      'help me create milestone', 'help me make milestone', 'help me set milestone', 'want to create milestone',
-      'need a milestone', 'milestone for', 'milestone to', 'milestone about'
+      'create milestone', 'add milestone', 'new milestone', 'set milestone',
+      'milestone for', 'milestone to', 'milestone about'
     ];
     
     return milestoneKeywords.some(keyword => lowerMessage.includes(keyword));
@@ -573,802 +325,491 @@ Your goal has been saved and is ready to track! You can view it in the Goals das
   // Detect day plan editing intent
   const detectDayPlanEditIntent = (message) => {
     const lowerMessage = message.toLowerCase();
-    const dayPlanKeywords = [
-      'edit my day', 'edit day plan', 'change my day', 'modify day plan',
-      'update my day', 'edit today', 'change today', 'modify today',
-      'edit my schedule', 'change my schedule', 'update schedule'
+    const planKeywords = [
+      'edit plan', 'modify plan', 'change plan', 'update plan',
+      'adjust plan', 'revise plan', 'plan edit', 'plan change'
     ];
     
-    return dayPlanKeywords.some(keyword => lowerMessage.includes(keyword));
+    return planKeywords.some(keyword => lowerMessage.includes(keyword));
   };
 
   // Detect planner customization intent
   const detectPlannerCustomizationIntent = (message) => {
     const lowerMessage = message.toLowerCase();
-    const plannerKeywords = [
-      'customize planner', 'planner preferences', 'planning style', 'daily planner settings',
-      'more sleep', 'less sleep', 'more tasks', 'fewer tasks', 'less tasks',
-      'packed schedule', 'relaxed schedule', 'planning preferences', 'customize daily plan',
-      'change planner', 'modify planner', 'adjust planner', 'planner customization'
+    const customizationKeywords = [
+      'customize planner', 'planner preferences', 'planner settings',
+      'change preferences', 'modify preferences', 'planner customization'
     ];
     
-    return plannerKeywords.some(keyword => lowerMessage.includes(keyword));
+    return customizationKeywords.some(keyword => lowerMessage.includes(keyword));
   };
 
-  // Handle planner customization through chat
+  // Handle planner customization
   const handlePlannerCustomization = async (userInput) => {
-    if (!user?.id) {
-      return "You need to be logged in to customize your planner preferences.";
+    if (!isAuthenticated || !user) {
+      return "Please log in to customize your planner preferences.";
+    }
+
+    if (!apiKey) {
+      return "Please configure your Gemini API key in Settings to customize your planner.";
     }
 
     try {
-      const apiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
-      if (!apiKey) {
-        return "Please configure your Gemini API key in Settings to customize your planner.";
-      }
-
-      const prompt = `
-        As Drift, analyze this user's planner customization request and extract their preferences:
-        "${userInput}"
+      const customizationPrompt = `
+        The user wants to customize their planner preferences. Their request: "${userInput}"
         
-        Extract the following preferences:
-        1. Sleep focus: 'more_sleep', 'balanced', or 'less_sleep'
-        2. Task density: 'more_tasks', 'balanced', or 'less_tasks'
-        3. Custom instructions: Any specific preferences mentioned
+        Current user preferences (if any):
+        - Sleep focus: balanced
+        - Task density: balanced
+        - Custom instructions: (none)
         
-        Return ONLY a JSON object with this structure:
+        Please analyze their request and suggest appropriate planner preferences. Consider:
+        1. Sleep patterns and preferences
+        2. Task load preferences (more vs fewer tasks)
+        3. Any specific instructions or requirements
+        
+        Respond with a JSON object containing:
         {
           "sleepFocus": "more_sleep|balanced|less_sleep",
-          "taskDensity": "more_tasks|balanced|less_tasks",
-          "customInstructions": "string with specific preferences",
-          "explanation": "brief explanation of what was changed"
+          "taskDensity": "more_tasks|balanced|less_tasks", 
+          "customInstructions": "string with specific instructions"
         }
       `;
 
-      const response = await geminiService.generateText(prompt, apiKey);
+      const response = await geminiService.generateResponse(customizationPrompt, apiKey);
+      let preferences;
       
-      let preferences = null;
       try {
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          preferences = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        console.error('Failed to parse planner preferences:', e);
+        preferences = JSON.parse(response);
+      } catch (parseError) {
+        preferences = {
+          sleepFocus: 'balanced',
+          taskDensity: 'balanced',
+          customInstructions: 'User prefers balanced planning approach'
+        };
       }
 
-      if (preferences) {
-        // Save the preferences
-        const prefsKey = `planner_preferences_${user.id}`;
-        localStorage.setItem(prefsKey, JSON.stringify({
-          sleepFocus: preferences.sleepFocus || 'balanced',
-          taskDensity: preferences.taskDensity || 'balanced',
-          customInstructions: preferences.customInstructions || ''
-        }));
-
-        return `✅ Planner preferences updated!\n\n${preferences.explanation}\n\nYour new preferences will be applied to future daily plan generations.`;
-      } else {
-        return "I couldn't understand your planner customization request. Please try being more specific about your preferences.";
-      }
+      // Save preferences
+      const prefsKey = `planner_preferences_${user.id}`;
+      localStorage.setItem(prefsKey, JSON.stringify(preferences));
+      
+      return `
+        I've updated your planner preferences based on your request:
+        
+        **Sleep Focus:** ${preferences.sleepFocus.replace('_', ' ')}
+        **Task Density:** ${preferences.taskDensity.replace('_', ' ')}
+        **Custom Instructions:** ${preferences.customInstructions}
+        
+        These preferences will be used when generating your daily plans. You can modify them anytime by asking me to customize your planner again.
+      `;
     } catch (error) {
-      console.error('Error handling planner customization:', error);
-      return "I'm having trouble processing your planner customization request. Please try again or use the planner customization modal.";
+      console.error('Error in planner customization:', error);
+      return "I encountered an error while customizing your planner. Please try again.";
     }
   };
 
-  // Handle day plan editing through chat
+  // Handle day plan editing
   const handleDayPlanEdit = async (userInput) => {
-    if (!user?.id) {
-      return "You need to be logged in to edit your day plan.";
+    if (!isAuthenticated || !user) {
+      return "Please log in to edit your day plan.";
+    }
+
+    if (!apiKey) {
+      return "Please configure your Gemini API key in Settings to edit your day plan.";
     }
 
     try {
       const today = new Date().toISOString().split('T')[0];
       const planKey = `daily_plan_${user.id}_${today}`;
-      const savedPlan = localStorage.getItem(planKey);
-      const currentPlan = savedPlan ? JSON.parse(savedPlan) : [];
+      const currentPlan = localStorage.getItem(planKey);
+      
+      if (!currentPlan) {
+        return "I couldn't find a plan for today. Please generate a daily plan first, then I can help you edit it.";
+      }
 
-      const prompt = `
-        As Drift, help the user edit their daily plan. Here's their current plan for today:
-        ${JSON.stringify(currentPlan, null, 2)}
+      const editPrompt = `
+        The user wants to edit their day plan. Current plan: ${currentPlan}
+        User's edit request: "${userInput}"
         
-        User's request: "${userInput}"
-        
-        Based on their request, provide specific instructions for what changes to make to their day plan.
-        Be specific about:
-        - Which activities to add, remove, or modify
-        - Time changes
-        - Duration adjustments
-        - Priority changes
-        
-        Return a clear, actionable response that explains what changes to make.
+        Please modify the plan according to the user's request. Respond with the updated JSON array of plan items.
+        Each item should have: time, title, description (optional), category (optional)
       `;
 
-      const response = await geminiService.generateText(prompt);
-      return response;
+      const response = await geminiService.generateResponse(editPrompt, apiKey);
+      let updatedPlan;
+      
+      try {
+        updatedPlan = JSON.parse(response);
+      } catch (parseError) {
+        return "I had trouble processing your edit request. Please try again with more specific instructions.";
+      }
+
+      // Save updated plan
+      localStorage.setItem(planKey, JSON.stringify(updatedPlan));
+      
+      return `
+        I've updated your day plan based on your request. The plan has been saved and you can view it in your Day Planner.
+        
+        Here's a summary of your updated plan:
+        ${updatedPlan.map(item => `- ${item.time}: ${item.title}`).join('\n')}
+      `;
     } catch (error) {
-      console.error('Error handling day plan edit:', error);
-      return "I'm having trouble processing your day plan edit request. Please try again or edit your plan directly from the Day tab.";
+      console.error('Error in day plan editing:', error);
+      return "I encountered an error while editing your day plan. Please try again.";
     }
   };
 
-  // Start interactive milestone creation flow
+  // Start milestone creation flow
   const startMilestoneCreationFlow = () => {
     setMilestoneCreationFlow('title');
-    setMilestoneCreationData({ context: 'milestone' }); // Context for milestone creation
-    return "I'd love to help you create a milestone! Let's start with the basics.\n\nWhat would you like to call this milestone? (e.g., 'Practice guitar for 30 minutes', 'Research guitar lessons', 'Buy a guitar')";
+    return "I'll help you create a milestone. What would you like to title this milestone?";
   };
 
-  // Handle milestone creation conversation flow
   const handleMilestoneCreationStep = async (userInput, currentStep) => {
-    switch (currentStep) {
-      case 'title':
-        setMilestoneCreationData(prev => ({ ...prev, title: userInput }));
-        setMilestoneCreationFlow('goal');
-        return "Great! Now tell me which goal this milestone is for. (e.g., 'Learn Guitar', 'Run a Marathon', 'Read More Books')";
-        
-      case 'goal':
-        setMilestoneCreationData(prev => ({ ...prev, goalTitle: userInput }));
-        setMilestoneCreationFlow('priority');
-        return "What priority would this milestone have?\n\n• High - I want to focus on this immediately\n• Medium - Important but not urgent\n• Low - Something I'd like to work on when I have time";
-        
-      case 'priority':
-        setMilestoneCreationData(prev => ({ ...prev, priority: userInput.toLowerCase() }));
-        setMilestoneCreationFlow('deadline');
-        return "Do you have a specific deadline in mind? You can say:\n\n• A specific date (e.g., 'December 31st')\n• A timeframe (e.g., 'in 3 months', 'by end of year')\n• 'No deadline' if you want to keep it flexible";
-        
-      case 'deadline':
-        setMilestoneCreationData(prev => ({ ...prev, deadline: userInput }));
-        setMilestoneCreationFlow('confirm');
-        return generateMilestoneConfirmation();
-        
-      case 'confirm':
-        if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('confirm')) {
-          return await createMilestoneFromData();
-        } else {
-          setMilestoneCreationFlow(null);
-          setMilestoneCreationData({});
-          return "No problem! Let's start over. What would you like to create a milestone for?";
-        }
-        
-      default:
-        return "I'm not sure what step we're on. Let's start over!";
+    if (currentStep === 'title') {
+      setMilestoneCreationData({ ...milestoneCreationData, title: userInput });
+      setMilestoneCreationFlow('description');
+      return "Great! Now please describe what this milestone involves and when you'd like to achieve it.";
+    } else if (currentStep === 'description') {
+      setMilestoneCreationData({ ...milestoneCreationData, description: userInput });
+      setMilestoneCreationFlow('confirmation');
+      return generateMilestoneConfirmation();
+    } else if (currentStep === 'confirmation') {
+      const lowerInput = userInput.toLowerCase();
+      if (lowerInput.includes('yes') || lowerInput.includes('confirm')) {
+        const result = await createMilestoneFromData();
+        setMilestoneCreationFlow(null);
+        setMilestoneCreationData({});
+        return result;
+      } else {
+        setMilestoneCreationFlow('title');
+        setMilestoneCreationData({});
+        return "Let's start over. What would you like to title this milestone?";
+      }
     }
   };
 
-  // Generate milestone confirmation message
   const generateMilestoneConfirmation = () => {
-    const { title, goalTitle, priority, deadline } = milestoneCreationData;
-    
-    let confirmation = `Perfect! Let me confirm the milestone details:\n\n`;
-    confirmation += `**Title:** ${title}\n`;
-    confirmation += `**Goal:** ${goalTitle}\n`;
-    confirmation += `**Priority:** ${priority}\n`;
-    if (deadline && deadline.toLowerCase() !== 'no deadline') {
-      confirmation += `**Deadline:** ${deadline}\n`;
-    }
-    
-    confirmation += `\nDoes this look right? Type 'yes' to create this milestone, or 'no' to start over.`;
-    return confirmation;
+    return `
+      I've prepared your milestone:
+      
+      **${milestoneCreationData.title}**
+      ${milestoneCreationData.description}
+      
+      Say "confirm" to create this milestone, or tell me what you'd like to change.
+    `;
   };
 
-  // Create milestone from collected data
   const createMilestoneFromData = async () => {
-    if (!user || !user.id) {
-      setMilestoneCreationFlow(null);
-      setMilestoneCreationData({});
-      return "You need to be logged in to create milestones. Please sign in and try again.";
+    if (!milestoneCreationData.title || !milestoneCreationData.description) {
+      return "I need both a title and description to create a milestone. Please try again.";
     }
 
     try {
-      const milestoneData = {
-        ...milestoneCreationData,
-        progress: 0,
-        createdAt: new Date().toISOString()
+      const milestone = {
+        id: Date.now().toString(),
+        title: milestoneCreationData.title,
+        description: milestoneCreationData.description,
+        createdAt: new Date().toISOString(),
+        status: 'active',
+        progress: 0
       };
 
-      const goals = entityService.getGoals(user);
-      const goal = goals.find(g => g.title.toLowerCase() === (milestoneCreationData.goalTitle || '').toLowerCase());
-
-      if (!goal) {
-        setMilestoneCreationFlow(null);
-        setMilestoneCreationData({});
-        return `I couldn't find a goal named '${milestoneCreationData.goalTitle}'. You can create milestones for these goals: ${goals.map(g => g.title).join(', ')}. Please specify the correct goal name.`;
-      }
-
-      const newMilestone = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Unique ID
-        title: milestoneData.title,
-        goalId: goal.id,
-        goalName: goal.title,
-        priority: milestoneData.priority,
-        estimatedTime: null,
-        dueTime: milestoneData.deadline || '',
-        completed: false,
-        createdAt: new Date(),
-        date: new Date().toISOString().split('T')[0]
-      };
-
-      const created = entityService.createMilestone(user, newMilestone);
-      setMilestoneCreationFlow(null);
-      setMilestoneCreationData({});
-
-      if (created) {
-        return `✅ Milestone '${newMilestone.title}' created for goal '${goal.title}'! You can now track your progress on this milestone.`;
-      } else {
-        return `❌ Sorry, I couldn't create the milestone. Please try again or add it manually from the daily milestones page.`;
-      }
+      entityService.createMilestone(milestone, user);
+      setUpdatedMilestones(prev => [...prev, milestone.id]);
+      
+      return `✅ Milestone "${milestone.title}" has been created successfully!`;
     } catch (error) {
-      console.error("Error creating milestone:", error);
-      setMilestoneCreationFlow(null);
-      setMilestoneCreationData({});
-      return `I tried to create the milestone, but something went wrong: ${error.message}. Please try again or create it manually from the daily milestones page.`;
+      console.error('Error creating milestone:', error);
+      return "I encountered an error while creating your milestone. Please try again.";
     }
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Utility to get user-specific API key
-  const getUserApiKey = () => (user && user.id ? localStorage.getItem(`gemini_api_key_${user.id}`) : '');
-  let connectionStatus = { connected: false, message: '', key: '' };
-  try {
-    const key = getUserApiKey();
-    connectionStatus.key = key || '';
-    if (key) {
-      geminiService.initialize(key);
-      // Synchronous test: fallback to 'connected' if no error, else show error
-      // (Note: testConnection is async, so we use a placeholder and force recheck on button click)
-      connectionStatus.connected = true;
-      connectionStatus.message = 'API Key Present (recheck to verify connection)';
-    } else {
-      connectionStatus.connected = false;
-      connectionStatus.message = 'API Key Missing';
-    }
-  } catch (e) {
-    connectionStatus.connected = false;
-    connectionStatus.message = e.message || 'Unknown error';
-  }
-
-  // Force recheck button: reloads the page and clears Gemini state
   const handleForceRecheck = () => {
-    geminiService.isInitialized = false;
-    window.location.reload();
+    // This function is no longer needed as we use context
+    return "Connection status is managed automatically. If you're having issues, try refreshing the page.";
   };
 
-  // In all AI calls, always use apiKey from context
   const ensureGeminiReady = async () => {
-    if (!apiKey) return false;
-    geminiService.initialize(apiKey);
-    const connection = await geminiService.testConnection(apiKey);
-    return connection.success;
+    // This function is no longer needed as we use context
+    return isConnected;
   };
 
   const generateAiResponse = async (userMessageContent) => {
-    const ready = await ensureGeminiReady();
-    if (!ready) {
-      return "I'm not connected to the Gemini API. Please check your API key in Settings.";
+    if (!apiKey) {
+      return "Please configure your Gemini API key in Settings to chat with me.";
     }
 
     try {
-      // Utility to get user-specific storage key
-      const getUserSpecificKey = (baseKey) => {
-        if (isAuthenticated && user && user.id) {
-          return `${baseKey}_${user.id}`;
-        }
-        // Fallback to a generic key if no user, though context-sensitive data might be empty/irrelevant
-        // Or, decide not to fetch this data if no user. For now, using a non-user-specific default.
-        return baseKey;
-      };
-
-      // Get user context for better responses
+      // Build context for the AI
       const userContext = {
-        journalEntries: JSON.parse(localStorage.getItem(getUserSpecificKey('journal_entries')) || '[]'), // all journal entries
-        goals: JSON.parse(localStorage.getItem(getUserSpecificKey('goals_data')) || '[]'),
-        events: JSON.parse(localStorage.getItem(getUserSpecificKey('events_data')) || '[]'), // all events
-        timeSpent: JSON.parse(localStorage.getItem(getUserSpecificKey('focus_session_stats')) || '{}'),
-        permanentNotes: JSON.parse(localStorage.getItem(getUserSpecificKey('focus_permanent_notes')) || '[]')
+        userId: user?.id,
+        isAuthenticated,
+        goals: entityService.getGoals(user),
+        milestones: entityService.getMilestones(user),
+        preferences: localStorage.getItem(`planner_preferences_${user?.id}`) ? JSON.parse(localStorage.getItem(`planner_preferences_${user?.id}`)) : null
       };
 
-      // Include recent chat history (last 15 messages)
-      const recentHistory = messages.slice(-15).map(msg => {
-        return `${msg.isUser ? 'User' : 'Drift'}: ${msg.content}`;
-      }).join('\n');
-
-      // Analyze user intent more intelligently
-      const userIntent = await analyzeUserIntent(userMessageContent, userContext);
-
-      const prompt = `
-        You are Drift, an AI assistant specialized in goal achievement and personal development.
-        You have access to the user's journal entries, events, time tracking data, permanent session notes, and recent conversation history.
-
-        Recent Conversation History (if any):
-        ${recentHistory || "No recent conversation history."}
-        \nCurrent User message: "${userMessageContent}"
-        \nDetected User Intent: ${userIntent}
-        \nAdditional Context:
-        - Recent journal entries: ${userContext.journalEntries.length > 0 ? userContext.journalEntries.map(entry => `${entry.date}: ${entry.content}`).join('\n') : 'No recent entries'}
-        - Events: ${userContext.events.length > 0 ? userContext.events.map(event => `${event.date}: ${event.title || event.name || ''}`).join('\n') : 'No events'}
-        - Active goals: ${userContext.goals.length > 0 ? userContext.goals.map(goal => goal.title).join(', ') : 'No active goals'}
-        - Total focus time: ${Math.round((userContext.timeSpent.totalFocusTime || 0) / 60)} minutes
-        - Permanent session notes: ${userContext.permanentNotes.length > 0 ? userContext.permanentNotes.map(note => `${note.createdAt}: ${note.content}`).join('\n') : 'No permanent notes'}
-        \nYour Capabilities:
-        - You can engage in general conversation, provide advice, and help users reflect.
-        - **Goal Creation:** You can help users create new goals through natural conversation. If a user expresses a desire to create a goal, you can guide them through an interactive process by asking questions about their goal. You can also help with milestone creation, progress tracking, and goal management.
-        - **Proactive Assistance:** Based on the user's context, proactively suggest relevant actions, insights, or next steps.
-        - **Contextual Understanding:** Use the user's goals, journal entries, events, and focus time to provide personalized advice.
-        - **Intelligent Recommendations:** Suggest milestones, focus sessions, or journal prompts based on their current situation.
-        - (Future capabilities like modifying goals, creating milestones, starting focus sessions will be listed here as they are implemented.)
-        \nInteraction Style:
-        Respond as Drift. Be personalized, encouraging, specific, and reference their context (including past conversation if relevant) when helpful.
-        Keep responses concise (e.g., under 150-200 words) unless asked for detail.
-        If the user asks about something from much earlier in the conversation that isn't in the recent history, you can say you don't have access to it.
-        \nProactive Suggestions:
-        - If they have goals but no recent progress, suggest next steps or milestones
-        - If they have low focus time, suggest focus sessions or time management tips
-        - If they have journal entries, reference patterns or insights from them
-        - If they seem stuck or overwhelmed, offer to help break down goals into smaller steps
-      `;
-
-      return await geminiService.generateText(prompt);
+      // Analyze user intent
+      const intent = await analyzeUserIntent(userMessageContent, userContext);
+      
+      // Handle different intents
+      if (intent.type === 'goal_creation') {
+        return await startGoalCreationFlow(userMessageContent);
+      } else if (intent.type === 'milestone_creation') {
+        return await startMilestoneCreationFlow();
+      } else if (intent.type === 'planner_customization') {
+        return await handlePlannerCustomization(userMessageContent);
+      } else if (intent.type === 'day_plan_edit') {
+        return await handleDayPlanEdit(userMessageContent);
+      } else {
+        // General conversation
+        const response = await geminiService.generateResponse(userMessageContent, apiKey);
+        return response;
+      }
     } catch (error) {
       console.error('Error generating AI response:', error);
-      return "I'm having trouble processing your request right now. Please try again in a moment.";
+      return "I encountered an error while processing your message. Please try again.";
     }
   };
 
-  // Analyze user intent more intelligently
   const analyzeUserIntent = async (message, userContext) => {
-    try {
-      const intentAnalysis = await geminiService.generateText(`
-        Analyze this user message and provide a brief intent summary:
-        "${message}"
-        
-        User Context:
-        - Goals: ${userContext.goals.map(g => g.title).join(', ') || 'None'}
-        - Recent focus time: ${Math.round((userContext.timeSpent.totalFocusTime || 0) / 60)} minutes
-        - Recent journal entries: ${userContext.journalEntries.length} entries
-        
-        Provide a 1-2 sentence summary of what the user wants or needs, including:
-        - Primary intent (goal creation, progress update, advice, etc.)
-        - Emotional state (frustrated, motivated, stuck, etc.)
-        - Suggested proactive actions you could take
-        
-        Keep it concise and actionable.
-      `);
-      
-      return intentAnalysis;
-    } catch (error) {
-      return "General conversation or question";
+    const lowerMessage = message.toLowerCase();
+    
+    if (detectGoalCreationIntent(message)) {
+      return { type: 'goal_creation' };
+    } else if (detectMilestoneCreationIntent(message)) {
+      return { type: 'milestone_creation' };
+    } else if (detectPlannerCustomizationIntent(message)) {
+      return { type: 'planner_customization' };
+    } else if (detectDayPlanEditIntent(message)) {
+      return { type: 'day_plan_edit' };
+    } else {
+      return { type: 'general_conversation' };
     }
   };
 
   const handleSendMessage = async (messageContent) => {
-    try {
-      const userMessage = {
-        id: Date.now(),
-        content: messageContent,
-        isUser: true,
-        timestamp: new Date()
-      };
+    if (!messageContent.trim()) return;
 
-      setMessages(prev => [...prev, userMessage]);
-      setIsTyping(true);
-
-      let aiResponseContent = "";
-      let handled = false;
-
-      // Check if we're in an active goal creation flow
-      if (goalCreationFlow) {
-        handled = true;
-        aiResponseContent = await handleGoalCreationStep(messageContent, goalCreationFlow);
-      }
-      // Check if we're in an active milestone creation flow
-      else if (milestoneCreationFlow) {
-        handled = true;
-        aiResponseContent = await handleMilestoneCreationStep(messageContent, milestoneCreationFlow);
-      }
-      // Check for natural language goal creation intent
-      else if (detectGoalCreationIntent(messageContent)) {
-        handled = true;
-        aiResponseContent = await startGoalCreationFlow(messageContent);
-      }
-      // Check for milestone creation intent after goal creation
-      else if (messageContent.toLowerCase().includes('yes') && messageContent.toLowerCase().includes('milestone')) {
-        handled = true;
-        aiResponseContent = startMilestoneCreationFlow();
-      }
-      // Check for day plan editing intent
-      else if (detectDayPlanEditIntent(messageContent)) {
-        handled = true;
-        aiResponseContent = await handleDayPlanEdit(messageContent);
-      }
-      // Check for planner customization intent
-      else if (detectPlannerCustomizationIntent(messageContent)) {
-        handled = true;
-        aiResponseContent = await handlePlannerCustomization(messageContent);
-      }
-
-      // --- Natural Language Intent Parsing ---
-      let intent = null;
-      if (!handled && apiKey) { // Use apiKey from context
-        try {
-          intent = await geminiService.parseUserIntent(messageContent);
-        } catch (e) {
-          console.error('Intent parsing failed:', e);
-          intent = null;
-        }
-      }
-
-      if (intent && intent.action && intent.confidence > 0.7) {
-        const action = intent.action;
-        const targetType = intent.targetType;
-        const targetTitle = intent.targetTitle;
-        const goalTitle = intent.goalTitle;
-        const details = intent.details;
-
-        // --- Plan My Day ---
-        if (action === 'plan' && targetType === 'plan') {
-          handled = true;
-          if (!user || !user.id) {
-            aiResponseContent = "You must be logged in to generate a daily plan. Please sign in and try again.";
-          } else {
-            const goals = entityService.getGoals(user);
-            if (!goals.length) {
-              aiResponseContent = "You have no goals set. Please create a goal first.";
-            } else {
-              const today = new Date().toISOString().split('T')[0];
-              let createdMilestones = [];
-              goals.forEach(goal => {
-                const milestoneTitle = `Progress on '${goal.title}'`;
-                const newMilestone = {
-                  id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                  title: milestoneTitle,
-                  goalId: goal.id,
-                  goalName: goal.title,
-                  priority: goal.priority || 'medium',
-                  estimatedTime: null,
-                  dueTime: '',
-                  completed: false,
-                  createdAt: new Date(),
-                  date: today
-                };
-                const created = entityService.createMilestone(user, newMilestone);
-                if (created) {
-                  createdMilestones.push(milestoneTitle);
-                }
-              });
-              if (createdMilestones.length) {
-                aiResponseContent = `Today's plan created! Suggested milestones:\n- ${createdMilestones.join('\n- ')}`;
-              } else {
-                aiResponseContent = "No new milestones were created. You may already have milestones for today.";
-              }
-            }
-          }
-        }
-        // --- Create Milestone ---
-        else if (action === 'create' && targetType === 'milestone') {
-          handled = true;
-          if (!user || !user.id) {
-            aiResponseContent = "You must be logged in to create milestones. Please sign in and try again.";
-          } else {
-            // Find goalId by title
-            const goals = entityService.getGoals(user);
-            const goal = goals.find(g => g.title.toLowerCase() === (goalTitle || '').toLowerCase());
-            if (!goal) {
-              aiResponseContent = `I couldn't find a goal named '${goalTitle}'. You can create milestones for these goals: ${goals.map(g => g.title).join(', ')}. Please specify the correct goal name.`;
-            } else {
-              const newMilestone = {
-                id: Date.now().toString(),
-                title: targetTitle,
-                goalId: goal.id,
-                goalName: goal.title,
-                priority: 'medium',
-                estimatedTime: null,
-                dueTime: '',
-                completed: false,
-                createdAt: new Date(),
-                date: new Date().toISOString().split('T')[0]
-              };
-              const created = entityService.createMilestone(user, newMilestone);
-              if (created) {
-                aiResponseContent = `✅ Milestone '${targetTitle}' created for goal '${goal.title}'! You can now track your progress on this milestone.`;
-              } else {
-                aiResponseContent = `❌ Sorry, I couldn't create the milestone. Please try again or add it manually from the daily milestones page.`;
-              }
-            }
-          }
-        }
-        // --- Complete Milestone ---
-        else if (action === 'complete' && targetType === 'milestone') {
-          handled = true;
-          if (!user || !user.id) {
-            aiResponseContent = "You must be logged in to complete milestones. Please sign in and try again.";
-          } else {
-            const milestones = entityService.getMilestones(user);
-            const milestone = milestones.find(m => m.title.toLowerCase() === (targetTitle || '').toLowerCase());
-            if (!milestone) {
-              aiResponseContent = `I couldn't find a milestone titled '${targetTitle}'. Here are your current milestones: ${milestones.filter(m => !m.completed).map(m => m.title).join(', ')}.`;
-            } else {
-              const updated = entityService.updateMilestone(user, milestone.id, { completed: true });
-              if (updated) {
-                aiResponseContent = `🎉 Congratulations! Milestone '${targetTitle}' marked as complete! Keep up the great work!`;
-              } else {
-                aiResponseContent = `❌ Sorry, I couldn't update the milestone. Please try again or mark it complete from the daily milestones page.`;
-              }
-            }
-          }
-        }
-        // --- Update Milestone ---
-        else if (action === 'update' && targetType === 'milestone') {
-          handled = true;
-          if (!user || !user.id) {
-            aiResponseContent = "You must be logged in to update milestones. Please sign in and try again.";
-          } else {
-            const milestones = entityService.getMilestones(user);
-            const milestone = milestones.find(m => m.title.toLowerCase() === (targetTitle || '').toLowerCase());
-            if (!milestone) {
-              aiResponseContent = `I couldn't find a milestone titled '${targetTitle}'. Here are your current milestones: ${milestones.map(m => m.title).join(', ')}.`;
-            } else {
-              const updated = entityService.updateMilestone(user, milestone.id, { title: details });
-              if (updated) {
-                aiResponseContent = `✅ Milestone '${targetTitle}' updated to '${details}'. The change has been saved!`;
-              } else {
-                aiResponseContent = `❌ Sorry, I couldn't update the milestone. Please try again or edit it from the daily milestones page.`;
-              }
-            }
-          }
-        }
-        // --- Progress Update ---
-        else if (action === 'progress_update') {
-          handled = true;
-          // If the user mentions a milestone, mark it as updated for this session
-          if (intent && intent.targetType === 'milestone' && intent.targetTitle) {
-            setUpdatedMilestones(prev => [...prev, intent.targetTitle]);
-            aiResponseContent = `Great job updating '${intent.targetTitle}'! Keep up the momentum. Would you like to plan your next step or celebrate this win?`;
-          } else {
-            aiResponseContent = "Thanks for the update! I've noted your progress.";
-          }
-          // Optionally, update progress in the future
-        }
-      }
-
-      // If not handled by intent, fall back to legacy command parsing and AI chat
-      if (!handled) {
-        // --- Milestone Creation ---
-        if (messageContent.toLowerCase().startsWith('/create milestone ')) {
-          handled = true;
-          if (!user || !user.id) {
-            aiResponseContent = "You must be logged in to create milestones. Please sign in and try again.";
-          } else {
-            // Parse: /create milestone [title] for [goal] [optional: due time]
-            // Example: /create milestone Write report for Project X at 3pm
-            const regex = /\/create milestone (.+?)(?: for (.+?))?(?: at (.+))?$/i;
-            const match = messageContent.match(regex);
-            if (match) {
-              const title = match[1]?.trim();
-              const goalTitle = match[2]?.trim();
-              const dueTime = match[3]?.trim();
-              // Find goalId by title
-              const goals = entityService.getGoals(user);
-              const goal = goals.find(g => g.title.toLowerCase() === (goalTitle || '').toLowerCase());
-              if (!goal) {
-                aiResponseContent = `I couldn't find a goal named '${goalTitle}'. You can create milestones for these goals: ${goals.map(g => g.title).join(', ')}. Please specify the correct goal name.`;
-              } else {
-                const newMilestone = {
-                  id: Date.now().toString(),
-                  title,
-                  goalId: goal.id,
-                  goalName: goal.title,
-                  priority: 'medium',
-                  estimatedTime: null,
-                  dueTime: dueTime || '',
-                  completed: false,
-                  createdAt: new Date(),
-                  date: new Date().toISOString().split('T')[0]
-                };
-                const created = entityService.createMilestone(user, newMilestone);
-                if (created) {
-                  aiResponseContent = `✅ Milestone '${title}' created for goal '${goal.title}'${dueTime ? ' at ' + dueTime : ''}.`;
-                } else {
-                  aiResponseContent = `❌ Sorry, I couldn't create the milestone. Please try again or add it manually from the daily milestones page.`;
-                }
-              }
-            } else {
-              aiResponseContent = "Please use the format: /create milestone [title] for [goal] at [time]";
-            }
-          }
-        }
-        // --- Milestone Completion ---
-        else if (messageContent.toLowerCase().startsWith('/complete milestone ')) {
-          handled = true;
-          if (!user || !user.id) {
-            aiResponseContent = "You must be logged in to complete milestones. Please sign in and try again.";
-          } else {
-            // Parse: /complete milestone [title]
-            const regex = /\/complete milestone (.+)$/i;
-            const match = messageContent.match(regex);
-            if (match) {
-              const title = match[1]?.trim();
-              const milestones = entityService.getMilestones(user);
-              const milestone = milestones.find(m => m.title.toLowerCase() === title.toLowerCase());
-              if (!milestone) {
-                aiResponseContent = `I couldn't find a milestone titled '${title}'. Here are your current milestones: ${milestones.filter(m => !m.completed).map(m => m.title).join(', ')}.`;
-              } else {
-                const updated = entityService.updateMilestone(user, milestone.id, { completed: true });
-                if (updated) {
-                  aiResponseContent = `🎉 Congratulations! Milestone '${title}' marked as complete! Keep up the great work!`;
-                } else {
-                  aiResponseContent = `❌ Sorry, I couldn't update the milestone. Please try again or mark it complete from the daily milestones page.`;
-                }
-              }
-            } else {
-              aiResponseContent = "Please use the format: /complete milestone [title]";
-            }
-          }
-        }
-        // --- Milestone Update ---
-        else if (messageContent.toLowerCase().startsWith('/update milestone ')) {
-          handled = true;
-          if (!user || !user.id) {
-            aiResponseContent = "You must be logged in to update milestones. Please sign in and try again.";
-          } else {
-            // Parse: /update milestone [title] to [new title]
-            const regex = /\/update milestone (.+?) to (.+)$/i;
-            const match = messageContent.match(regex);
-            if (match) {
-              const oldTitle = match[1]?.trim();
-              const newTitle = match[2]?.trim();
-              const milestones = entityService.getMilestones(user);
-              const milestone = milestones.find(m => m.title.toLowerCase() === oldTitle.toLowerCase());
-              if (!milestone) {
-                aiResponseContent = `I couldn't find a milestone titled '${oldTitle}'. Here are your current milestones: ${milestones.map(m => m.title).join(', ')}.`;
-              } else {
-                const updated = entityService.updateMilestone(user, milestone.id, { title: newTitle });
-                if (updated) {
-                  aiResponseContent = `✅ Milestone '${oldTitle}' updated to '${newTitle}'. The change has been saved!`;
-                } else {
-                  aiResponseContent = `❌ Sorry, I couldn't update the milestone. Please try again or edit it from the daily milestones page.`;
-                }
-              }
-            } else {
-              aiResponseContent = "Please use the format: /update milestone [title] to [new title]";
-            }
-          }
-        }
-        // --- Legacy AI Chat Fallback ---
-        else {
-          // If no specific intent was detected, use the general AI chat
-          try {
-            const response = await geminiService.generateText(messageContent, apiKey);
-            aiResponseContent = response;
-          } catch (error) {
-            console.error('Error generating AI response:', error);
-            aiResponseContent = "I'm having trouble processing your request right now. Please try again or check your API key configuration.";
-          }
-        }
-      }
-
-      return aiResponseContent;
-    } catch (error) {
-      console.error('Error in generateAiResponse:', error);
-      return "I'm having trouble processing your request. Please try again.";
-    }
-  };
-
-  // Handle message submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!message.trim() || isProcessing) return;
-
-    const userMessage = message.trim();
-    setMessage('');
-    setIsProcessing(true);
-
-    // Add user message to chat
-    const userMessageObj = {
+    const userMessage = {
       id: Date.now(),
-      content: userMessage,
+      content: messageContent,
       sender: 'user',
       timestamp: new Date().toISOString()
     };
 
-    setMessages(prev => [...prev, userMessageObj]);
+    setMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    setIsProcessing(true);
 
     try {
-      // Generate AI response
-      const aiResponse = await generateAiResponse(userMessage);
+      let aiResponse;
       
-      // Add AI response to chat
-      const aiMessageObj = {
+      // Handle goal creation flow
+      if (goalCreationFlow) {
+        aiResponse = await handleGoalCreationStep(messageContent, goalCreationFlow);
+      } else if (milestoneCreationFlow) {
+        aiResponse = await handleMilestoneCreationStep(messageContent, milestoneCreationFlow);
+      } else if (dayPlanEditFlow) {
+        aiResponse = await handleDayPlanEdit(messageContent);
+        setDayPlanEditFlow(null);
+      } else {
+        // Check for specific intents
+        if (detectGoalCreationIntent(messageContent)) {
+          aiResponse = await startGoalCreationFlow(messageContent);
+        } else if (detectMilestoneCreationIntent(messageContent)) {
+          aiResponse = await startMilestoneCreationFlow();
+        } else if (detectPlannerCustomizationIntent(messageContent)) {
+          aiResponse = await handlePlannerCustomization(messageContent);
+        } else if (detectDayPlanEditIntent(messageContent)) {
+          aiResponse = await handleDayPlanEdit(messageContent);
+        } else {
+          // Generate general AI response
+          aiResponse = await generateAiResponse(messageContent);
+        }
+      }
+
+      const aiMessage = {
         id: Date.now() + 1,
         content: aiResponse,
         sender: 'ai',
         timestamp: new Date().toISOString()
       };
 
-      setMessages(prev => [...prev, aiMessageObj]);
-
-      // Check for new achievements
-      checkAchievements();
-      
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Error handling message:', error);
-      
-      const errorMessageObj = {
+      console.error('Error in handleSendMessage:', error);
+      const errorMessage = {
         id: Date.now() + 1,
-        content: "I'm having trouble processing your request. Please try again.",
+        content: "I encountered an error while processing your message. Please try again.",
         sender: 'ai',
         timestamp: new Date().toISOString()
       };
-
-      setMessages(prev => [...prev, errorMessageObj]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!message.trim() || isProcessing) return;
+    await handleSendMessage(message);
+  };
+
+  const handleQuickAction = async (action) => {
+    const actionMessages = {
+      'create_goal': 'I can help you create a goal! Tell me what you want to achieve.',
+      'view_goals': 'I can help you view your goals. You can also check your Goals dashboard for a complete overview.',
+      'create_milestone': 'I can help you create a milestone! What would you like to title this milestone?',
+      'view_milestones': 'I can help you view your milestones. You can also check your Milestones dashboard for a complete overview.',
+      'daily_plan': 'I can help you with your daily plan. You can generate a new plan or edit your existing one. What would you like to do?',
+      'planner_preferences': 'I can help you customize your planner preferences. Tell me how you\'d like to adjust your planning approach.',
+      'productivity_tips': 'Here are some productivity tips:\n\n1. **Time Blocking**: Schedule specific time slots for different tasks\n2. **Pomodoro Technique**: Work in 25-minute focused sessions\n3. **Priority Matrix**: Use the Eisenhower Matrix to prioritize tasks\n4. **Batch Similar Tasks**: Group similar activities together\n5. **Regular Breaks**: Take short breaks to maintain focus\n\nWould you like me to elaborate on any of these techniques?',
+      'motivation': 'Here\'s some motivation for you:\n\n🌟 Every expert was once a beginner. Your progress, no matter how small, is still progress.\n\n🎯 Focus on the process, not just the outcome. The journey is where growth happens.\n\n💪 You have the power to change your habits and achieve your goals. Start with one small step today.\n\nWhat specific goal or challenge would you like to tackle?'
+    };
+
+    const message = actionMessages[action] || 'How can I help you today?';
+    await handleSendMessage(message);
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
+    setGoalCreationFlow(null);
+    setGoalCreationData({});
+    setMilestoneCreationFlow(null);
+    setMilestoneCreationData({});
+    setDayPlanEditFlow(null);
+    setDayPlanEditData({});
+  };
+
+  const handleSearch = (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const results = messages.filter(msg => 
+      msg.content.toLowerCase().includes(query.toLowerCase())
+    );
+    setSearchResults(results);
+  };
+
+  const handleSearchResultClick = (messageId) => {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Proactive milestone suggestions
+  useEffect(() => {
+    if (!isAuthenticated || !user || updatedMilestones.includes('asked')) return;
+    
+    const now = Date.now();
+    if (now - lastProactiveCheck < 300000) return; // 5 minutes
+    
+    const milestones = entityService.getMilestones(user);
+    if (milestones.length === 0) {
+      const suggestionMessage = {
+        id: Date.now(),
+        content: "I notice you don't have any milestones yet. Would you like me to help you create some milestones to track your progress toward your goals?",
+        sender: 'ai',
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, suggestionMessage]);
+      setUpdatedMilestones(prev => [...prev, 'asked']);
+    }
+    setLastProactiveCheck(now);
+  }, [isAuthenticated, user, updatedMilestones, lastProactiveCheck]);
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
+      <Header title="Drift AI Assistant" />
       
-      <div className="pt-16 pb-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Welcome Screen */}
-          {messages.length === 0 && (
-            <WelcomeScreen onStartChat={() => setMessages([{
-              id: Date.now(),
-              content: "Hello! I'm Drift, your AI productivity assistant. I can help you create goals, manage milestones, plan your day, and much more. What would you like to work on today?",
-              sender: 'ai',
-              timestamp: new Date().toISOString()
-            }])} />
-          )}
-
-          {/* Chat Interface */}
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Connection Status and Debug Info */}
+        <div className="mb-4 p-4 bg-surface-800 rounded-lg border border-border">
           {isConnected ? (
-            <>
-              {/* Conversation Header */}
-              <ConversationHeader onClearChat={handleClearChat} />
-              
-              {/* Messages */}
-              <div 
-                ref={chatContainerRef}
-                className="bg-surface rounded-lg border border-border mb-4 overflow-hidden"
-                style={{ height: '60vh' }}
-              >
-                <div className="p-4 overflow-y-auto h-full">
-                  {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} />
-                  ))}
-                  {isProcessing && (
-                    <div className="flex items-center space-x-2 text-text-secondary">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                      <span>Drift is thinking...</span>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <QuickActionChips onAction={handleQuickAction} />
-
-              {/* Message Input */}
-              <MessageInput
-                message={message}
-                setMessage={setMessage}
-                onSubmit={handleSubmit}
-                isProcessing={isProcessing}
-              />
-            </>
+            <span className="text-success">API Key Connected</span>
           ) : (
-            <div className="text-error text-center mt-4">API Key Required. {connectionError}</div>
+            <span className="text-error">API Key Required. {connectionError}</span>
           )}
+          <div className="text-xs text-text-secondary mt-1">
+            [Debug] API Key: {apiKey ? 'Present' : 'Missing'} | Connected: {isConnected ? 'Yes' : 'No'} | {connectionError}
+          </div>
+          <button 
+            className="ml-2 px-2 py-1 bg-surface-700 text-xs rounded hover:bg-surface-600" 
+            onClick={resetGemini}
+          >
+            Reset Gemini State
+          </button>
         </div>
+
+        {/* Chat Interface */}
+        {isConnected ? (
+          <>
+            {messages.length === 0 && (
+              <WelcomeScreen onStartChat={() => setMessages([{
+                id: Date.now(),
+                content: "Hello! I'm Drift, your AI productivity assistant. I can help you create goals, manage milestones, plan your day, and much more. What would you like to work on today?",
+                sender: 'ai',
+                timestamp: new Date().toISOString()
+              }])} />
+            )}
+            {messages.length > 0 && (
+              <>
+                <ConversationHeader onClearChat={handleClearChat} />
+                <div ref={chatContainerRef} className="bg-surface rounded-lg border border-border mb-4 overflow-hidden" style={{ height: '60vh' }}>
+                  <div className="p-4 overflow-y-auto h-full">
+                    {messages.map((msg) => (
+                      <MessageBubble key={msg.id} message={msg} />
+                    ))}
+                    {isProcessing && (
+                      <div className="flex items-center space-x-2 text-text-secondary">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span>Drift is thinking...</span>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </div>
+                <QuickActionChips onAction={handleQuickAction} />
+                <MessageInput
+                  message={message}
+                  setMessage={setMessage}
+                  onSubmit={handleSubmit}
+                  isProcessing={isProcessing}
+                />
+              </>
+            )}
+          </>
+        ) : (
+          <div className="text-error text-center mt-4">API Key Required. {connectionError}</div>
+        )}
+
+        {/* Search Modal */}
+        {isSearchOpen && (
+          <MessageSearch
+            onClose={() => setIsSearchOpen(false)}
+            onSearch={handleSearch}
+            searchResults={searchResults}
+            onResultClick={handleSearchResultClick}
+          />
+        )}
       </div>
 
-      <FloatingActionButton />
+      <FloatingActionButton
+        icon={<Icon name="search" className="w-5 h-5" />}
+        onClick={() => setIsSearchOpen(true)}
+        className="fixed bottom-6 right-6"
+      />
     </div>
   );
 };

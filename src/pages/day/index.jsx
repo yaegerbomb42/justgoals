@@ -12,6 +12,7 @@ import geminiService from '../../services/geminiService';
 import DayProgressTracker from './components/DayProgressTracker';
 import { useSettings } from '../../context/SettingsContext';
 import { usePlanData } from '../../context/PlanDataContext';
+import { useGemini } from '../../context/GeminiContext';
 
 // Error boundary for the day planner
 class DayErrorBoundary extends React.Component {
@@ -37,15 +38,14 @@ const Day = () => {
   const { user, isAuthenticated } = useAuth();
   const { plan, setPlan, planError, resetAllPlans } = usePlanData();
   const { settings, isLoading: settingsLoading } = useSettings();
+  const { apiKey, isConnected } = useGemini();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dailyPlan, setDailyPlan] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editActivity, setEditActivity] = useState(null);
   const [goals, setGoals] = useState([]);
   const [milestones, setMilestones] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('plan'); // 'plan' or 'progress'
   const [showDriftChat, setShowDriftChat] = useState(false);
   const [plannerPreferences, setPlannerPreferences] = useState({
@@ -53,22 +53,6 @@ const Day = () => {
     taskDensity: 'balanced', // 'more_tasks', 'balanced', 'less_tasks'
     customInstructions: ''
   });
-
-  // On app load, clean all daily_plan_* keys in localStorage if not valid
-  useEffect(() => {
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('daily_plan_')) {
-        try {
-          const plan = JSON.parse(localStorage.getItem(key));
-          if (!Array.isArray(plan) || !plan.every(item => item && typeof item === 'object' && typeof item.time === 'string' && typeof item.title === 'string')) {
-            localStorage.removeItem(key);
-          }
-        } catch {
-          localStorage.removeItem(key);
-        }
-      }
-    });
-  }, []);
 
   // Load planner preferences
   useEffect(() => {
@@ -94,26 +78,6 @@ const Day = () => {
     setPlannerPreferences(prefs);
   }, [user?.id]);
 
-  // Check Gemini service connection
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const apiKey = localStorage.getItem(`gemini_api_key_${user?.id}`);
-        if (apiKey) {
-          const connected = await geminiService.testConnection(apiKey);
-          setIsConnected(connected.success);
-        }
-      } catch (error) {
-        console.error('Error checking Gemini connection:', error);
-        setIsConnected(false);
-      }
-    };
-    
-    if (user?.id) {
-      checkConnection();
-    }
-  }, [user?.id]);
-
   // Load user goals and milestones as before
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -123,45 +87,6 @@ const Day = () => {
       setMilestones(userMilestones);
     }
   }, [isAuthenticated, user]);
-
-  // Load daily plan for selected date
-  const loadDailyPlan = useCallback((date) => {
-    if (!user?.id) return;
-    const planKey = `daily_plan_${user.id}_${date}`;
-    const savedPlan = localStorage.getItem(planKey);
-    if (savedPlan) {
-      try {
-        const parsed = JSON.parse(savedPlan);
-        const normalized = normalizePlanData(JSON.stringify(parsed));
-        if (normalized) {
-          setDailyPlan(normalized);
-        } else {
-          setDailyPlan([]);
-          setPlanError('Saved plan was invalid and has been cleared.');
-          localStorage.removeItem(planKey);
-        }
-      } catch (error) {
-        setDailyPlan([]);
-        setPlanError('Error loading daily plan. Plan has been cleared.');
-        localStorage.removeItem(planKey);
-      }
-    } else {
-      setDailyPlan([]);
-    }
-  }, [user]);
-
-  // Save daily plan
-  const saveDailyPlan = useCallback((plan, date = selectedDate) => {
-    if (!user?.id) return;
-    const planKey = `daily_plan_${user.id}_${date}`;
-    const normalized = normalizePlanData(JSON.stringify(plan));
-    if (normalized) {
-      localStorage.setItem(planKey, JSON.stringify(normalized));
-    } else {
-      localStorage.removeItem(planKey);
-      setPlanError('Attempted to save an invalid plan. Plan was not saved.');
-    }
-  }, [user, selectedDate]);
 
   // Generate intelligent daily plan
   const generateDailyPlan = async () => {
@@ -177,17 +102,15 @@ const Day = () => {
     setIsGenerating(true);
     setPlanError(null);
     try {
-      // Test connection first
-      const apiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
       if (!apiKey) {
         setPlanError('Please configure your Gemini API key in Settings to generate intelligent daily plans.');
         setIsGenerating(false);
         return;
       }
-      geminiService.initialize(apiKey);
-      const connectionTest = await geminiService.testConnection(apiKey);
-      if (!connectionTest.success) {
-        throw new Error('API connection failed. Please check your API key.');
+      if (!isConnected) {
+        setPlanError('API connection failed. Please check your API key.');
+        setIsGenerating(false);
+        return;
       }
 
       // Build preference instructions
@@ -228,110 +151,58 @@ const Day = () => {
            - Afternoon (12-17): Focus work, skill development
            - Evening (17-23): Relaxation, review, creative activities
         4. Include breaks and transitions
-        5. Make activities specific and actionable
-        6. Prioritize high-priority goals
-        7. Include activities that progress toward goals
-        8. Mark goal-related activities with "goalRelated: true" and include "goalId" field
-        9. Follow user preferences for sleep focus and task density
+        5. Align with user's goals and milestones
+        6. Respect user preferences for sleep and task density
 
         RESPONSE FORMAT:
-        Return ONLY a valid JSON array with this exact structure:
-        [
-          {
-            "time": "07:00",
-            "title": "Activity Name",
-            "description": "Specific description of what to do",
-            "category": "fitness|learning|work|personal|creative",
-            "duration": 45,
-            "priority": "high|medium|low",
-            "goalId": "goal_id_if_applicable",
-            "goalRelated": true|false,
-            "relatedGoalTitle": "Goal title if goalRelated is true"
-          }
-        ]
+        Return a JSON array of activities, each with:
+        {
+          "time": "HH:MM",
+          "title": "Activity title",
+          "description": "Brief description",
+          "category": "work|exercise|learning|relaxation|personal",
+          "duration": "30-120 minutes",
+          "priority": "high|medium|low"
+        }
 
-        IMPORTANT: Return ONLY the JSON array, no other text or explanation.
+        Make the schedule realistic and achievable. Include variety and balance.
       `;
 
-      // Timeout wrapper for Gemini API call
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Plan generation timed out. Please try again later.')), 30000));
-      let response;
-      try {
-        response = await Promise.race([
-          geminiService.generateText(prompt, apiKey),
-          timeoutPromise
-        ]);
-      } catch (err) {
-        setPlanError(err.message || 'Plan generation failed.');
-        setIsGenerating(false);
-        console.error('[Day Plan] Generation error:', err);
-        return;
-      }
+      const response = await geminiService.generateResponse(prompt, apiKey);
       
-      // Robust AI response parsing and normalization
-      const flatJsonData = normalizePlanData(response);
-      if (!flatJsonData) {
-        setPlanError('AI did not return a valid plan. Please try again.');
-        setIsGenerating(false);
-        console.error('[Day Plan] Could not normalize AI response:', response);
-        return;
-      }
-      // Validate and format activities
-      let formattedPlan = [];
       try {
-        formattedPlan = flatJsonData
-          .map((activity, index) => ({
-            id: `activity_${Date.now()}_${index}`,
-            time: activity.time || '09:00',
-            title: activity.title || 'Untitled Activity',
-            description: activity.description || 'No description provided',
-            category: activity.category || 'general',
-            duration: parseInt(activity.duration) || 60,
-            priority: activity.priority || 'medium',
-            goalId: activity.goalId || null,
-            goalRelated: activity.goalRelated || false,
-            relatedGoalTitle: activity.relatedGoalTitle || null,
-            completed: false,
-            createdAt: new Date().toISOString()
-          }))
-          .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-      } catch (sortError) {
-        setPlanError('Failed to process plan data. Please try again.');
-        setIsGenerating(false);
-        console.error('[Day Plan] Error during plan formatting/sorting:', sortError, flatJsonData);
-        return;
+        const generatedPlan = JSON.parse(response);
+        if (Array.isArray(generatedPlan) && generatedPlan.length > 0) {
+          setPlan(generatedPlan);
+        } else {
+          throw new Error('Invalid plan format received');
+        }
+      } catch (parseError) {
+        console.error('Error parsing AI response:', parseError);
+        setPlanError('Received an invalid response from AI. Please try again.');
       }
-      if (formattedPlan.length === 0) {
-        setPlanError('No valid activities were generated. Please try again.');
-        setIsGenerating(false);
-        return;
-      }
-      setDailyPlan(formattedPlan);
-      saveDailyPlan(formattedPlan);
-      
     } catch (error) {
-      setPlanError(error.message || 'Plan generation failed.');
+      console.error('Error generating daily plan:', error);
+      setPlanError(`Error generating plan: ${error.message}`);
+    } finally {
       setIsGenerating(false);
-      console.error('[Day Plan] Generation error:', error);
     }
   };
 
   // Mark activity as completed
   const toggleActivityCompletion = (activityId) => {
-    const updatedPlan = dailyPlan.map(activity => 
+    const updatedPlan = plan.map(activity => 
       activity.id === activityId 
         ? { ...activity, completed: !activity.completed, completedAt: !activity.completed ? new Date().toISOString() : null }
         : activity
     );
-    setDailyPlan(updatedPlan);
-    saveDailyPlan(updatedPlan);
+    setPlan(updatedPlan);
   };
 
   // Delete activity
   const deleteActivity = (activityId) => {
-    const updatedPlan = dailyPlan.filter(activity => activity.id !== activityId);
-    setDailyPlan(updatedPlan);
-    saveDailyPlan(updatedPlan);
+    const updatedPlan = plan.filter(activity => activity.id !== activityId);
+    setPlan(updatedPlan);
   };
 
   // Edit activity
@@ -344,11 +215,10 @@ const Day = () => {
   const saveEditedActivity = () => {
     if (!editActivity) return;
     
-    const updatedPlan = dailyPlan.map(activity => 
+    const updatedPlan = plan.map(activity => 
       activity.id === editActivity.id ? editActivity : activity
     );
-    setDailyPlan(updatedPlan);
-    saveDailyPlan(updatedPlan);
+    setPlan(updatedPlan);
     setIsEditing(false);
     setEditActivity(null);
   };
@@ -388,8 +258,8 @@ const Day = () => {
 
   // Get progress statistics
   const getProgressStats = () => {
-    const total = dailyPlan.length;
-    const completed = dailyPlan.filter(activity => activity.completed).length;
+    const total = plan.length;
+    const completed = plan.filter(activity => activity.completed).length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, percentage };
   };
