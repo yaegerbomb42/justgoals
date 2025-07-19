@@ -62,4 +62,10 @@ export const GeminiProvider = ({ children }) => {
   );
 };
 
-export const useGemini = () => useContext(GeminiContext); 
+export const useGemini = () => {
+  const context = useContext(GeminiContext);
+  if (!context) {
+    throw new Error('useGemini must be used within a GeminiProvider');
+  }
+  return context;
+}; 

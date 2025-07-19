@@ -84,4 +84,10 @@ export const PlanDataProvider = ({ children }) => {
   );
 };
 
-export const usePlanData = () => useContext(PlanDataContext); 
+export const usePlanData = () => {
+  const context = useContext(PlanDataContext);
+  if (!context) {
+    throw new Error('usePlanData must be used within a PlanDataProvider');
+  }
+  return context;
+}; 
