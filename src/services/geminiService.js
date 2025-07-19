@@ -8,7 +8,8 @@ class GeminiService {
   constructor() {
     this.apiKey = null;
     this.isInitialized = false;
-    this.baseUrl = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent';
+    // Use Gemini 2.5 Flash from Google AI Studio
+    this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
   }
 
   initialize(apiKey = null) {
@@ -52,21 +53,32 @@ class GeminiService {
    */
   async testConnection(apiKey) {
     try {
-      const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + apiKey, {
+      const response = await fetch(this.baseUrl + '?key=' + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: 'ping' }] }] })
+        body: JSON.stringify({ 
+          contents: [{ parts: [{ text: 'Hello' }] }],
+          generationConfig: {
+            maxOutputTokens: 10
+          }
+        })
       });
+      
       if (!response.ok) {
         let errorMsg = `HTTP ${response.status}`;
         try {
           const errData = await response.json();
           if (errData && errData.error && errData.error.message) {
             errorMsg = errData.error.message;
+            // Check for quota exceeded
+            if (response.status === 429 || errorMsg.includes('quota')) {
+              return { success: true, status: 'quota_exceeded', message: 'API key is valid but quota exceeded. Please check your billing.' };
+            }
           }
         } catch {}
         return { success: false, status: 'error', message: errorMsg };
       }
+      
       const data = await response.json();
       if (Array.isArray(data.candidates)) {
         return { success: true, status: 'success', message: 'Connection successful!' };
@@ -76,6 +88,19 @@ class GeminiService {
     } catch (e) {
       return { success: false, status: 'error', message: e.message || 'Unknown error' };
     }
+  }
+
+  /**
+   * Generate text response from Gemini (alias for generateText for compatibility)
+   * @param {string} prompt - The input prompt
+   * @param {string} apiKey - Optional API key override
+   * @returns {Promise<string>} AI response
+   */
+  async generateResponse(prompt, apiKey = null) {
+    if (apiKey) {
+      this.initialize(apiKey);
+    }
+    return this.generateText(prompt);
   }
 
   /**
@@ -99,15 +124,33 @@ class GeminiService {
             parts: [{
               text: prompt
             }]
-          }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 2048,
+            temperature: 0.7
+          }
         })
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        let errorMsg = `API request failed: ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData && errData.error && errData.error.message) {
+            errorMsg = errData.error.message;
+            // Check for quota exceeded
+            if (response.status === 429 || errorMsg.includes('quota')) {
+              throw new Error('API quota exceeded. Please check your billing and try again later.');
+            }
+          }
+        } catch {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error('Invalid response format from API');
+      }
       return data.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error('Error generating text:', error);

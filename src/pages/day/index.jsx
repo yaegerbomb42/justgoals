@@ -109,6 +109,10 @@ const Day = () => {
           geminiService.initialize(storedKey);
           const result = await geminiService.testConnection(storedKey);
           setIsConnected(result.success);
+          // Handle quota exceeded case
+          if (result.status === 'quota_exceeded') {
+            setPlanError('API quota exceeded. Please check your billing and try again later.');
+          }
         } else {
           setIsConnected(false);
         }
@@ -131,8 +135,15 @@ const Day = () => {
         geminiService.initialize(newApiKey);
         const result = await geminiService.testConnection(newApiKey);
         setIsConnected(result.success);
+        // Handle quota exceeded case
+        if (result.status === 'quota_exceeded') {
+          setPlanError('API quota exceeded. Please check your billing and try again later.');
+        } else {
+          setPlanError(''); // Clear any previous errors
+        }
       } else {
         setIsConnected(false);
+        setPlanError('');
       }
       setIsTestingConnection(false);
     };
@@ -399,8 +410,10 @@ const Day = () => {
 
   // Get progress statistics
   const getProgressStats = () => {
-    const total = dailyPlan.length;
-    const completed = dailyPlan.filter(activity => activity.completed).length;
+    // Ensure dailyPlan is always an array
+    const planArray = Array.isArray(dailyPlan) ? dailyPlan : [];
+    const total = planArray.length;
+    const completed = planArray.filter(activity => activity && activity.completed).length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, percentage };
   };
@@ -421,6 +434,9 @@ const Day = () => {
   if (!isAuthenticated) {
     return <div>Please log in to access your daily plan.</div>;
   }
+
+  // Ensure dailyPlan is always an array for rendering
+  const safeDailyPlan = Array.isArray(dailyPlan) ? dailyPlan : [];
 
   return (
     <DayErrorBoundary>
@@ -527,7 +543,7 @@ const Day = () => {
                   className="space-y-6"
                 >
                   {/* Progress Overview */}
-                  {dailyPlan.length > 0 && (
+                  {safeDailyPlan.length > 0 && (
                     <div className="bg-surface rounded-lg p-6 border border-border">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-text-primary">Today's Progress</h3>
@@ -548,7 +564,7 @@ const Day = () => {
                   )}
 
                   {/* Plan Activities */}
-                  {dailyPlan.length === 0 ? (
+                  {safeDailyPlan.length === 0 ? (
                     <div className="text-center py-12">
                       <Icon name="Calendar" className="w-16 h-16 mx-auto text-text-muted mb-4" />
                       <h3 className="text-xl font-semibold text-text-primary mb-2">No Plan Yet</h3>
@@ -564,7 +580,7 @@ const Day = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {dailyPlan
+                      {safeDailyPlan
                         .sort((a, b) => a.time.localeCompare(b.time))
                         .map((activity) => (
                           <motion.div
