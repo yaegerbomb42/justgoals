@@ -4,162 +4,84 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { useAuth } from '../../../context/AuthContext';
-import * as geminiService from '../../../services/geminiService';
-import firestoreService from '../../../services/firestoreService';
+import geminiService from '../../../services/geminiService';
 
-const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConnection, connectionStatus }) => {
+const ApiKeySection = () => {
   const { user } = useAuth();
-  const [localApiKey, setLocalApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [connectionMessage, setConnectionMessage] = useState('');
-  const [cloudStatus, setCloudStatus] = useState('idle'); // idle, syncing, success, error
-  const [loadError, setLoadError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasTested, setHasTested] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null); // null, 'success', 'error'
+  const [message, setMessage] = useState('');
 
-  // Only load API key once on mount
+  // Load API key on mount
   useEffect(() => {
-    let cancelled = false;
-    async function loadApiKeyOnce() {
-      if (hasLoaded) return;
-      if (user && user.id) {
-        setIsLoading(true);
-        setCloudStatus('syncing');
-        setLoadError(null);
-        try {
-          const cloudKey = await firestoreService.loadApiKey(user.id);
-          if (!cancelled && cloudKey) {
-            setLocalApiKey(cloudKey);
-            onApiKeyChange(cloudKey);
-            localStorage.setItem(`gemini_api_key_${user.id}`, cloudKey);
-            localStorage.setItem('gemini_api_key_global', cloudKey);
-            // Dispatch global event to notify other components
-            window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
-              detail: { apiKey: cloudKey } 
-            }));
-            setCloudStatus('success');
-            setIsLoading(false);
-            setHasLoaded(true);
-            return;
-          }
-        } catch (e) {
-          if (!cancelled) {
-            setCloudStatus('error');
-            setLoadError('Failed to load API key from cloud.');
-            console.error('[API Key] Firestore load error:', e);
-          }
+    const loadKey = async () => {
+      setIsLoading(true);
+      try {
+        const key = await geminiService.loadApiKey(user?.id);
+        setApiKey(key || '');
+        if (key) {
+          // Auto-test connection if key exists
+          testConnection(key);
         }
-        // Fallback to localStorage - check global key first, then user-specific
-        const globalApiKey = localStorage.getItem('gemini_api_key_global');
-        const userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
-        const finalKey = globalApiKey || userApiKey;
-        
-        if (!cancelled) {
-          if (finalKey) {
-            setLocalApiKey(finalKey);
-            onApiKeyChange(finalKey);
-            // Ensure both storage locations are in sync
-            localStorage.setItem('gemini_api_key_global', finalKey);
-            localStorage.setItem(`gemini_api_key_${user.id}`, finalKey);
-            // Dispatch global event to notify other components
-            window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
-              detail: { apiKey: finalKey } 
-            }));
-            setCloudStatus('idle');
-          } else {
-            setLocalApiKey('');
-            onApiKeyChange('');
-            setCloudStatus('idle');
-          }
-          setIsLoading(false);
-          setHasLoaded(true);
-        }
+      } catch (error) {
+        console.error('Failed to load API key:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-    loadApiKeyOnce();
-    return () => { cancelled = true; };
-    // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Only test connection once after key is loaded or changed
-  useEffect(() => {
-    if (!hasTested && localApiKey && !isLoading) {
-      setHasTested(true);
-      handleTestConnection();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localApiKey, isLoading]);
-
-  const handleApiKeyChange = (value) => {
-    setLocalApiKey(value);
-    onApiKeyChange(value);
-    setHasTested(false); // Allow re-testing after change
-    setConnectionMessage(''); // Reset connection message on change
+    };
     
-    // Save to both user-specific and global storage for compatibility
-    if (user && user.id) {
-      localStorage.setItem(`gemini_api_key_${user.id}`, value);
-      setCloudStatus('syncing');
-      firestoreService.saveApiKey(user.id, value)
-        .then(() => setCloudStatus('success'))
-        .catch((e) => {
-          setCloudStatus('error');
-          setLoadError('Failed to sync API key to cloud.');
-          console.error('[API Key] Firestore save error:', e);
-        });
-    }
-    
-    // Save to global storage for other components
-    localStorage.setItem('gemini_api_key_global', value);
-    
-    // Dispatch global event to notify other components
-    window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
-      detail: { apiKey: value } 
-    }));
-  };
+    loadKey();
+  }, [user?.id]);
 
-  const handleTestConnection = async () => {
-    if (!localApiKey.trim()) {
-      setConnectionMessage('');
-      onTestConnection('');
+  const testConnection = async (keyToTest = null) => {
+    const testKey = keyToTest || apiKey;
+    if (!testKey?.trim()) {
+      setConnectionStatus(null);
+      setMessage('');
       return;
     }
-    setConnectionMessage('');
+
+    setIsTestingConnection(true);
     try {
-      const result = await geminiService.testConnection(localApiKey);
-      setConnectionMessage(result.message || (result.success ? 'Connection successful!' : 'Connection failed.'));
-      onTestConnection(result.success ? 'success' : 'error');
-      setHasTested(true);
-      console.log('[API Key] Connection tested:', result);
+      const result = await geminiService.testConnection(testKey);
+      if (result.success) {
+        setConnectionStatus('success');
+        setMessage('Connected successfully!');
+      } else {
+        setConnectionStatus('error');
+        setMessage(result.message || 'Connection failed');
+      }
     } catch (error) {
-      setConnectionMessage(error.message || 'Unknown error');
-      onTestConnection('error');
-      setHasTested(true);
+      setConnectionStatus('error');
+      setMessage(error.message || 'Connection failed');
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
-  const getConnectionStatusColor = () => {
-    switch (connectionStatus) {
-      case 'success':
-        return 'text-success';
-      case 'error':
-        return 'text-error';
-      default:
-        return 'text-text-secondary';
+  const handleApiKeyChange = async (value) => {
+    setApiKey(value);
+    setConnectionStatus(null);
+    setMessage('');
+    
+    if (value?.trim()) {
+      try {
+        await geminiService.setApiKey(value, user?.id);
+        // Dispatch event to notify other components
+        window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
+          detail: { apiKey: value } 
+        }));
+      } catch (error) {
+        console.error('Failed to save API key:', error);
+      }
     }
   };
 
-  const getConnectionStatusIcon = () => {
-    switch (connectionStatus) {
-      case 'success':
-        return 'CheckCircle';
-      case 'error':
-        return 'XCircle';
-      default:
-        return 'AlertCircle';
-    }
+  const handleTestConnection = () => {
+    testConnection();
   };
 
   return (
@@ -198,7 +120,7 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             <Input
               type={showKey ? "text" : "password"}
               placeholder="Enter your Gemini API key"
-              value={localApiKey}
+              value={apiKey}
               onChange={(e) => handleApiKeyChange(e.target.value)}
               className="pr-12"
               disabled={isLoading}
@@ -211,56 +133,32 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
               <Icon name={showKey ? "EyeOff" : "Eye"} size={16} />
             </button>
           </div>
-          {isLoading && (
-            <div className="text-xs text-info mt-2">Loading API key...</div>
-          )}
-          {loadError && (
-            <div className="text-xs text-error mt-2">{loadError}</div>
-          )}
+          
           <div className="flex items-center justify-between mt-2">
             <p className="text-xs text-text-secondary">
-              Get your API key from the{' '}
+              Get your API key from{' '}
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:text-primary-dark underline"
               >
-                Google AI Studio dashboard
+                Google AI Studio
               </a>
             </p>
-            {localApiKey && !isLoading && (
+            {apiKey && (
               <span className="text-xs text-success">
-                ✓ Key saved locally
+                ✓ Key saved
               </span>
             )}
           </div>
-          {/* Cloud sync status */}
-          {user && localApiKey && !isLoading && (
-            <div className="flex items-center space-x-2 mt-1 text-xs">
-              <Icon name={cloudStatus === 'success' ? 'CloudCheck' : cloudStatus === 'syncing' ? 'CloudSync' : cloudStatus === 'error' ? 'CloudOff' : 'Cloud'} size={14} className={
-                cloudStatus === 'success' ? 'text-success' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'
-              } />
-              <span className={
-                cloudStatus === 'success' ? 'text-success font-bold' : cloudStatus === 'syncing' ? 'text-info' : cloudStatus === 'error' ? 'text-error' : 'text-text-secondary'
-              }>
-                {cloudStatus === 'success' && 'Connected'}
-                {cloudStatus === 'syncing' && 'Syncing...'}
-                {cloudStatus === 'error' && 'Cloud sync error'}
-                {cloudStatus === 'idle' && 'Not yet synced'}
-              </span>
-            </div>
-          )}
-          {!localApiKey && !isLoading && (
-            <div className="text-xs text-error mt-2">Failed to load API key. Please enter and save your key.</div>
-          )}
         </div>
 
         <div className="flex items-center justify-between">
           <Button
             variant="outline"
             onClick={handleTestConnection}
-            disabled={!localApiKey.trim() || isTestingConnection}
+            disabled={!apiKey?.trim() || isTestingConnection}
             loading={isTestingConnection}
             iconName="Zap"
             iconPosition="left"
@@ -268,61 +166,46 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             Test Connection
           </Button>
 
-          {connectionStatus === 'success' && hasTested && (
+          {connectionStatus === 'success' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center space-x-2 text-success"
             >
               <Icon name="CheckCircle" size={16} />
-              <span className="text-sm font-caption">
-                Connected
-              </span>
+              <span className="text-sm font-caption">Connected</span>
             </motion.div>
           )}
         </div>
 
-        {connectionStatus === 'error' && hasTested && (
-          <div className="p-2 bg-error/10 border border-error/20 rounded text-error text-sm">
-            Connection failed. Please check your API key.
-          </div>
-        )}
-
-        {connectionStatus === 'success' && hasTested && (
-          <div className="p-2 bg-success/10 border border-success/20 rounded text-success text-sm">
-            ✓ API Key connected successfully
+        {message && (
+          <div className={`p-3 rounded-lg text-sm ${
+            connectionStatus === 'success' 
+              ? 'bg-success/10 border border-success/20 text-success' 
+              : 'bg-error/10 border border-error/20 text-error'
+          }`}>
+            {message}
           </div>
         )}
 
         <div className="bg-surface-800 rounded-lg p-4">
-          <h4 className="text-sm font-heading-medium text-text-primary mb-2">Security Notice</h4>
-          <ul className="text-xs text-text-secondary space-y-1 font-caption">
-            <li>• Your API key is stored locally and never shared</li>
-            <li>• All communications are encrypted end-to-end</li>
-            <li>• You can revoke access anytime from Google AI Studio</li>
-            <li>• Drift uses your data to provide personalized goal assistance</li>
-          </ul>
-        </div>
-
-        {/* AI Features Preview */}
-        <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg p-4 border border-primary/20">
-          <h4 className="text-sm font-heading-medium text-text-primary mb-2">What Drift can do for you:</h4>
+          <h4 className="text-sm font-heading-medium text-text-primary mb-2">What Drift can do:</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div className="flex items-center space-x-2">
               <Icon name="Target" size={12} className="text-primary" />
               <span className="text-text-secondary">Personalized goal strategies</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Icon name="BookOpen" size={12} className="text-accent" />
-              <span className="text-text-secondary">Journal entry analysis</span>
+              <Icon name="Calendar" size={12} className="text-accent" />
+              <span className="text-text-secondary">Smart daily planning</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Icon name="Clock" size={12} className="text-secondary" />
-              <span className="text-text-secondary">Focus time optimization</span>
+              <Icon name="MessageCircle" size={12} className="text-secondary" />
+              <span className="text-text-secondary">Intelligent chat assistance</span>
             </div>
             <div className="flex items-center space-x-2">
               <Icon name="TrendingUp" size={12} className="text-success" />
-              <span className="text-text-secondary">Progress tracking insights</span>
+              <span className="text-text-secondary">Progress insights</span>
             </div>
           </div>
         </div>

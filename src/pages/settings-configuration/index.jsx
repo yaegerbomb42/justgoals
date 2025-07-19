@@ -24,16 +24,13 @@ const SettingsConfiguration = () => {
     notifications: { enabled: true, milestoneReminders: true, focusSessionAlerts: true, dailyGoalReminders: true, reminderTime: '09:00' },
     progressMeter: { autoUpdate: true, updateFrequency: 'daily', progressMode: 'auto', autoUpdateInterval: 15 },
     focusMode: { defaultDuration: 25, shortBreakDuration: 5, longBreakDuration: 15, soundEnabled: true, selectedAmbientSound: 'none', autoStartBreaks: true },
-    dataManagement: { autoBackup: false, backupFrequency: 'daily' },
-    apiKey: '',
-    connectionStatus: '',
+    dataManagement: { autoBackup: false, backupFrequency: 'daily' }
   };
   const [activeSection, setActiveSection] = useState('api');
   const [selectedBackground, setSelectedBackground] = useState(safeSettings.appearance.backgroundEffect || 'none');
   const [selectedTheme, setSelectedTheme] = useState(safeSettings.appearance.theme || 'dark');
   const { user, isAuthenticated, factoryReset } = useAuth();
   const navigate = useNavigate();
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { syncStatus, lastSync, errorLogs } = useAchievements();
   const [settingsError, setSettingsError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -83,15 +80,6 @@ const SettingsConfiguration = () => {
       return `app_settings_${user.id}`;
     }
     return null;
-  };
-
-  // Handle API key changes
-  const handleApiKeyChange = (apiKey) => {
-    robustUpdateSettings({ ...settings, apiKey });
-  };
-
-  const handleTestConnection = (result) => {
-    robustUpdateSettings({ ...settings, connectionStatus: result ? 'success' : 'error' });
   };
 
   const handleResetAllData = () => {
@@ -163,15 +151,7 @@ const SettingsConfiguration = () => {
   const renderSection = () => {
     switch (activeSection) {
       case 'api':
-        return (
-          <ApiKeySection
-            apiKey={safeSettings.apiKey}
-            onApiKeyChange={handleApiKeyChange}
-            onTestConnection={handleTestConnection}
-            isTestingConnection={isTestingConnection}
-            connectionStatus={safeSettings.connectionStatus}
-          />
-        );
+        return <ApiKeySection />;
       case 'appearance':
         return (
           <AppearanceSection
