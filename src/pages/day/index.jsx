@@ -8,6 +8,64 @@ import { useAuth } from '../../context/AuthContext';
 import { getGoals } from '../../utils/goalUtils';
 import geminiService from '../../services/geminiService';
 
+// Add Event Modal Component
+const AddEventModal = ({ isOpen, onClose, onAdd }) => {
+  const [form, setForm] = useState({
+    title: '',
+    time: '',
+    category: '',
+    description: ''
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({ title: '', time: '', category: '', description: '' });
+    }
+  }, [isOpen]);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.title || !form.time) return;
+    onAdd({ ...form, completed: false });
+    onClose();
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-surface rounded-xl shadow-lg p-6 w-full max-w-md relative">
+        <button className="absolute top-3 right-3 text-xl" onClick={onClose}>&times;</button>
+        <h2 className="text-xl font-heading-bold mb-4">Add Event</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Title</label>
+            <input name="title" value={form.title} onChange={handleChange} className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Time</label>
+            <input name="time" value={form.time} onChange={handleChange} type="time" className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <input name="category" value={form.category} onChange={handleChange} className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" placeholder="(Optional)" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Description</label>
+            <textarea name="description" value={form.description} onChange={handleChange} className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" rows={2} placeholder="(Optional)" />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" variant="primary">Add Event</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const DayPlanner = () => {
   const { user, isAuthenticated } = useAuth();
   const [dayPlan, setDayPlan] = useState([]);
@@ -16,6 +74,9 @@ const DayPlanner = () => {
   const [apiKey, setApiKey] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [eventCount, setEventCount] = useState(7); // default
+  const [creativity, setCreativity] = useState('balanced'); // options: 'low', 'balanced', 'high'
 
   // Initialize on mount
   useEffect(() => {
@@ -113,7 +174,9 @@ const DayPlanner = () => {
           progress: goal.progress
         })),
         preferences,
-        selectedDate
+        selectedDate,
+        eventCount,
+        creativity
       };
 
       const plan = await geminiService.generateDailyPlan(userInfo);
@@ -167,6 +230,12 @@ const DayPlanner = () => {
     savePlan(updatedPlan);
   };
 
+  const addManualEvent = (event) => {
+    const updatedPlan = [...dayPlan, event];
+    setDayPlan(updatedPlan);
+    savePlan(updatedPlan);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -184,26 +253,42 @@ const DayPlanner = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header title="Day Planner" />
-      
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
+      <AddEventModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={addManualEvent} />
+      <div className="container mx-auto px-2 py-4 max-w-4xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
           <div>
-            <h1 className="text-3xl font-heading-bold text-text-primary mb-2">
-              Day Planner
-            </h1>
-            <p className="text-text-secondary">
-              Plan your day with AI-powered scheduling
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-heading-bold text-text-primary mb-1 sm:mb-0">Day Planner</h1>
+            <p className="text-text-secondary text-sm sm:text-base">Plan your day with AI-powered scheduling</p>
           </div>
-          
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary"
             />
-            
+            {/* Event Count Dropdown */}
+            <select
+              value={eventCount}
+              onChange={e => setEventCount(Number(e.target.value))}
+              className="px-2 py-2 bg-surface border border-border rounded-lg text-text-primary"
+              title="Number of events"
+            >
+              {[...Array(10)].map((_, i) => (
+                <option key={i+3} value={i+3}>{i+3} events</option>
+              ))}
+            </select>
+            {/* Creativity Dropdown */}
+            <select
+              value={creativity}
+              onChange={e => setCreativity(e.target.value)}
+              className="px-2 py-2 bg-surface border border-border rounded-lg text-text-primary"
+              title="Creativity level"
+            >
+              <option value="low">Low Creativity</option>
+              <option value="balanced">Balanced</option>
+              <option value="high">High Creativity</option>
+            </select>
             {isConnected ? (
               <Button
                 onClick={generateDailyPlan}
@@ -214,10 +299,16 @@ const DayPlanner = () => {
                 Generate Plan
               </Button>
             ) : (
-              <div className="text-error text-sm">
-                API key required
-              </div>
+              <div className="text-error text-sm">API key required</div>
             )}
+            <Button
+              variant="outline"
+              iconName="Plus"
+              onClick={() => setShowAddModal(true)}
+              className="ml-1"
+            >
+              Add Event
+            </Button>
           </div>
         </div>
 
@@ -278,9 +369,7 @@ const DayPlanner = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className={`bg-surface rounded-lg p-4 border border-border ${
-                    item.completed ? 'opacity-60' : ''
-                  }`}
+                  className={`bg-surface rounded-lg p-4 border border-border ${item.completed ? 'opacity-60' : ''} ${['goal','journal'].includes((item.category||'').toLowerCase()) ? 'ring-2 ring-primary/70' : ''}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">

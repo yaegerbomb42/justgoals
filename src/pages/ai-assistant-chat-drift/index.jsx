@@ -9,6 +9,7 @@ import WelcomeScreen from './components/WelcomeScreen';
 import Icon from '../../components/AppIcon';
 import geminiService from '../../services/geminiService';
 import { useAuth } from '../../context/AuthContext';
+import Button from '../../components/ui/Button';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
@@ -18,6 +19,7 @@ const AiAssistantChatDrift = () => {
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState('');
   const messagesEndRef = useRef(null);
 
   // Load messages from localStorage
@@ -32,6 +34,7 @@ const AiAssistantChatDrift = () => {
   useEffect(() => {
     const initializeChat = async () => {
       setIsLoading(true);
+      setConnectionError('');
       try {
         // Load API key
         const key = await geminiService.loadApiKey(user?.id);
@@ -41,6 +44,10 @@ const AiAssistantChatDrift = () => {
           // Test connection
           const result = await geminiService.testConnection(key);
           setIsConnected(result.success);
+          setConnectionError(result.success ? '' : (result.error || 'Unable to connect to Gemini API.'));
+        } else {
+          setIsConnected(false);
+          setConnectionError('No API key found. Please configure your Gemini API key in Settings.');
         }
 
         // Load saved messages
@@ -53,6 +60,8 @@ const AiAssistantChatDrift = () => {
           console.warn('Failed to load saved messages:', e);
         }
       } catch (error) {
+        setIsConnected(false);
+        setConnectionError('Failed to initialize chat: ' + (error?.message || error));
         console.error('Failed to initialize chat:', error);
       } finally {
         setIsLoading(false);
@@ -67,16 +76,19 @@ const AiAssistantChatDrift = () => {
     const handleApiKeyChange = async (event) => {
       const newApiKey = event.detail.apiKey;
       setApiKey(newApiKey);
-      
+      setConnectionError('');
       if (newApiKey) {
         try {
           const result = await geminiService.testConnection(newApiKey);
           setIsConnected(result.success);
+          setConnectionError(result.success ? '' : (result.error || 'Unable to connect to Gemini API.'));
         } catch (error) {
           setIsConnected(false);
+          setConnectionError('Unable to connect to Gemini API.');
         }
       } else {
         setIsConnected(false);
+        setConnectionError('No API key found. Please configure your Gemini API key in Settings.');
       }
     };
 
@@ -175,59 +187,61 @@ const AiAssistantChatDrift = () => {
     );
   }
 
+  // Show error if connection failed
+  if (!apiKey || !isConnected) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
+        <Header title="Drift AI Assistant" />
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <div className="text-center py-12">
+            <Icon name={!apiKey ? "MessageCircle" : "AlertCircle"} className="w-16 h-16 mx-auto text-text-muted mb-4" />
+            <h3 className="text-xl font-semibold text-text-primary mb-2">{!apiKey ? 'API Key Required' : 'Connection Failed'}</h3>
+            <p className="text-text-secondary mb-6">{connectionError || (!apiKey ? 'Please configure your Gemini API key in Settings to chat with Drift.' : 'Unable to connect to Gemini API. Please check your API key in Settings.')}</p>
+            <Button variant="outline" iconName="RefreshCw" onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </div>
+        <FloatingActionButton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
       <Header title="Drift AI Assistant" />
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {!apiKey ? (
-          <div className="text-center py-12">
-            <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
-            <p className="text-text-secondary mb-6">Please configure your Gemini API key in Settings to chat with Drift.</p>
-          </div>
-        ) : !isConnected ? (
-          <div className="text-center py-12">
-            <Icon name="AlertCircle" className="w-16 h-16 mx-auto text-error mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">Connection Failed</h3>
-            <p className="text-text-secondary mb-6">Unable to connect to Gemini API. Please check your API key in Settings.</p>
-          </div>
-        ) : (
+        {messages.length === 0 && (
+          <WelcomeScreen onStartChat={() => setMessages([{
+            id: Date.now(),
+            content: "Hello! I'm Drift, your AI productivity assistant. I can help you create goals, plan your day, and provide productivity insights. What would you like to work on today?",
+            sender: 'ai',
+            timestamp: new Date().toISOString()
+          }])} />
+        )}
+        {messages.length > 0 && (
           <>
-            {messages.length === 0 && (
-              <WelcomeScreen onStartChat={() => setMessages([{
-                id: Date.now(),
-                content: "Hello! I'm Drift, your AI productivity assistant. I can help you create goals, plan your day, and provide productivity insights. What would you like to work on today?",
-                sender: 'ai',
-                timestamp: new Date().toISOString()
-              }])} />
-            )}
-            {messages.length > 0 && (
-              <>
-                <ConversationHeader onClearChat={handleClearChat} />
-                <div className="bg-surface rounded-lg border border-border mb-4 overflow-hidden" style={{ height: '60vh' }}>
-                  <div className="p-4 overflow-y-auto h-full">
-                    {messages.map((msg) => (
-                      <MessageBubble key={msg.id} message={msg} />
-                    ))}
-                    {isProcessing && (
-                      <div className="flex items-center space-x-2 text-text-secondary">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                        <span>Drift is thinking...</span>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
+            <ConversationHeader onClearChat={handleClearChat} />
+            <div className="bg-surface rounded-lg border border-border mb-4 overflow-hidden" style={{ height: '60vh' }}>
+              <div className="p-4 overflow-y-auto h-full">
+                {messages.map((msg) => (
+                  <MessageBubble key={msg.id} message={msg} />
+                ))}
+                {isProcessing && (
+                  <div className="flex items-center space-x-2 text-text-secondary">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <span>Drift is thinking...</span>
                   </div>
-                </div>
-                <QuickActionChips onAction={handleQuickAction} />
-                <MessageInput
-                  message={message}
-                  setMessage={setMessage}
-                  onSubmit={handleSubmit}
-                  isProcessing={isProcessing}
-                />
-              </>
-            )}
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+            <QuickActionChips onAction={handleQuickAction} />
+            <MessageInput
+              message={message}
+              setMessage={setMessage}
+              onSubmit={handleSubmit}
+              isProcessing={isProcessing}
+            />
           </>
         )}
       </div>

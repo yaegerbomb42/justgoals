@@ -261,19 +261,29 @@ class GeminiService {
    * @returns {Promise<Array>} Daily plan items
    */
   async generateDailyPlan(userInfo) {
+    let creativityPrompt = '';
+    if (userInfo.creativity === 'high') {
+      creativityPrompt = 'Be highly creative, include unique, fun, and varied activities, and provide detailed descriptions for each event.';
+    } else if (userInfo.creativity === 'low') {
+      creativityPrompt = 'Be practical and keep events simple and to the point.';
+    } else {
+      creativityPrompt = 'Balance creativity and practicality, and provide some variety.';
+    }
     const prompt = `Create a daily plan for the user based on their information:
 
 Goals: ${userInfo.goals?.map(g => `${g.title} (${g.category}, priority: ${g.priority})`).join(', ') || 'None'}
 Preferences: ${JSON.stringify(userInfo.preferences || {})}
 Current date: ${new Date().toLocaleDateString()}
 
-Create a realistic daily schedule with 5-8 activities. Return as a JSON array of objects with properties:
+Create a realistic daily schedule with exactly ${userInfo.eventCount || 7} activities. Return as a JSON array of objects with properties:
 - time: "HH:MM" format
 - title: Brief activity title
-- description: Optional details
-- category: One of "work", "health", "personal", "learning"
+- description: Optional details (be more descriptive if creativity is high)
+- category: One of "work", "health", "personal", "learning", "goal", "journal"
 
-Focus on balanced productivity and well-being.`;
+Highlight any events that are related to the user's goals or journaling by setting category to "goal" or "journal". ${creativityPrompt}
+
+Focus on balanced productivity, well-being, and creativity.`;
 
     const response = await this.generateText(prompt);
     
