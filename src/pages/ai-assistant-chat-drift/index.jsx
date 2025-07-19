@@ -108,6 +108,20 @@ const AiAssistantChatDrift = () => {
     };
   }, []);
 
+  // Force connection test on every mount and every apiKey change
+  useEffect(() => {
+    if (!apiKey) return;
+    setIsTestingConnection(true);
+    (async () => {
+      geminiService.initialize(apiKey);
+      const result = await geminiService.testConnection(apiKey);
+      setIsConnected(result.success);
+      setConnectionError(result.success ? '' : result.message || 'Connection failed');
+      setIsTestingConnection(false);
+      console.log('[Drift] Connection test result:', result);
+    })();
+  }, [apiKey]);
+
   // Save messages to localStorage whenever they change
   useEffect(() => {
     try {
@@ -787,6 +801,12 @@ const AiAssistantChatDrift = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
+      {/* DEBUG PANEL */}
+      <div style={{background:'#222',color:'#fff',padding:'8px',marginBottom:'8px',fontSize:'12px'}}>
+        apiKey: {apiKey}<br/>
+        isConnected: {isConnected ? 'true' : 'false'}<br/>
+        isTestingConnection: {isTestingConnection ? 'true' : 'false'}
+      </div>
       <Header title="Drift AI Assistant" />
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">

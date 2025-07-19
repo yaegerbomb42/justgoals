@@ -74,6 +74,12 @@ function normalizePlanData(input) {
   return Array.isArray(flat) ? flat : [];
 }
 
+// Always normalize before setting dailyPlan
+function safeSetDailyPlan(setDailyPlan, plan) {
+  const normalized = normalizePlanData(plan);
+  setDailyPlan(normalized);
+}
+
 const Day = () => {
   const { user, isAuthenticated } = useAuth();
   const { settings, isLoading: settingsLoading } = useSettings();
@@ -198,7 +204,7 @@ const Day = () => {
       try {
         const parsed = JSON.parse(savedPlan);
         const normalized = normalizePlanData(parsed);
-        setDailyPlan(normalized);
+        safeSetDailyPlan(setDailyPlan, normalized);
         setPlanError('');
       } catch (error) {
         console.error('Error loading plan:', error);
@@ -221,7 +227,7 @@ const Day = () => {
     
     if (normalized.length > 0) {
       localStorage.setItem(planKey, JSON.stringify(normalized));
-      setDailyPlan(normalized);
+      safeSetDailyPlan(setDailyPlan, normalized);
       setPlanError('');
     } else {
       localStorage.removeItem(planKey);
@@ -411,6 +417,7 @@ const Day = () => {
   // Get progress statistics
   const getProgressStats = () => {
     // Ensure dailyPlan is always an array
+    console.log('DEBUG dailyPlan before filter:', dailyPlan, typeof dailyPlan, Array.isArray(dailyPlan));
     const planArray = Array.isArray(dailyPlan) ? dailyPlan : [];
     const total = planArray.length;
     const completed = planArray.filter(activity => activity && activity.completed).length;
@@ -442,7 +449,11 @@ const Day = () => {
     <DayErrorBoundary>
       <div className="min-h-screen bg-background">
         <Header />
-        
+        {/* DEBUG PANEL */}
+        <div style={{background:'#222',color:'#fff',padding:'8px',marginBottom:'8px',fontSize:'12px'}}>
+          dailyPlan typeof: {typeof dailyPlan}, Array.isArray: {Array.isArray(dailyPlan) ? 'true' : 'false'}<br/>
+          Value: {JSON.stringify(dailyPlan)}
+        </div>
         <div className="pt-16 pb-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Simple Connection Status */}
