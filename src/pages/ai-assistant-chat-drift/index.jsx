@@ -210,21 +210,54 @@ const AiAssistantChatDrift = () => {
       <Header title="Drift AI Assistant" />
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {messages.length === 0 && (
-          <WelcomeScreen onStartChat={() => setMessages([{
-            id: Date.now(),
-            content: "Hello! I'm Drift, your AI productivity assistant. I can help you create goals, plan your day, and provide productivity insights. What would you like to work on today?",
-            sender: 'ai',
-            timestamp: new Date().toISOString()
-          }])} />
-        )}
-        {messages.length > 0 && (
+        {messages.length === 0 && isConnected ? (
+          <WelcomeScreen
+            isConnected={isConnected}
+            onQuickStart={async (prompt) => {
+              // Add a user message and trigger chat UI
+              const userMessage = {
+                id: Date.now(),
+                content: prompt,
+                sender: 'user',
+                timestamp: new Date().toISOString()
+              };
+              setMessages([userMessage]);
+              setMessage('');
+              setIsProcessing(true);
+              try {
+                const aiResponse = await geminiService.generateChatResponse(prompt, {
+                  userId: user?.id,
+                  isAuthenticated
+                });
+                const aiMessage = {
+                  id: Date.now() + 1,
+                  content: aiResponse,
+                  sender: 'ai',
+                  timestamp: new Date().toISOString()
+                };
+                setMessages(prev => [...prev, aiMessage]);
+              } catch (error) {
+                const errorMessage = {
+                  id: Date.now() + 1,
+                  content: "I encountered an error while processing your message. Please check your API key in Settings and try again.",
+                  sender: 'ai',
+                  timestamp: new Date().toISOString()
+                };
+                setMessages(prev => [...prev, errorMessage]);
+              } finally {
+                setIsProcessing(false);
+              }
+            }}
+          />
+        ) : messages.length === 0 ? (
+          <WelcomeScreen isConnected={isConnected} />
+        ) : (
           <>
             <ConversationHeader onClearChat={handleClearChat} />
             <div className="bg-surface rounded-lg border border-border mb-4 overflow-hidden" style={{ height: '60vh' }}>
               <div className="p-4 overflow-y-auto h-full">
-                {messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} />
+                {messages.map((msg, idx) => (
+                  <MessageBubble key={msg.id} message={msg} isUser={msg.sender === 'user'} />
                 ))}
                 {isProcessing && (
                   <div className="flex items-center space-x-2 text-text-secondary">
@@ -235,12 +268,13 @@ const AiAssistantChatDrift = () => {
                 <div ref={messagesEndRef} />
               </div>
             </div>
-            <QuickActionChips onAction={handleQuickAction} />
+            <QuickActionChips onChipClick={async (prompt) => {
+              await handleSendMessage(prompt);
+            }} />
             <MessageInput
-              message={message}
-              setMessage={setMessage}
-              onSubmit={handleSubmit}
-              isProcessing={isProcessing}
+              onSendMessage={handleSendMessage}
+              disabled={isProcessing}
+              isTyping={isProcessing}
             />
           </>
         )}

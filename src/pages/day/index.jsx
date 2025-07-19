@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 import Icon from '../../components/AppIcon';
@@ -66,6 +66,73 @@ const AddEventModal = ({ isOpen, onClose, onAdd }) => {
   );
 };
 
+// Preferences Modal Component
+const PreferencesModal = ({ isOpen, onClose, eventCount, setEventCount, creativity, setCreativity, onDriftPlan }) => {
+  const [driftPrompt, setDriftPrompt] = useState('Help me plan my day based on my goals and schedule.');
+  const [isDriftLoading, setIsDriftLoading] = useState(false);
+
+  const handleDriftPlan = async () => {
+    setIsDriftLoading(true);
+    await onDriftPlan(driftPrompt);
+    setIsDriftLoading(false);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-surface rounded-xl shadow-lg p-6 w-full max-w-md relative">
+        <button className="absolute top-3 right-3 text-xl" onClick={onClose}>&times;</button>
+        <h2 className="text-xl font-heading-bold mb-4">Preferences</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Number of Events</label>
+            <select
+              value={eventCount}
+              onChange={e => setEventCount(Number(e.target.value))}
+              className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
+            >
+              {[...Array(10)].map((_, i) => (
+                <option key={i+3} value={i+3}>{i+3} events</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Creativity Level</label>
+            <select
+              value={creativity}
+              onChange={e => setCreativity(e.target.value)}
+              className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
+            >
+              <option value="low">Low Creativity</option>
+              <option value="balanced">Balanced</option>
+              <option value="high">High Creativity</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Ask Drift for Help</label>
+            <textarea
+              value={driftPrompt}
+              onChange={e => setDriftPrompt(e.target.value)}
+              className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
+              rows={2}
+              placeholder="Ask Drift to help plan your day..."
+            />
+            <Button
+              onClick={handleDriftPlan}
+              loading={isDriftLoading}
+              iconName="Bot"
+              className="mt-2"
+            >
+              Ask Drift
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DayPlanner = () => {
   const { user, isAuthenticated } = useAuth();
   const [dayPlan, setDayPlan] = useState([]);
@@ -77,6 +144,8 @@ const DayPlanner = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [eventCount, setEventCount] = useState(7); // default
   const [creativity, setCreativity] = useState('balanced'); // options: 'low', 'balanced', 'high'
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
 
   // Initialize on mount
   useEffect(() => {
@@ -126,6 +195,15 @@ const DayPlanner = () => {
     window.addEventListener('apiKeyChanged', handleApiKeyChange);
     return () => window.removeEventListener('apiKeyChanged', handleApiKeyChange);
   }, []);
+
+  // Dopamine celebration logic
+  useEffect(() => {
+    if (dayPlan.length > 0 && dayPlan.every(ev => ev.completed)) {
+      setShowConfetti(true);
+      const timeout = setTimeout(() => setShowConfetti(false), 3500);
+      return () => clearTimeout(timeout);
+    }
+  }, [dayPlan]);
 
   const loadExistingPlan = (date) => {
     try {
@@ -236,6 +314,27 @@ const DayPlanner = () => {
     savePlan(updatedPlan);
   };
 
+  // Drift planning logic
+  const handleDriftPlan = async (prompt) => {
+    // Use geminiService.generateChatResponse to get a plan suggestion from Drift
+    try {
+      const aiResponse = await geminiService.generateChatResponse(prompt, { userId: user?.id, isAuthenticated });
+      // Try to parse a plan from the AI response (expecting a JSON array)
+      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          setDayPlan(parsed);
+          savePlan(parsed);
+          return;
+        }
+      }
+      alert('Drift responded, but no valid plan was found.\n\nResponse:\n' + aiResponse);
+    } catch (error) {
+      alert('Failed to get a plan from Drift.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -254,12 +353,65 @@ const DayPlanner = () => {
     <div className="min-h-screen bg-background">
       <Header title="Day Planner" />
       <AddEventModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={addManualEvent} />
-      <div className="container mx-auto px-2 py-4 max-w-4xl">
+      <PreferencesModal
+        isOpen={showPreferences}
+        onClose={() => setShowPreferences(false)}
+        eventCount={eventCount}
+        setEventCount={setEventCount}
+        creativity={creativity}
+        setCreativity={setCreativity}
+        onDriftPlan={handleDriftPlan}
+      />
+      <div className="container mx-auto px-2 pt-24 max-w-4xl">
+        {/* Dopamine Confetti Celebration */}
+        <AnimatePresence>
+          {showConfetti && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            >
+              <div className="w-full flex flex-col items-center">
+                <motion.h2
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1.1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 10 }}
+                  className="text-4xl font-extrabold text-success drop-shadow mb-4"
+                >
+                  🎉 All tasks complete! 🎉
+                </motion.h2>
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="confetti-pop"
+                >
+                  {/* Simple confetti dots */}
+                  {[...Array(30)].map((_, i) => (
+                    <span
+                      key={i}
+                      className="inline-block mx-1 my-0.5 rounded-full"
+                      style={{
+                        width: `${8 + Math.random() * 8}px`,
+                        height: `${8 + Math.random() * 8}px`,
+                        background: `hsl(${Math.random() * 360}, 80%, 60%)`,
+                        opacity: 0.7 + Math.random() * 0.3,
+                        transform: `translateY(${Math.random() * 60 - 30}px) rotate(${Math.random() * 360}deg)`
+                      }}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div className="flex flex-col items-center text-center mb-6">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-primary drop-shadow mb-2">Day Planner</h1>
+          <p className="text-lg text-text-secondary font-medium mb-2">Plan your day with AI-powered scheduling</p>
+        </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-heading-bold text-text-primary mb-1 sm:mb-0">Day Planner</h1>
-            <p className="text-text-secondary text-sm sm:text-base">Plan your day with AI-powered scheduling</p>
-          </div>
+          <div></div>
           <div className="flex items-center space-x-2">
             <input
               type="date"
@@ -267,28 +419,14 @@ const DayPlanner = () => {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary"
             />
-            {/* Event Count Dropdown */}
-            <select
-              value={eventCount}
-              onChange={e => setEventCount(Number(e.target.value))}
-              className="px-2 py-2 bg-surface border border-border rounded-lg text-text-primary"
-              title="Number of events"
+            <Button
+              variant="outline"
+              iconName="Settings"
+              onClick={() => setShowPreferences(true)}
+              className="ml-1"
             >
-              {[...Array(10)].map((_, i) => (
-                <option key={i+3} value={i+3}>{i+3} events</option>
-              ))}
-            </select>
-            {/* Creativity Dropdown */}
-            <select
-              value={creativity}
-              onChange={e => setCreativity(e.target.value)}
-              className="px-2 py-2 bg-surface border border-border rounded-lg text-text-primary"
-              title="Creativity level"
-            >
-              <option value="low">Low Creativity</option>
-              <option value="balanced">Balanced</option>
-              <option value="high">High Creativity</option>
-            </select>
+              Preferences
+            </Button>
             {isConnected ? (
               <Button
                 onClick={generateDailyPlan}
@@ -367,9 +505,9 @@ const DayPlanner = () => {
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`bg-surface rounded-lg p-4 border border-border ${item.completed ? 'opacity-60' : ''} ${['goal','journal'].includes((item.category||'').toLowerCase()) ? 'ring-2 ring-primary/70' : ''}`}
+                  animate={{ opacity: 1, y: 0, scale: item.completed ? 1.04 : 1 }}
+                  transition={{ delay: index * 0.1, type: item.completed ? 'spring' : 'tween', stiffness: 300, damping: 15 }}
+                  className={`bg-surface rounded-lg p-4 border border-border ${item.completed ? 'opacity-100 shadow-lg ring-2 ring-success/60' : ''} ${['goal','journal'].includes((item.category||'').toLowerCase()) ? 'ring-2 ring-primary/70' : ''}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
