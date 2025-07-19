@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { getGoals } from '../../utils/goalUtils';
 import geminiService from '../../services/geminiService';
+import calendarSyncService from '../../services/calendarSyncService';
 
 // Add Event Modal Component
 const AddEventModal = ({ isOpen, onClose, onAdd }) => {
@@ -67,7 +68,7 @@ const AddEventModal = ({ isOpen, onClose, onAdd }) => {
 };
 
 // Preferences Modal Component
-const PreferencesModal = ({ isOpen, onClose, eventCount, setEventCount, creativity, setCreativity, onDriftPlan }) => {
+const PreferencesModal = ({ isOpen, onClose, eventCount, setEventCount, novelty, setNovelty, onDriftPlan }) => {
   const [driftPrompt, setDriftPrompt] = useState('Help me plan my day based on my goals and schedule.');
   const [isDriftLoading, setIsDriftLoading] = useState(false);
 
@@ -92,21 +93,21 @@ const PreferencesModal = ({ isOpen, onClose, eventCount, setEventCount, creativi
               onChange={e => setEventCount(Number(e.target.value))}
               className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
             >
-              {[...Array(10)].map((_, i) => (
-                <option key={i+3} value={i+3}>{i+3} events</option>
+              {[5, 8, 11, 14, 18, 23].map(val => (
+                <option key={val} value={val}>{val} events</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Creativity Level</label>
+            <label className="block text-sm font-medium mb-1">Novelty Level</label>
             <select
-              value={creativity}
-              onChange={e => setCreativity(e.target.value)}
+              value={novelty}
+              onChange={e => setNovelty(e.target.value)}
               className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
             >
-              <option value="low">Low Creativity</option>
+              <option value="low">Low Novelty</option>
               <option value="balanced">Balanced</option>
-              <option value="high">High Creativity</option>
+              <option value="high">High Novelty</option>
             </select>
           </div>
           <div>
@@ -143,9 +144,10 @@ const DayPlanner = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [eventCount, setEventCount] = useState(7); // default
-  const [creativity, setCreativity] = useState('balanced'); // options: 'low', 'balanced', 'high'
+  const [novelty, setNovelty] = useState('balanced'); // options: 'low', 'balanced', 'high'
   const [showConfetti, setShowConfetti] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
 
   // Initialize on mount
   useEffect(() => {
@@ -205,6 +207,25 @@ const DayPlanner = () => {
     }
   }, [dayPlan]);
 
+  // Sync completion with analytics
+  useEffect(() => {
+    if (dayPlan.length > 0) {
+      const completed = dayPlan.filter(ev => ev.completed).length;
+      const total = dayPlan.length;
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+      // Save to localStorage for analytics page
+      const key = `day_completion_${user?.id}_${selectedDate}`;
+      localStorage.setItem(key, JSON.stringify({ completed, total, percent, date: selectedDate }));
+    }
+  }, [dayPlan, user?.id, selectedDate]);
+
+  // Optionally auto-sync on mount if enabled
+  useEffect(() => {
+    if (user?.id) {
+      calendarSyncService.initialize(user.id);
+    }
+  }, [user?.id]);
+
   const loadExistingPlan = (date) => {
     try {
       const planKey = `daily_plan_${user?.id}_${date}`;
@@ -254,7 +275,7 @@ const DayPlanner = () => {
         preferences,
         selectedDate,
         eventCount,
-        creativity
+        novelty
       };
 
       const plan = await geminiService.generateDailyPlan(userInfo);
@@ -335,6 +356,20 @@ const DayPlanner = () => {
     }
   };
 
+  // Google Calendar sync handler
+  const handleCalendarSync = async () => {
+    if (!user?.id) return;
+    setSyncStatus('Syncing with Google Calendar...');
+    try {
+      await calendarSyncService.syncCalendar(user.id);
+      setSyncStatus('Google Calendar sync complete!');
+      setTimeout(() => setSyncStatus(''), 3000);
+    } catch (error) {
+      setSyncStatus('Google Calendar sync failed.');
+      setTimeout(() => setSyncStatus(''), 4000);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -358,11 +393,25 @@ const DayPlanner = () => {
         onClose={() => setShowPreferences(false)}
         eventCount={eventCount}
         setEventCount={setEventCount}
-        creativity={creativity}
-        setCreativity={setCreativity}
+        novelty={novelty}
+        setNovelty={setNovelty}
         onDriftPlan={handleDriftPlan}
       />
       <div className="container mx-auto px-2 pt-24 max-w-4xl">
+        {/* Google Calendar Sync Button */}
+        <div className="flex justify-end mb-2">
+          <Button
+            variant="outline"
+            iconName="Calendar"
+            onClick={handleCalendarSync}
+            className="ml-2"
+          >
+            Sync with Google Calendar
+          </Button>
+        </div>
+        {syncStatus && (
+          <div className="text-center text-sm text-accent mb-2">{syncStatus}</div>
+        )}
         {/* Dopamine Confetti Celebration */}
         <AnimatePresence>
           {showConfetti && (

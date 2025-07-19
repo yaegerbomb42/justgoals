@@ -18,6 +18,7 @@ import SignUpPage from "pages/auth/SignUpPage";
 import AnalyticsDashboard from "pages/analytics-dashboard";
 import Day from "pages/day";
 import AchievementsPage from "pages/achievements";
+import HabitTracking from "pages/analytics-dashboard/components/HabitTracking";
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -54,6 +55,7 @@ const Routes = () => {
         <Route path="/goal-creation-management" element={<ProtectedRoute><GoalCreationManagement /></ProtectedRoute>} />
         <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
         <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
+        <Route path="/habits" element={<ProtectedRoute><HabitTracking /></ProtectedRoute>} />
         <Route path="/day" element={<ProtectedRoute><Day /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
 

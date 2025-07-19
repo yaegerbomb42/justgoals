@@ -674,6 +674,33 @@ class FirestoreService {
       await deleteDoc(dummyDocRef);
     }
   }
+
+  // Save Drift memory (profile, chats, etc.)
+  async saveDriftMemory(userId, memory) {
+    if (!userId || !memory) return;
+    try {
+      const driftDoc = this.getUserDoc(userId, 'drift', 'memory');
+      await setDoc(driftDoc, { ...memory, updatedAt: serverTimestamp() });
+    } catch (error) {
+      console.error('Error saving Drift memory to Firestore:', error);
+    }
+  }
+
+  // Load Drift memory
+  async getDriftMemory(userId) {
+    if (!userId) return null;
+    try {
+      const driftDoc = this.getUserDoc(userId, 'drift', 'memory');
+      const docSnap = await getDoc(driftDoc);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading Drift memory from Firestore:', error);
+      return null;
+    }
+  }
 }
 
 // Create singleton instance

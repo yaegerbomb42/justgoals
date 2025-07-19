@@ -78,6 +78,7 @@ const Header = () => {
     { path: '/day', label: 'Day', icon: 'Calendar' },
     { path: '/focus-mode', label: 'Focus', icon: 'Timer' },
     { path: '/journal', label: 'Journal', icon: 'BookOpen' },
+    { path: '/habits', label: 'Habits', icon: 'Repeat' },
     { path: '/ai-assistant-chat-drift', label: 'Drift AI', icon: 'MessageSquare' },
     { path: '/analytics-dashboard', label: 'Analytics', icon: 'BarChart3' },
     { path: '/achievements', label: 'Achievements', icon: 'Award' },
@@ -92,11 +93,12 @@ const Header = () => {
     );
   }
 
+  // Move navigation items left, and group profile/achievement on the right
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo and Download Dropdown */}
+          {/* Left: Logo and Navigation */}
           <div className="flex items-center space-x-4 md:space-x-6 lg:space-x-8 pr-4 md:pr-8">
             {/* Download Dropdown */}
             <div className="relative" ref={downloadMenuRef}>
@@ -138,34 +140,29 @@ const Header = () => {
               </div>
               <span className="text-xl font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
             </Link>
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`
+                    flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-colors
+                    ${isActive(item.path)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
+                    }
+                  `}
+                  style={item.label === 'Drift AI' ? { whiteSpace: 'nowrap', minWidth: 0 } : {}}
+                >
+                  <Icon name={item.icon} size={16} />
+                  <span className={item.label === 'Drift AI' ? 'whitespace-nowrap' : ''}>{item.label}</span>
+                </Link>
+              ))}
+            </nav>
           </div>
 
-          {/* Sync Status */}
-          {/* Remove sync status display from header */}
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`
-                  flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-colors
-                  ${isActive(item.path)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                  }
-                `}
-                style={item.label === 'Drift AI' ? { whiteSpace: 'nowrap', minWidth: 0 } : {}}
-              >
-                <Icon name={item.icon} size={16} />
-                <span className={item.label === 'Drift AI' ? 'whitespace-nowrap' : ''}>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-
-          {/* Right Side */}
-          {/* Achievement Points and User Profile */}
+          {/* Right: Achievement Badge and Profile Icon */}
           <div className="flex items-center space-x-3">
             {/* Achievement Points - Always visible and clickable */}
             <button
@@ -233,7 +230,6 @@ const Header = () => {
             </div>
           </div>
         </div>
-
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden border-t border-border py-4">

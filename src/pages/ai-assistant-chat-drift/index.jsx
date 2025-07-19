@@ -8,6 +8,7 @@ import QuickActionChips from './components/QuickActionChips';
 import WelcomeScreen from './components/WelcomeScreen';
 import Icon from '../../components/AppIcon';
 import geminiService from '../../services/geminiService';
+import firestoreService from '../../services/firestoreService';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/ui/Button';
 
@@ -21,6 +22,7 @@ const AiAssistantChatDrift = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [connectionError, setConnectionError] = useState('');
   const messagesEndRef = useRef(null);
+  const [profile, setProfile] = useState({});
 
   // Load messages from localStorage
   const getMessagesStorageKey = () => {
@@ -30,7 +32,7 @@ const AiAssistantChatDrift = () => {
     return 'drift_chat_messages_guest';
   };
 
-  // Initialize on mount
+  // Load messages and profile from Firestore on mount
   useEffect(() => {
     const initializeChat = async () => {
       setIsLoading(true);
@@ -39,9 +41,7 @@ const AiAssistantChatDrift = () => {
         // Load API key
         const key = await geminiService.loadApiKey(user?.id);
         setApiKey(key);
-        
         if (key) {
-          // Test connection
           const result = await geminiService.testConnection(key);
           setIsConnected(result.success);
           setConnectionError(result.success ? '' : (result.error || 'Unable to connect to Gemini API.'));
@@ -49,15 +49,24 @@ const AiAssistantChatDrift = () => {
           setIsConnected(false);
           setConnectionError('No API key found. Please configure your Gemini API key in Settings.');
         }
-
-        // Load saved messages
+        // Load Drift memory from Firestore
+        let memory = null;
         try {
-          const saved = localStorage.getItem(getMessagesStorageKey());
-          if (saved) {
-            setMessages(JSON.parse(saved));
+          memory = await firestoreService.getDriftMemory(user?.id);
+        } catch {}
+        if (memory && Array.isArray(memory.chats)) {
+          setMessages(memory.chats);
+          setProfile(memory.profile || {});
+        } else {
+          // Fallback to localStorage
+          try {
+            const saved = localStorage.getItem(getMessagesStorageKey());
+            if (saved) {
+              setMessages(JSON.parse(saved));
+            }
+          } catch (e) {
+            console.warn('Failed to load saved messages:', e);
           }
-        } catch (e) {
-          console.warn('Failed to load saved messages:', e);
         }
       } catch (error) {
         setIsConnected(false);
@@ -67,7 +76,6 @@ const AiAssistantChatDrift = () => {
         setIsLoading(false);
       }
     };
-
     initializeChat();
   }, [user?.id, isAuthenticated]);
 
@@ -96,14 +104,17 @@ const AiAssistantChatDrift = () => {
     return () => window.removeEventListener('apiKeyChanged', handleApiKeyChange);
   }, []);
 
-  // Save messages when they change
+  // Save messages and profile to Firestore/localStorage when messages change
   useEffect(() => {
+    if (!user?.id) return;
     try {
       localStorage.setItem(getMessagesStorageKey(), JSON.stringify(messages));
     } catch (e) {
       console.warn('Failed to save messages:', e);
     }
-  }, [messages, getMessagesStorageKey]);
+    // Save to Firestore
+    firestoreService.saveDriftMemory(user.id, { profile, chats: messages });
+  }, [messages, profile, user?.id]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -112,32 +123,29 @@ const AiAssistantChatDrift = () => {
 
   const handleSendMessage = async (messageContent) => {
     if (!messageContent.trim() || isProcessing) return;
-
     const userMessage = {
       id: Date.now(),
       content: messageContent,
       sender: 'user',
       timestamp: new Date().toISOString()
     };
-
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
     setIsProcessing(true);
-
     try {
       const aiResponse = await geminiService.generateChatResponse(messageContent, {
         userId: user?.id,
-        isAuthenticated
+        isAuthenticated,
+        profile
       });
-
       const aiMessage = {
         id: Date.now() + 1,
         content: aiResponse,
         sender: 'ai',
         timestamp: new Date().toISOString()
       };
-
       setMessages(prev => [...prev, aiMessage]);
+      // Optionally update profile here based on AI response or user message
     } catch (error) {
       console.error('Error generating AI response:', error);
       const errorMessage = {

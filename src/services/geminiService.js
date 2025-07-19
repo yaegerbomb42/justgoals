@@ -261,13 +261,13 @@ class GeminiService {
    * @returns {Promise<Array>} Daily plan items
    */
   async generateDailyPlan(userInfo) {
-    let creativityPrompt = '';
-    if (userInfo.creativity === 'high') {
-      creativityPrompt = 'Be highly creative, include unique, fun, and varied activities, and provide detailed descriptions for each event.';
-    } else if (userInfo.creativity === 'low') {
-      creativityPrompt = 'Be practical and keep events simple and to the point.';
+    let noveltyPrompt = '';
+    if (userInfo.novelty === 'high') {
+      noveltyPrompt = 'Be highly novel, include unique, surprising, and varied activities, and provide detailed descriptions for each event.';
+    } else if (userInfo.novelty === 'low') {
+      noveltyPrompt = 'Be practical and keep events simple and to the point.';
     } else {
-      creativityPrompt = 'Balance creativity and practicality, and provide some variety.';
+      noveltyPrompt = 'Balance novelty and practicality, and provide some variety.';
     }
     const prompt = `Create a daily plan for the user based on their information:
 
@@ -278,12 +278,12 @@ Current date: ${new Date().toLocaleDateString()}
 Create a realistic daily schedule with exactly ${userInfo.eventCount || 7} activities. Return as a JSON array of objects with properties:
 - time: "HH:MM" format
 - title: Brief activity title
-- description: Optional details (be more descriptive if creativity is high)
+- description: Optional details (be more descriptive if novelty is high)
 - category: One of "work", "health", "personal", "learning", "goal", "journal"
 
-Highlight any events that are related to the user's goals or journaling by setting category to "goal" or "journal". ${creativityPrompt}
+Highlight any events that are related to the user's goals or journaling by setting category to "goal" or "journal". ${noveltyPrompt}
 
-Focus on balanced productivity, well-being, and creativity.`;
+Focus on balanced productivity, well-being, and novelty.`;
 
     const response = await this.generateText(prompt);
     

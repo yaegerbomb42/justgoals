@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
 const WelcomeScreen = ({ onQuickStart, isConnected }) => {
+  const [customPrompt, setCustomPrompt] = useState('');
+
   const quickStartPrompts = [
     "Help me plan my day",
     "What should I focus on today?",
@@ -11,6 +13,15 @@ const WelcomeScreen = ({ onQuickStart, isConnected }) => {
     "Suggest daily milestones",
     "How to stay motivated?",
     "Analyze my journal entries"
+  ];
+
+  const features = [
+    { icon: 'Target', title: 'Goal Planning', desc: 'Get personalized strategies for achieving your goals' },
+    { icon: 'BookOpen', title: 'Journal Insights', desc: 'Analyze patterns and emotions in your entries' },
+    { icon: 'Clock', title: 'Time Tracking', desc: 'Optimize your focus sessions and productivity' },
+    { icon: 'Zap', title: 'Productivity Tips', desc: 'Receive actionable advice to boost your output' },
+    { icon: 'CheckCircle', title: 'Habit Suggestions', desc: 'Build and maintain positive habits' },
+    { icon: 'Smile', title: 'Motivation', desc: 'Get encouragement and reminders to stay on track' }
   ];
 
   const containerVariants = {
@@ -39,6 +50,40 @@ const WelcomeScreen = ({ onQuickStart, isConnected }) => {
       animate="visible"
       className="flex flex-col items-center justify-center h-full p-8 text-center"
     >
+      {/* Custom Chat Input */}
+      {isConnected && (
+        <motion.div variants={itemVariants} className="w-full max-w-xl mb-8">
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              if (customPrompt.trim()) {
+                onQuickStart(customPrompt.trim());
+                setCustomPrompt('');
+              }
+            }}
+            className="flex flex-col sm:flex-row items-center gap-2"
+          >
+            <input
+              type="text"
+              value={customPrompt}
+              onChange={e => setCustomPrompt(e.target.value)}
+              placeholder="Type your question or request for Drift..."
+              className="flex-1 px-4 py-3 rounded-lg border border-border bg-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              iconName="Send"
+              disabled={!customPrompt.trim()}
+              className="h-12 px-6"
+            >
+              Ask Drift
+            </Button>
+          </form>
+          <div className="text-xs text-text-secondary mt-2">Start a custom chat with Drift by typing anything above!</div>
+        </motion.div>
+      )}
+
       {/* Drift Logo */}
       <motion.div
         variants={itemVariants}
@@ -72,39 +117,15 @@ const WelcomeScreen = ({ onQuickStart, isConnected }) => {
         </p>
       </motion.div>
 
-      {/* Connection Status */}
-      {!isConnected && (
-        <motion.div
-          variants={itemVariants}
-          className="mb-6 p-4 bg-warning/10 border border-warning/20 rounded-lg"
-        >
-          <div className="flex items-center space-x-2 text-warning">
-            <Icon name="AlertTriangle" size={20} />
-            <span className="font-medium">API Key Required</span>
-          </div>
-          <p className="text-sm text-text-secondary mt-1">
-            Please configure your Gemini API key in Settings to start chatting.
-          </p>
-        </motion.div>
-      )}
-
-      {/* Features */}
+      {/* Features List */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl">
-        <div className="bg-surface/50 rounded-lg p-4">
-          <Icon name="Target" size={24} className="text-primary mb-2" />
-          <h3 className="font-heading-medium text-text-primary text-sm mb-1">Goal Planning</h3>
-          <p className="text-xs text-text-secondary">Get personalized strategies for achieving your goals</p>
-        </div>
-        <div className="bg-surface/50 rounded-lg p-4">
-          <Icon name="BookOpen" size={24} className="text-accent mb-2" />
-          <h3 className="font-heading-medium text-text-primary text-sm mb-1">Journal Insights</h3>
-          <p className="text-xs text-text-secondary">Analyze patterns and emotions in your entries</p>
-        </div>
-        <div className="bg-surface/50 rounded-lg p-4">
-          <Icon name="Clock" size={24} className="text-secondary mb-2" />
-          <h3 className="font-heading-medium text-text-primary text-sm mb-1">Time Tracking</h3>
-          <p className="text-xs text-text-secondary">Optimize your focus sessions and productivity</p>
-        </div>
+        {features.map((f, i) => (
+          <div key={f.title} className="bg-surface/50 rounded-lg p-4 flex flex-col items-center">
+            <Icon name={f.icon} size={24} className="mb-2 text-primary" />
+            <h3 className="font-heading-medium text-text-primary text-sm mb-1">{f.title}</h3>
+            <p className="text-xs text-text-secondary">{f.desc}</p>
+          </div>
+        ))}
       </motion.div>
 
       {/* Quick Start Options */}
