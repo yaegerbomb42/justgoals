@@ -16,12 +16,12 @@ const WelcomeScreen = ({ onQuickStart, isConnected }) => {
   ];
 
   const features = [
-    { icon: 'Target', title: 'Goal Planning', desc: 'Get personalized strategies for achieving your goals' },
-    { icon: 'BookOpen', title: 'Journal Insights', desc: 'Analyze patterns and emotions in your entries' },
-    { icon: 'Clock', title: 'Time Tracking', desc: 'Optimize your focus sessions and productivity' },
-    { icon: 'Zap', title: 'Productivity Tips', desc: 'Receive actionable advice to boost your output' },
-    { icon: 'CheckCircle', title: 'Habit Suggestions', desc: 'Build and maintain positive habits' },
-    { icon: 'Smile', title: 'Motivation', desc: 'Get encouragement and reminders to stay on track' }
+    { icon: 'Calendar', label: 'Plan Your Day', desc: 'Get a personalized daily schedule.' },
+    { icon: 'Target', label: 'Add Goals', desc: 'Set and track your goals easily.' },
+    { icon: 'CheckSquare', label: 'Add Milestones', desc: 'Break goals into actionable steps.' },
+    { icon: 'Repeat', label: 'Add Habits', desc: 'Build and maintain positive habits.' },
+    { icon: 'BarChart3', label: 'Analyze Progress', desc: 'See your achievements and trends.' },
+    { icon: 'MessageSquare', label: 'Chat & Reflect', desc: 'Ask for advice, insights, or motivation.' },
   ];
 
   const containerVariants = {
@@ -48,120 +48,66 @@ const WelcomeScreen = ({ onQuickStart, isConnected }) => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-col items-center justify-center h-full p-8 text-center"
+      className="flex flex-col items-center justify-center min-h-[60vh] py-8"
     >
-      {/* Custom Chat Input */}
-      {isConnected && (
-        <motion.div variants={itemVariants} className="w-full max-w-xl mb-8">
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              if (customPrompt.trim()) {
-                onQuickStart(customPrompt.trim());
-                setCustomPrompt('');
-              }
-            }}
-            className="flex flex-col sm:flex-row items-center gap-2"
-          >
-            <input
-              type="text"
-              value={customPrompt}
-              onChange={e => setCustomPrompt(e.target.value)}
-              placeholder="Type your question or request for Drift..."
-              className="flex-1 px-4 py-3 rounded-lg border border-border bg-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <Button
-              type="submit"
-              variant="primary"
-              iconName="Send"
-              disabled={!customPrompt.trim()}
-              className="h-12 px-6"
-            >
-              Ask Drift
-            </Button>
-          </form>
-          <div className="text-xs text-text-secondary mt-2">Start a custom chat with Drift by typing anything above!</div>
-        </motion.div>
-      )}
-
-      {/* Drift Logo */}
-      <motion.div
-        variants={itemVariants}
-        className="relative mb-6"
-      >
-        <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mb-4">
-          <Icon name="Bot" size={32} color="#FFFFFF" />
+      {/* Friendly Avatar and Intro */}
+      <div className="mb-4 flex flex-col items-center">
+        <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mb-2">
+          <Icon name="MessageSquare" className="text-primary-500 text-3xl" />
         </div>
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            repeatType: 'reverse',
-          }}
-          className="absolute inset-0 w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full"
-        />
-      </motion.div>
-
-      {/* Welcome Message */}
-      <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-3xl font-heading-bold text-text-primary mb-2">
-          Meet Goals Assistant
-        </h1>
-        <p className="text-text-secondary max-w-md leading-relaxed">
-          Your AI-powered goal achievement assistant. I have access to your journal entries, 
-          time tracking data, and goals to provide personalized guidance.
-        </p>
-      </motion.div>
-
-      {/* Features List */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl">
-        {features.map((f, i) => (
-          <div key={f.title} className="bg-surface/50 rounded-lg p-4 flex flex-col items-center">
-            <Icon name={f.icon} size={24} className="mb-2 text-primary" />
-            <h3 className="font-heading-medium text-text-primary text-sm mb-1">{f.title}</h3>
-            <p className="text-xs text-text-secondary">{f.desc}</p>
+        <h2 className="text-2xl font-bold text-primary-800 mb-1">Meet Drift</h2>
+        <p className="text-base text-gray-600 font-medium">Your AI-powered goal achievement assistant</p>
+      </div>
+      {/* Feature Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 w-full max-w-xl">
+        {features.map(f => (
+          <div key={f.label} className="flex flex-col items-center bg-white rounded-lg shadow p-4">
+            <Icon name={f.icon} className="text-primary-500 text-2xl mb-2" />
+            <div className="font-semibold text-primary-700 mb-1">{f.label}</div>
+            <div className="text-xs text-gray-500 text-center">{f.desc}</div>
           </div>
         ))}
-      </motion.div>
-
-      {/* Quick Start Options */}
-      {isConnected && (
-        <motion.div variants={itemVariants} className="w-full max-w-2xl">
-          <h3 className="font-heading-medium text-text-primary mb-4">Quick Start</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {quickStartPrompts.map((prompt, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button
-                  variant="outline"
-                  onClick={() => onQuickStart(prompt)}
-                  className="w-full justify-start text-left h-auto py-3 px-4"
-                >
-                  <Icon name="MessageSquare" size={16} className="mr-2 flex-shrink-0" />
-                  <span className="text-sm">{prompt}</span>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Call to Action */}
-      <motion.div variants={itemVariants} className="mt-8">
-        <p className="text-xs text-text-secondary">
-          {isConnected 
-            ? "Click a suggestion above or type your own message to get started" :"Configure your API key in Settings to unlock all features"
-          }
-        </p>
-      </motion.div>
+      </div>
+      {/* Custom Chat Input */}
+      <div className="flex flex-col items-center w-full max-w-md mb-4">
+        <input
+          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300 mb-2"
+          type="text"
+          placeholder="Ask Drift anything..."
+          value={customPrompt}
+          onChange={e => setCustomPrompt(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onQuickStart(customPrompt)}
+          disabled={!isConnected}
+        />
+        <button
+          className="w-full bg-primary-500 text-white font-bold py-2 rounded-lg hover:bg-primary-600 transition"
+          onClick={() => onQuickStart(customPrompt)}
+          disabled={!isConnected || !customPrompt.trim()}
+        >
+          Start Chat
+        </button>
+      </div>
+      {/* Quick Start Prompts */}
+      <div className="flex flex-wrap gap-2 justify-center mb-4">
+        {quickStartPrompts.map((prompt, idx) => (
+          <button
+            key={idx}
+            className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full hover:bg-primary-200 transition text-sm"
+            onClick={() => onQuickStart(prompt)}
+            disabled={!isConnected}
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
+      {/* Clear Chat Button */}
+      <button
+        className="mt-2 text-xs text-red-500 hover:underline"
+        onClick={onClearChat}
+        disabled={!isConnected}
+      >
+        Clear Chat History
+      </button>
     </motion.div>
   );
 };

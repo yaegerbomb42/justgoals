@@ -147,6 +147,7 @@ const DayPlanner = () => {
   const [novelty, setNovelty] = useState('balanced'); // options: 'low', 'balanced', 'high'
   const [showConfetti, setShowConfetti] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [googleLinked, setGoogleLinked] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
   // Initialize on mount
@@ -218,6 +219,73 @@ const DayPlanner = () => {
       localStorage.setItem(key, JSON.stringify({ completed, total, percent, date: selectedDate }));
     }
   }, [dayPlan, user?.id, selectedDate]);
+
+  // On mount, check Google Calendar link and sync events
+  useEffect(() => {
+    const checkAndSync = async () => {
+      const token = await calendarSyncService.getGoogleAccessToken();
+      setGoogleLinked(!!token);
+      if (token) {
+        setSyncStatus('Syncing with Google Calendar...');
+        try {
+          // Fetch Google Calendar events and merge into day plan
+          const gcalEvents = await calendarSyncService.getGoogleCalendarEvents(token);
+          // Merge logic: avoid duplicates by event id or title/time
+          // (Assume setDayPlan and dayPlan are available in scope)
+          setDayPlan(prev => {
+            const existingIds = new Set(prev.map(ev => ev.externalId || ev.id));
+            const merged = [...prev];
+            for (const event of gcalEvents) {
+              if (!existingIds.has(event.id)) {
+                merged.push({
+                  ...event,
+                  externalId: event.id,
+                  source: 'google_calendar',
+                  completed: false,
+                });
+              }
+            }
+            return merged;
+          });
+          setSyncStatus('Google Calendar sync complete!');
+        } catch (e) {
+          setSyncStatus('Google Calendar sync failed.');
+        }
+      }
+    };
+    checkAndSync();
+  }, []);
+
+  // Handler to start OAuth flow
+  const handleGoogleLink = () => {
+    const redirectUri = window.location.origin + '/oauth2callback';
+    window.location.href = calendarSyncService.getGoogleAuthUrl(redirectUri);
+  };
+
+  // Handler for /oauth2callback route (should be in a dedicated component/page)
+  // On that page, extract ?code=... and call:
+  // await calendarSyncService.handleOAuthCallback(code, redirectUri);
+
+  // When adding a new event to the day plan, also add to Google Calendar
+  const handleAddEvent = async (event) => {
+    setDayPlan(prev => [...prev, event]);
+    const token = await calendarSyncService.getGoogleAccessToken();
+    if (token) {
+      try {
+        // Add reminder 0 minutes before event start
+        const gcalEvent = {
+          summary: event.title,
+          description: event.description,
+          start: { dateTime: event.startTime },
+          end: { dateTime: event.endTime },
+          reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 0 }] },
+        };
+        await calendarSyncService.createGoogleCalendarEvent(token, gcalEvent);
+      } catch (e) {
+        setSyncStatus('Failed to add event to Google Calendar.');
+      }
+    }
+  };
 
   // Optionally auto-sync on mount if enabled
   useEffect(() => {
@@ -387,7 +455,7 @@ const DayPlanner = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header title="Day Planner" />
-      <AddEventModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={addManualEvent} />
+      <AddEventModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={handleAddEvent} />
       <PreferencesModal
         isOpen={showPreferences}
         onClose={() => setShowPreferences(false)}
@@ -514,6 +582,21 @@ const DayPlanner = () => {
             <p className="text-text-secondary">
               Unable to connect to Gemini API. Please check your API key in Settings.
             </p>
+          </div>
+        ) : !googleLinked ? (
+          <div className="text-center py-12">
+            <Icon name="Link" className="w-16 h-16 mx-auto text-text-muted mb-4" />
+            <h3 className="text-xl font-semibold text-text-primary mb-2">Google Calendar Not Linked</h3>
+            <p className="text-text-secondary">
+              Please link your Google Calendar to sync events and reminders.
+            </p>
+            <Button
+              onClick={handleGoogleLink}
+              iconName="Link"
+              className="mt-4"
+            >
+              Link Google Calendar
+            </Button>
           </div>
         ) : dayPlan.length === 0 ? (
           <div className="text-center py-12">

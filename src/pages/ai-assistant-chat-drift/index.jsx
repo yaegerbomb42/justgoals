@@ -121,6 +121,20 @@ const AiAssistantChatDrift = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Add intro message if messages.length === 0
+  useEffect(() => {
+    if (isConnected && messages.length === 0) {
+      setMessages([
+        {
+          id: 'intro',
+          sender: 'drift',
+          text: "Hi! I'm Drift, your AI assistant. I can help you plan your day, add goals, milestones, or habits, and track your progress. What would you like to do today?",
+          timestamp: Date.now(),
+        },
+      ]);
+    }
+  }, [isConnected, messages.length]);
+
   const handleSendMessage = async (messageContent) => {
     if (!messageContent.trim() || isProcessing) return;
     const userMessage = {
@@ -262,28 +276,31 @@ const AiAssistantChatDrift = () => {
         ) : (
           <>
             <ConversationHeader onClearChat={handleClearChat} />
-            <div className="bg-surface rounded-lg border border-border mb-4 overflow-hidden" style={{ height: '60vh' }}>
-              <div className="p-4 overflow-y-auto h-full">
-                {messages.map((msg, idx) => (
-                  <MessageBubble key={msg.id} message={msg} isUser={msg.sender === 'user'} />
+            {/* Chat UI */}
+            <div className="flex flex-col h-full">
+              <div className="flex-1 overflow-y-auto pb-32">
+                {/* Message bubbles */}
+                {messages.map((msg) => (
+                  <MessageBubble key={msg.id} message={msg} />
                 ))}
-                {isProcessing && (
-                  <div className="flex items-center space-x-2 text-text-secondary">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <span>Drift is thinking...</span>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
+              </div>
+              {/* Quick Features */}
+              <div className="fixed bottom-24 left-0 right-0 flex justify-center gap-4 z-40">
+                <Button onClick={() => handleQuickAction('add_goal')}>Add Goal</Button>
+                <Button onClick={() => handleQuickAction('add_milestone')}>Add Milestone</Button>
+                <Button onClick={() => handleQuickAction('add_habit')}>Add Habit</Button>
+                <Button variant="outline" onClick={handleClearChat}>Clear Chat</Button>
+              </div>
+              {/* Chat Bar */}
+              <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 flex items-center z-50">
+                <MessageInput
+                  value={message}
+                  onChange={setMessage}
+                  onSend={handleSendMessage}
+                  disabled={!isConnected || isProcessing}
+                />
               </div>
             </div>
-            <QuickActionChips onChipClick={async (prompt) => {
-              await handleSendMessage(prompt);
-            }} />
-            <MessageInput
-              onSendMessage={handleSendMessage}
-              disabled={isProcessing}
-              isTyping={isProcessing}
-            />
           </>
         )}
       </div>

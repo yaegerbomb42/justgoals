@@ -121,3 +121,10 @@ To prevent security warnings and ensure trust, you must code sign and notarize y
 - **Mac:** If notarization fails, check your Apple ID, app-specific password, and certificate validity.
 - **Windows:** If signing fails, ensure the certificate is installed and the password is correct.
 - See Electron Forge docs for more: https://www.electronforge.io/advanced/code-signing
+
+## Google Calendar OAuth Setup
+
+- Google Calendar sync uses Firebase Cloud Functions for secure OAuth token exchange.
+- The Google OAuth Client Secret is never exposed in frontend code.
+- The OAuth handler will be implemented in `functions/googleOAuth.js`.
+- See project documentation for setup and deployment instructions.

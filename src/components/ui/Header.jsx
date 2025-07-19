@@ -5,6 +5,7 @@ import { useAchievements } from '../../context/AchievementContext';
 import Icon from '../AppIcon';
 import Button from './Button';
 import AchievementBadge from './AchievementBadge';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const Header = () => {
   // Defensive: always provide safe defaults
@@ -35,6 +36,8 @@ const Header = () => {
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const downloadMenuRef = useRef(null);
   const userMenuRef = useRef(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -43,10 +46,13 @@ const Header = () => {
         downloadMenuRef.current &&
         !downloadMenuRef.current.contains(event.target) &&
         userMenuRef.current &&
-        !userMenuRef.current.contains(event.target)
+        !userMenuRef.current.contains(event.target) &&
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
       ) {
         setShowDownloadMenu(false);
         setIsMenuOpen(false);
+        setProfileMenuOpen(false);
       } else if (
         downloadMenuRef.current &&
         !downloadMenuRef.current.contains(event.target)
@@ -57,6 +63,11 @@ const Header = () => {
         !userMenuRef.current.contains(event.target)
       ) {
         setIsMenuOpen(false);
+      } else if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
+        setProfileMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -162,72 +173,70 @@ const Header = () => {
             </nav>
           </div>
 
-          {/* Right: Achievement Badge and Profile Icon */}
-          <div className="flex items-center space-x-3">
-            {/* Achievement Points - Always visible and clickable */}
-            <button
-              onClick={() => navigate('/achievements')}
-              className="flex items-center space-x-2 px-3 py-2 bg-surface-700 rounded-lg hover:bg-surface-600 transition-colors cursor-pointer flex-shrink-0"
-            >
-              <Icon name="Trophy" size={16} className="text-primary" />
-              <span className="text-sm font-body-medium text-text-primary">{userPoints}</span>
-            </button>
-            {/* User Profile Icon and Dropdown */}
-            <div className="relative" ref={userMenuRef}>
+          {/* Right: Profile, Achievements, Settings */}
+          <div className="flex items-center space-x-4 ml-auto">
+            {/* Achievement Badge */}
+            <div className="relative flex items-center">
               <button
-                onClick={() => {
-                  setIsMenuOpen(v => {
-                    if (!v) setShowDownloadMenu(false);
-                    return !v;
-                  });
-                }}
-                className="flex items-center space-x-2 p-2 rounded-full hover:bg-surface-700 transition-colors border border-border"
-                aria-label="User Profile"
+                className="flex items-center px-2 py-1 rounded-full bg-yellow-100 hover:bg-yellow-200 transition"
+                onClick={() => navigate('/achievements')}
+                title="Achievements"
               >
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-sm font-body-medium text-white">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <Icon name="ChevronDown" size={16} className="text-text-secondary" />
+                <Icon name="Award" className="text-yellow-500 mr-1" />
+                <span className="font-bold text-yellow-700 text-sm">{user?.points ?? 0}</span>
               </button>
-              {/* Dropdown Menu */}
-              {isMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-1 z-50">
-                  <div className="px-4 py-2 border-b border-border">
-                    <p className="text-sm font-body-medium text-text-primary truncate max-w-[140px] md:max-w-[200px] lg:max-w-[300px]" title={user?.name}>{user?.name}</p>
-                    <p className="text-xs text-text-secondary">{user?.email}</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigate('/achievements');
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
-                  >
-                    <Icon name="Trophy" size={16} />
-                    <span>View Achievements</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate('/settings-configuration');
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
-                  >
-                    <Icon name="Settings" size={16} />
-                    <span>Settings</span>
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors"
-                  >
-                    <Icon name="LogOut" size={16} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              )}
             </div>
+            {/* Profile Icon & Dropdown */}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-primary-200 text-primary-900 font-bold border-2 border-primary-400 hover:shadow-lg transition"
+                onClick={() => setProfileMenuOpen((v) => !v)}
+                title="Profile"
+              >
+                {user?.displayName?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?'}
+              </button>
+              <AnimatePresence>
+                {profileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg z-50 border border-border"
+                  >
+                    <div className="px-4 py-3 border-b border-border">
+                      <div className="font-semibold">{user?.displayName ?? user?.email}</div>
+                      <div className="text-xs text-gray-500">{user?.email}</div>
+                    </div>
+                    <button
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition"
+                      onClick={() => navigate('/achievements')}
+                    >
+                      <Icon name="Award" className="inline-block mr-2 text-yellow-500" /> View Achievements
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition"
+                      onClick={() => navigate('/settings-configuration')}
+                    >
+                      <Icon name="Settings" className="inline-block mr-2 text-primary-500" /> Settings
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition border-t border-border"
+                      onClick={logout}
+                    >
+                      <Icon name="LogOut" className="inline-block mr-2 text-red-500" /> Sign Out
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {/* Settings Tab (icon) */}
+            <button
+              className="ml-2 p-2 rounded-full hover:bg-gray-100 transition"
+              onClick={() => navigate('/settings-configuration')}
+              title="Settings"
+            >
+              <Icon name="Settings" className="text-primary-500" />
+            </button>
           </div>
         </div>
         {/* Mobile Navigation */}

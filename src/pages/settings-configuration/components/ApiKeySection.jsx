@@ -14,6 +14,8 @@ const ApiKeySection = () => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(null); // null, 'success', 'error'
   const [message, setMessage] = useState('');
+  const [googleLinked, setGoogleLinked] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
 
   // Load API key on mount
   useEffect(() => {
@@ -82,6 +84,16 @@ const ApiKeySection = () => {
 
   const handleTestConnection = () => {
     testConnection();
+  };
+
+  const handleGoogleLink = async () => {
+    // TODO: Implement Google OAuth flow
+    setGoogleLinked(true);
+    setSyncStatus('Google Calendar linked!');
+  };
+  const handleGoogleUnlink = async () => {
+    setGoogleLinked(false);
+    setSyncStatus('Google Calendar unlinked.');
   };
 
   return (
@@ -208,6 +220,32 @@ const ApiKeySection = () => {
               <span className="text-text-secondary">Progress insights</span>
             </div>
           </div>
+        </div>
+
+        <div className="mt-8 p-4 bg-surface-100 rounded-lg border border-border">
+          <h3 className="font-bold text-lg mb-2 flex items-center">
+            <Icon name="Calendar" className="mr-2 text-primary-500" /> Google Calendar Integration
+          </h3>
+          <div className="mb-2 text-sm text-gray-600">
+            {googleLinked ? (
+              <span>Google Calendar is linked to your account.</span>
+            ) : (
+              <span>Google Calendar is not linked. Link your Google account to sync events both ways.</span>
+            )}
+          </div>
+          <div className="flex gap-2 mb-2">
+            {googleLinked ? (
+              <Button onClick={handleGoogleUnlink} variant="outline">Disconnect</Button>
+            ) : (
+              <Button onClick={handleGoogleLink}>Link Google Calendar</Button>
+            )}
+          </div>
+          {syncStatus && <div className="text-xs text-primary-600 mb-2">{syncStatus}</div>}
+          {!googleLinked && (
+            <div className="text-xs text-gray-500 mt-2">
+              <strong>Google OAuth setup required.</strong> Please contact the developer or admin to enable Google Calendar sync for your account.
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
