@@ -24,6 +24,9 @@ const AiAssistantChatDrift = () => {
   const [connectionError, setConnectionError] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
   
+  // State for loading connection
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+
   // Persist messages in localStorage by user id (if available)
   const getMessagesStorageKey = () => {
     if (isAuthenticated && user && user.id) {
@@ -59,10 +62,10 @@ const AiAssistantChatDrift = () => {
   // Load API key and test connection on mount
   useEffect(() => {
     const loadApiKeyAndTest = async () => {
+      setIsTestingConnection(true);
       try {
         const storedKey = localStorage.getItem('gemini_api_key_global') || '';
         setApiKey(storedKey);
-        
         if (storedKey) {
           geminiService.initialize(storedKey);
           const result = await geminiService.testConnection(storedKey);
@@ -72,15 +75,13 @@ const AiAssistantChatDrift = () => {
           setIsConnected(false);
           setConnectionError('No API key set');
         }
-        setIsInitialized(true);
       } catch (error) {
-        console.error('Error loading API key:', error);
         setIsConnected(false);
         setConnectionError(error.message || 'Unknown error');
-        setIsInitialized(true);
+      } finally {
+        setIsTestingConnection(false);
       }
     };
-    
     loadApiKeyAndTest();
   }, []);
 
@@ -89,7 +90,7 @@ const AiAssistantChatDrift = () => {
     const handleApiKeyChange = async (event) => {
       const newApiKey = event.detail.apiKey;
       setApiKey(newApiKey);
-      
+      setIsTestingConnection(true);
       if (newApiKey) {
         geminiService.initialize(newApiKey);
         const result = await geminiService.testConnection(newApiKey);
@@ -99,10 +100,9 @@ const AiAssistantChatDrift = () => {
         setIsConnected(false);
         setConnectionError('No API key set');
       }
+      setIsTestingConnection(false);
     };
-
     window.addEventListener('apiKeyChanged', handleApiKeyChange);
-    
     return () => {
       window.removeEventListener('apiKeyChanged', handleApiKeyChange);
     };
@@ -791,7 +791,7 @@ const AiAssistantChatDrift = () => {
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Simple Connection Status */}
-        {!isConnected && apiKey && (
+        {!isConnected && apiKey && !isTestingConnection && (
           <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
             <div className="text-sm text-error">
               ⚠️ API Key not connected. Please check your API key in Settings.
@@ -800,7 +800,14 @@ const AiAssistantChatDrift = () => {
         )}
 
         {/* Chat Interface */}
-        {isConnected ? (
+        {isTestingConnection ? (
+          <div className="text-center py-12">
+            <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
+            <h3 className="text-xl font-semibold text-text-primary mb-2">Testing Connection...</h3>
+            <p className="text-text-secondary mb-6">Please wait while we verify your API key.</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          </div>
+        ) : isConnected ? (
           <>
             {messages.length === 0 && (
               <WelcomeScreen onStartChat={() => setMessages([{
@@ -849,14 +856,7 @@ const AiAssistantChatDrift = () => {
               Reset Connection
             </button>
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">Testing Connection...</h3>
-            <p className="text-text-secondary mb-6">Please wait while we verify your API key.</p>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          </div>
-        )}
+        ) : null}
 
         {/* Search Modal */}
         {isSearchOpen && (

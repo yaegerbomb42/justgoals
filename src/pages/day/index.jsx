@@ -32,7 +32,7 @@ class DayErrorBoundary extends React.Component {
   }
 }
 
-// Simple plan data normalization
+// Robust plan data normalization
 function normalizePlanData(input) {
   if (!input) return [];
   
@@ -71,7 +71,7 @@ function normalizePlanData(input) {
     typeof item.title === 'string'
   );
   
-  return flat;
+  return Array.isArray(flat) ? flat : [];
 }
 
 const Day = () => {
@@ -95,14 +95,16 @@ const Day = () => {
     taskDensity: 'balanced',
     customInstructions: ''
   });
+  // State for loading connection
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   // Load API key and test connection
   useEffect(() => {
     const loadApiKey = async () => {
+      setIsTestingConnection(true);
       try {
         const storedKey = localStorage.getItem('gemini_api_key_global') || '';
         setApiKey(storedKey);
-        
         if (storedKey) {
           geminiService.initialize(storedKey);
           const result = await geminiService.testConnection(storedKey);
@@ -111,11 +113,11 @@ const Day = () => {
           setIsConnected(false);
         }
       } catch (error) {
-        console.error('Error loading API key:', error);
         setIsConnected(false);
+      } finally {
+        setIsTestingConnection(false);
       }
     };
-    
     loadApiKey();
   }, []);
 
@@ -124,7 +126,7 @@ const Day = () => {
     const handleApiKeyChange = async (event) => {
       const newApiKey = event.detail.apiKey;
       setApiKey(newApiKey);
-      
+      setIsTestingConnection(true);
       if (newApiKey) {
         geminiService.initialize(newApiKey);
         const result = await geminiService.testConnection(newApiKey);
@@ -132,10 +134,9 @@ const Day = () => {
       } else {
         setIsConnected(false);
       }
+      setIsTestingConnection(false);
     };
-
     window.addEventListener('apiKeyChanged', handleApiKeyChange);
-    
     return () => {
       window.removeEventListener('apiKeyChanged', handleApiKeyChange);
     };
@@ -429,13 +430,21 @@ const Day = () => {
         <div className="pt-16 pb-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Simple Connection Status */}
-            {!isConnected && apiKey && (
+            {!isConnected && apiKey && !isTestingConnection && (
               <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
                 <div className="text-sm text-error">
                   ⚠️ API Key not connected. Please check your API key in Settings.
                 </div>
               </div>
             )}
+            {isTestingConnection ? (
+              <div className="text-center py-12">
+                <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
+                <h3 className="text-xl font-semibold text-text-primary mb-2">Testing Connection...</h3>
+                <p className="text-text-secondary mb-6">Please wait while we verify your API key.</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              </div>
+            ) : null}
 
             {/* Header */}
             <div className="mb-8">
