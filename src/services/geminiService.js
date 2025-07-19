@@ -317,7 +317,6 @@ Respond helpfully and concisely in a conversational tone.`;
     return this.generateText(prompt);
   }
 }
-}
 
 // Create and export singleton instance
 const geminiService = new GeminiService();
