@@ -7,7 +7,7 @@ import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import * as entityService from '../../services/entityManagementService';
-import { getGoals, formatDate, getDaysUntilDeadline } from '../../utils/goalUtils';
+import { getGoals, formatDate, getDaysUntilDeadline, getGeminiApiKey } from '../../utils/goalUtils';
 import geminiService from '../../services/geminiService';
 import DayProgressTracker from './components/DayProgressTracker';
 import { useSettings } from '../../context/SettingsContext';
@@ -109,11 +109,11 @@ const Day = () => {
     const loadApiKey = async () => {
       setIsTestingConnection(true);
       try {
-        const storedKey = localStorage.getItem('gemini_api_key_global') || '';
-        setApiKey(storedKey);
-        if (storedKey) {
-          geminiService.initialize(storedKey);
-          const result = await geminiService.testConnection(storedKey);
+        const key = getGeminiApiKey();
+        setApiKey(key);
+        if (key) {
+          geminiService.initialize(key);
+          const result = await geminiService.testConnection(key);
           setIsConnected(result.success);
           // Handle quota exceeded case
           if (result.status === 'quota_exceeded') {
@@ -259,7 +259,8 @@ const Day = () => {
     setPlanError('');
     
     try {
-      if (!apiKey) {
+      const key = getGeminiApiKey();
+      if (!key) {
         setPlanError('Please configure your Gemini API key in Settings to generate intelligent daily plans.');
         setIsGenerating(false);
         return;
@@ -326,7 +327,7 @@ const Day = () => {
         Make the schedule realistic and achievable. Include variety and balance.
       `;
 
-      const response = await geminiService.generateResponse(prompt, apiKey);
+      const response = await geminiService.generateResponse(prompt, key);
       
       try {
         const generatedPlan = JSON.parse(response);

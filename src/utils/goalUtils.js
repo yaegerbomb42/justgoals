@@ -345,3 +345,7 @@ export const getDaysUntilDeadline = (deadline) => {
     return null;
   }
 };
+
+export function getGeminiApiKey() {
+  return localStorage.getItem('gemini_api_key_global') || '';
+}

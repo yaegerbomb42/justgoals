@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { saveGoal } from '../../utils/goalUtils';
 import * as entityService from '../../services/entityManagementService';
 import { useAchievements } from '../../context/AchievementContext';
+import { getGeminiApiKey } from '../../utils/goalUtils';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
@@ -64,11 +65,11 @@ const AiAssistantChatDrift = () => {
     const loadApiKeyAndTest = async () => {
       setIsTestingConnection(true);
       try {
-        const storedKey = localStorage.getItem('gemini_api_key_global') || '';
-        setApiKey(storedKey);
-        if (storedKey) {
-          geminiService.initialize(storedKey);
-          const result = await geminiService.testConnection(storedKey);
+        const key = getGeminiApiKey();
+        setApiKey(key);
+        if (key) {
+          geminiService.initialize(key);
+          const result = await geminiService.testConnection(key);
           setIsConnected(result.success);
           setConnectionError(result.success ? '' : result.message || 'Connection failed');
         } else {
