@@ -33,6 +33,11 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             setLocalApiKey(cloudKey);
             onApiKeyChange(cloudKey);
             localStorage.setItem(`gemini_api_key_${user.id}`, cloudKey);
+            localStorage.setItem('gemini_api_key_global', cloudKey);
+            // Dispatch global event to notify other components
+            window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
+              detail: { apiKey: cloudKey } 
+            }));
             setCloudStatus('success');
             setIsLoading(false);
             setHasLoaded(true);
@@ -45,12 +50,22 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             console.error('[API Key] Firestore load error:', e);
           }
         }
-        // Fallback to localStorage
+        // Fallback to localStorage - check global key first, then user-specific
+        const globalApiKey = localStorage.getItem('gemini_api_key_global');
         const userApiKey = localStorage.getItem(`gemini_api_key_${user.id}`);
+        const finalKey = globalApiKey || userApiKey;
+        
         if (!cancelled) {
-          if (userApiKey) {
-            setLocalApiKey(userApiKey);
-            onApiKeyChange(userApiKey);
+          if (finalKey) {
+            setLocalApiKey(finalKey);
+            onApiKeyChange(finalKey);
+            // Ensure both storage locations are in sync
+            localStorage.setItem('gemini_api_key_global', finalKey);
+            localStorage.setItem(`gemini_api_key_${user.id}`, finalKey);
+            // Dispatch global event to notify other components
+            window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
+              detail: { apiKey: finalKey } 
+            }));
             setCloudStatus('idle');
           } else {
             setLocalApiKey('');
@@ -82,6 +97,8 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
     onApiKeyChange(value);
     setHasTested(false); // Allow re-testing after change
     setConnectionMessage(''); // Reset connection message on change
+    
+    // Save to both user-specific and global storage for compatibility
     if (user && user.id) {
       localStorage.setItem(`gemini_api_key_${user.id}`, value);
       setCloudStatus('syncing');
@@ -93,6 +110,14 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
           console.error('[API Key] Firestore save error:', e);
         });
     }
+    
+    // Save to global storage for other components
+    localStorage.setItem('gemini_api_key_global', value);
+    
+    // Dispatch global event to notify other components
+    window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
+      detail: { apiKey: value } 
+    }));
   };
 
   const handleTestConnection = async () => {
@@ -243,31 +268,29 @@ const ApiKeySection = ({ apiKey, onApiKeyChange, onTestConnection, isTestingConn
             Test Connection
           </Button>
 
-          {connectionStatus && hasTested && (
+          {connectionStatus === 'success' && hasTested && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`flex items-center space-x-2 ${getConnectionStatusColor()}`}
+              className="flex items-center space-x-2 text-success"
             >
-              <Icon name={getConnectionStatusIcon()} size={16} />
+              <Icon name="CheckCircle" size={16} />
               <span className="text-sm font-caption">
-                {connectionMessage}
+                Connected
               </span>
             </motion.div>
           )}
         </div>
-        {connectionMessage && (
-          <div className={`mt-2 text-xs ${connectionStatus === 'success' ? 'text-success' : 'text-error'}`}>{connectionMessage}</div>
-        )}
 
-        {(!apiKey || connectionStatus === 'error') && (
+        {connectionStatus === 'error' && hasTested && (
           <div className="p-2 bg-error/10 border border-error/20 rounded text-error text-sm">
-            {connectionStatus === 'error' ? 'API Key is invalid or connection failed.' : 'API Key is required to use AI features.'}
+            Connection failed. Please check your API key.
           </div>
         )}
-        {connectionStatus === 'success' && (
+
+        {connectionStatus === 'success' && hasTested && (
           <div className="p-2 bg-success/10 border border-success/20 rounded text-success text-sm">
-            API Key is valid and connected!
+            ✓ API Key connected successfully
           </div>
         )}
 

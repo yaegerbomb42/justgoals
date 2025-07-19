@@ -119,6 +119,28 @@ const Day = () => {
     loadApiKey();
   }, []);
 
+  // Listen for API key changes from Settings
+  useEffect(() => {
+    const handleApiKeyChange = async (event) => {
+      const newApiKey = event.detail.apiKey;
+      setApiKey(newApiKey);
+      
+      if (newApiKey) {
+        geminiService.initialize(newApiKey);
+        const result = await geminiService.testConnection(newApiKey);
+        setIsConnected(result.success);
+      } else {
+        setIsConnected(false);
+      }
+    };
+
+    window.addEventListener('apiKeyChanged', handleApiKeyChange);
+    
+    return () => {
+      window.removeEventListener('apiKeyChanged', handleApiKeyChange);
+    };
+  }, []);
+
   // Load planner preferences
   useEffect(() => {
     if (user?.id) {
@@ -407,10 +429,10 @@ const Day = () => {
         <div className="pt-16 pb-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Simple Connection Status */}
-            {!isConnected && (
+            {!isConnected && apiKey && (
               <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
                 <div className="text-sm text-error">
-                  ⚠️ API Key not connected. Please configure your Gemini API key in Settings.
+                  ⚠️ API Key not connected. Please check your API key in Settings.
                 </div>
               </div>
             )}

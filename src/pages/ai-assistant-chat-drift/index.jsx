@@ -84,6 +84,30 @@ const AiAssistantChatDrift = () => {
     loadApiKeyAndTest();
   }, []);
 
+  // Listen for API key changes from Settings
+  useEffect(() => {
+    const handleApiKeyChange = async (event) => {
+      const newApiKey = event.detail.apiKey;
+      setApiKey(newApiKey);
+      
+      if (newApiKey) {
+        geminiService.initialize(newApiKey);
+        const result = await geminiService.testConnection(newApiKey);
+        setIsConnected(result.success);
+        setConnectionError(result.success ? '' : result.message || 'Connection failed');
+      } else {
+        setIsConnected(false);
+        setConnectionError('No API key set');
+      }
+    };
+
+    window.addEventListener('apiKeyChanged', handleApiKeyChange);
+    
+    return () => {
+      window.removeEventListener('apiKeyChanged', handleApiKeyChange);
+    };
+  }, []);
+
   // Save messages to localStorage whenever they change
   useEffect(() => {
     try {
@@ -767,10 +791,10 @@ const AiAssistantChatDrift = () => {
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Simple Connection Status */}
-        {!isConnected && (
+        {!isConnected && apiKey && (
           <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
             <div className="text-sm text-error">
-              ⚠️ API Key not connected. Please configure your Gemini API key in Settings.
+              ⚠️ API Key not connected. Please check your API key in Settings.
             </div>
           </div>
         )}
@@ -813,7 +837,7 @@ const AiAssistantChatDrift = () => {
               </>
             )}
           </>
-        ) : (
+        ) : !apiKey ? (
           <div className="text-center py-12">
             <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
             <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
@@ -824,6 +848,13 @@ const AiAssistantChatDrift = () => {
             >
               Reset Connection
             </button>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
+            <h3 className="text-xl font-semibold text-text-primary mb-2">Testing Connection...</h3>
+            <p className="text-text-secondary mb-6">Please wait while we verify your API key.</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           </div>
         )}
 
