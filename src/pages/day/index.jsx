@@ -7,7 +7,7 @@ import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import * as entityService from '../../services/entityManagementService';
-import { getGoals, formatDate, getDaysUntilDeadline, getGeminiApiKey } from '../../utils/goalUtils';
+import { getGoals, formatDate, getDaysUntilDeadline } from '../../utils/goalUtils';
 import geminiService from '../../services/geminiService';
 import DayProgressTracker from './components/DayProgressTracker';
 import { useSettings } from '../../context/SettingsContext';
@@ -30,6 +30,73 @@ class DayErrorBoundary extends React.Component {
     }
     return this.props.children;
   }
+}
+
+// Enhanced JSON parsing with 4-stage fallback strategy
+function parseAIResponse(response) {
+  if (!response || typeof response !== 'string') {
+    throw new Error('Invalid response: must be a non-empty string');
+  }
+
+  // Stage 1: Extract from markdown code blocks
+  const codeBlockMatch = response.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    try {
+      const parsed = JSON.parse(codeBlockMatch[1]);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('Stage 1 parsing failed:', error);
+    }
+  }
+
+  // Stage 2: Find JSON array patterns
+  const jsonMatch = response.match(/\[\s*\{[\s\S]*\}\s*\]/);
+  if (jsonMatch && jsonMatch[0]) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('Stage 2 parsing failed:', error);
+    }
+  }
+
+  // Stage 3: Extract between first [ and last ]
+  const firstBracket = response.indexOf('[');
+  const lastBracket = response.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket !== -1 && firstBracket < lastBracket) {
+    try {
+      const jsonSubstring = response.substring(firstBracket, lastBracket + 1);
+      const parsed = JSON.parse(jsonSubstring);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('Stage 3 parsing failed:', error);
+    }
+  }
+
+  // Stage 4: Parse entire response as fallback
+  try {
+    const cleanResponse = response.trim();
+    const parsed = JSON.parse(cleanResponse);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    } else if (parsed && typeof parsed === 'object') {
+      // If it's an object, try to extract an array property
+      const possibleArrays = Object.values(parsed).filter(Array.isArray);
+      if (possibleArrays.length > 0) {
+        return possibleArrays[0];
+      }
+    }
+  } catch (error) {
+    console.warn('Stage 4 parsing failed:', error);
+  }
+
+  throw new Error('Invalid response format: Could not extract valid JSON array from AI response');
 }
 
 // Robust plan data normalization
@@ -109,11 +176,11 @@ const Day = () => {
     const loadApiKey = async () => {
       setIsTestingConnection(true);
       try {
-        const key = getGeminiApiKey();
+        const key = geminiService.getApiKey(user?.id);
         setApiKey(key);
         if (key) {
           geminiService.initialize(key);
-          const result = await geminiService.testConnection(key);
+          const result = await geminiService.checkConnection(user?.id);
           setIsConnected(result.success);
           // Handle quota exceeded case
           if (result.status === 'quota_exceeded') {
@@ -129,7 +196,7 @@ const Day = () => {
       }
     };
     loadApiKey();
-  }, []);
+  }, [user?.id]);
 
   // Listen for API key changes from Settings
   useEffect(() => {
@@ -138,8 +205,8 @@ const Day = () => {
       setApiKey(newApiKey);
       setIsTestingConnection(true);
       if (newApiKey) {
-        geminiService.initialize(newApiKey);
-        const result = await geminiService.testConnection(newApiKey);
+        geminiService.setApiKey(newApiKey, user?.id);
+        const result = await geminiService.checkConnection(user?.id);
         setIsConnected(result.success);
         // Handle quota exceeded case
         if (result.status === 'quota_exceeded') {
@@ -157,7 +224,7 @@ const Day = () => {
     return () => {
       window.removeEventListener('apiKeyChanged', handleApiKeyChange);
     };
-  }, []);
+  }, [user?.id]);
 
   // Load planner preferences
   useEffect(() => {
@@ -259,7 +326,7 @@ const Day = () => {
     setPlanError('');
     
     try {
-      const key = getGeminiApiKey();
+      const key = geminiService.getApiKey(user?.id);
       if (!key) {
         setPlanError('Please configure your Gemini API key in Settings to generate intelligent daily plans.');
         setIsGenerating(false);
@@ -330,15 +397,35 @@ const Day = () => {
       const response = await geminiService.generateResponse(prompt, key);
       
       try {
-        const generatedPlan = JSON.parse(response);
-        if (Array.isArray(generatedPlan) && generatedPlan.length > 0) {
-          saveDailyPlan(generatedPlan);
-        } else {
-          throw new Error('Invalid plan format received');
+        // Use enhanced parsing with 4-stage fallback
+        const generatedPlan = parseAIResponse(response);
+        
+        // Additional validation
+        if (!Array.isArray(generatedPlan)) {
+          throw new Error('Parsed response is not an array');
         }
+        
+        if (generatedPlan.length === 0) {
+          throw new Error('Generated plan is empty');
+        }
+        
+        // Validate each activity has required fields
+        const validActivities = generatedPlan.filter(activity => 
+          activity && 
+          typeof activity === 'object' && 
+          typeof activity.time === 'string' && 
+          typeof activity.title === 'string'
+        );
+        
+        if (validActivities.length === 0) {
+          throw new Error('No valid activities found in generated plan');
+        }
+        
+        saveDailyPlan(validActivities);
       } catch (parseError) {
         console.error('Error parsing AI response:', parseError);
-        setPlanError('Received an invalid response from AI. Please try again.');
+        console.error('Raw response:', response);
+        setPlanError(`Error parsing AI response: ${parseError.message}. Please try again.`);
       }
     } catch (error) {
       console.error('Error generating daily plan:', error);

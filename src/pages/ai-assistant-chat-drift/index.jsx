@@ -13,7 +13,6 @@ import { useAuth } from '../../context/AuthContext';
 import { saveGoal } from '../../utils/goalUtils';
 import * as entityService from '../../services/entityManagementService';
 import { useAchievements } from '../../context/AchievementContext';
-import { getGeminiApiKey } from '../../utils/goalUtils';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
@@ -65,11 +64,11 @@ const AiAssistantChatDrift = () => {
     const loadApiKeyAndTest = async () => {
       setIsTestingConnection(true);
       try {
-        const key = getGeminiApiKey();
+        const key = geminiService.getApiKey(user?.id);
         setApiKey(key);
         if (key) {
           geminiService.initialize(key);
-          const result = await geminiService.testConnection(key);
+          const result = await geminiService.checkConnection(user?.id);
           console.log('[Drift] Initial connection test result:', result);
           console.log('[Drift] Initial result success:', result.success);
           console.log('[Drift] Initial result message:', result.message);
@@ -88,7 +87,7 @@ const AiAssistantChatDrift = () => {
       }
     };
     loadApiKeyAndTest();
-  }, []);
+  }, [user?.id]);
 
   // Listen for API key changes from Settings
   useEffect(() => {
@@ -98,8 +97,8 @@ const AiAssistantChatDrift = () => {
       setIsTestingConnection(true);
       try {
         if (newApiKey) {
-          geminiService.initialize(newApiKey);
-          const result = await geminiService.testConnection(newApiKey);
+          geminiService.setApiKey(newApiKey, user?.id);
+          const result = await geminiService.checkConnection(user?.id);
           console.log('[Drift] API key change connection test result:', result);
           console.log('[Drift] API key change result success:', result.success);
           console.log('[Drift] API key change result message:', result.message);
@@ -121,7 +120,7 @@ const AiAssistantChatDrift = () => {
     return () => {
       window.removeEventListener('apiKeyChanged', handleApiKeyChange);
     };
-  }, []);
+  }, [user?.id]);
 
   // Force connection test on every mount and every apiKey change
   useEffect(() => {
@@ -130,7 +129,7 @@ const AiAssistantChatDrift = () => {
     (async () => {
       try {
         geminiService.initialize(apiKey);
-        const result = await geminiService.testConnection(apiKey);
+        const result = await geminiService.checkConnection(user?.id);
         console.log('[Drift] Connection test result:', result);
         console.log('[Drift] Result success:', result.success);
         console.log('[Drift] Result message:', result.message);
@@ -144,7 +143,7 @@ const AiAssistantChatDrift = () => {
         setIsTestingConnection(false);
       }
     })();
-  }, [apiKey]);
+  }, [apiKey, user?.id]);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
@@ -220,7 +219,7 @@ const AiAssistantChatDrift = () => {
     setIsConnected(false);
     setConnectionError('');
     setIsInitialized(false);
-    localStorage.removeItem('gemini_api_key_global');
+    geminiService.setApiKey('', user?.id);
     geminiService.isInitialized = false;
   };
 
@@ -831,15 +830,16 @@ const AiAssistantChatDrift = () => {
         isConnected: {isConnected ? 'true' : 'false'}<br/>
         isTestingConnection: {isTestingConnection ? 'true' : 'false'}<br/>
         connectionError: {connectionError || 'none'}<br/>
-        localStorage key: {localStorage.getItem('gemini_api_key_global') ? 'EXISTS' : 'NOT FOUND'}<br/>
+        user-specific key: {user?.id ? (localStorage.getItem(`gemini_api_key_${user.id}`) ? 'EXISTS' : 'NOT FOUND') : 'NO USER'}<br/>
+        global key: {localStorage.getItem('gemini_api_key_global') ? 'EXISTS' : 'NOT FOUND'}<br/>
         <button 
           onClick={() => {
-            const key = getGeminiApiKey();
+            const key = geminiService.getApiKey(user?.id);
             setApiKey(key);
             if (key) {
               setIsTestingConnection(true);
               geminiService.initialize(key);
-              geminiService.testConnection(key).then(result => {
+              geminiService.checkConnection(user?.id).then(result => {
                 console.log('[Drift] Manual test result:', result);
                 setIsConnected(result.success);
                 setConnectionError(result.success ? '' : result.message || 'Connection failed');
