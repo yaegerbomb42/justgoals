@@ -70,6 +70,9 @@ const AiAssistantChatDrift = () => {
         if (key) {
           geminiService.initialize(key);
           const result = await geminiService.testConnection(key);
+          console.log('[Drift] Initial connection test result:', result);
+          console.log('[Drift] Initial result success:', result.success);
+          console.log('[Drift] Initial result message:', result.message);
           setIsConnected(result.success);
           setConnectionError(result.success ? '' : result.message || 'Connection failed');
         } else {
@@ -77,6 +80,7 @@ const AiAssistantChatDrift = () => {
           setConnectionError('No API key set');
         }
       } catch (error) {
+        console.error('[Drift] Initial connection test error:', error);
         setIsConnected(false);
         setConnectionError(error.message || 'Unknown error');
       } finally {
@@ -92,16 +96,26 @@ const AiAssistantChatDrift = () => {
       const newApiKey = event.detail.apiKey;
       setApiKey(newApiKey);
       setIsTestingConnection(true);
-      if (newApiKey) {
-        geminiService.initialize(newApiKey);
-        const result = await geminiService.testConnection(newApiKey);
-        setIsConnected(result.success);
-        setConnectionError(result.success ? '' : result.message || 'Connection failed');
-      } else {
+      try {
+        if (newApiKey) {
+          geminiService.initialize(newApiKey);
+          const result = await geminiService.testConnection(newApiKey);
+          console.log('[Drift] API key change connection test result:', result);
+          console.log('[Drift] API key change result success:', result.success);
+          console.log('[Drift] API key change result message:', result.message);
+          setIsConnected(result.success);
+          setConnectionError(result.success ? '' : result.message || 'Connection failed');
+        } else {
+          setIsConnected(false);
+          setConnectionError('No API key set');
+        }
+      } catch (error) {
+        console.error('[Drift] API key change connection test error:', error);
         setIsConnected(false);
-        setConnectionError('No API key set');
+        setConnectionError(error.message || 'Unknown error');
+      } finally {
+        setIsTestingConnection(false);
       }
-      setIsTestingConnection(false);
     };
     window.addEventListener('apiKeyChanged', handleApiKeyChange);
     return () => {
@@ -114,12 +128,21 @@ const AiAssistantChatDrift = () => {
     if (!apiKey) return;
     setIsTestingConnection(true);
     (async () => {
-      geminiService.initialize(apiKey);
-      const result = await geminiService.testConnection(apiKey);
-      setIsConnected(result.success);
-      setConnectionError(result.success ? '' : result.message || 'Connection failed');
-      setIsTestingConnection(false);
-      console.log('[Drift] Connection test result:', result);
+      try {
+        geminiService.initialize(apiKey);
+        const result = await geminiService.testConnection(apiKey);
+        console.log('[Drift] Connection test result:', result);
+        console.log('[Drift] Result success:', result.success);
+        console.log('[Drift] Result message:', result.message);
+        setIsConnected(result.success);
+        setConnectionError(result.success ? '' : result.message || 'Connection failed');
+      } catch (error) {
+        console.error('[Drift] Connection test error:', error);
+        setIsConnected(false);
+        setConnectionError(error.message || 'Unknown error');
+      } finally {
+        setIsTestingConnection(false);
+      }
     })();
   }, [apiKey]);
 
@@ -804,23 +827,40 @@ const AiAssistantChatDrift = () => {
     <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
       {/* DEBUG PANEL */}
       <div style={{background:'#222',color:'#fff',padding:'8px',marginBottom:'8px',fontSize:'12px'}}>
-        apiKey: {apiKey}<br/>
+        apiKey: {apiKey ? 'SET' : 'NOT SET'}<br/>
         isConnected: {isConnected ? 'true' : 'false'}<br/>
-        isTestingConnection: {isTestingConnection ? 'true' : 'false'}
+        isTestingConnection: {isTestingConnection ? 'true' : 'false'}<br/>
+        connectionError: {connectionError || 'none'}<br/>
+        localStorage key: {localStorage.getItem('gemini_api_key_global') ? 'EXISTS' : 'NOT FOUND'}<br/>
+        <button 
+          onClick={() => {
+            const key = getGeminiApiKey();
+            setApiKey(key);
+            if (key) {
+              setIsTestingConnection(true);
+              geminiService.initialize(key);
+              geminiService.testConnection(key).then(result => {
+                console.log('[Drift] Manual test result:', result);
+                setIsConnected(result.success);
+                setConnectionError(result.success ? '' : result.message || 'Connection failed');
+                setIsTestingConnection(false);
+              }).catch(error => {
+                console.error('[Drift] Manual test error:', error);
+                setIsConnected(false);
+                setConnectionError(error.message || 'Unknown error');
+                setIsTestingConnection(false);
+              });
+            }
+          }}
+          style={{background:'#444',border:'1px solid #666',color:'#fff',padding:'4px 8px',marginTop:'4px'}}
+        >
+          Manual Test
+        </button>
       </div>
       <Header title="Drift AI Assistant" />
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Simple Connection Status */}
-        {!isConnected && apiKey && !isTestingConnection && (
-          <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
-            <div className="text-sm text-error">
-              ⚠️ API Key not connected. Please check your API key in Settings.
-            </div>
-          </div>
-        )}
-
-        {/* Chat Interface */}
+        {/* Connection Status */}
         {isTestingConnection ? (
           <div className="text-center py-12">
             <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
@@ -828,7 +868,25 @@ const AiAssistantChatDrift = () => {
             <p className="text-text-secondary mb-6">Please wait while we verify your API key.</p>
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           </div>
-        ) : isConnected ? (
+        ) : !apiKey ? (
+          <div className="text-center py-12">
+            <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
+            <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
+            <p className="text-text-secondary mb-6">Please configure your Gemini API key in Settings to chat with Drift.</p>
+            <button 
+              className="px-4 py-2 bg-surface-700 text-text-secondary rounded hover:bg-surface-600 transition-colors" 
+              onClick={resetGemini}
+            >
+              Reset Connection
+            </button>
+          </div>
+        ) : !isConnected ? (
+          <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
+            <div className="text-sm text-error">
+              ⚠️ API Key not connected. Please check your API key in Settings.
+            </div>
+          </div>
+        ) : (
           <>
             {messages.length === 0 && (
               <WelcomeScreen onStartChat={() => setMessages([{
@@ -865,19 +923,7 @@ const AiAssistantChatDrift = () => {
               </>
             )}
           </>
-        ) : !apiKey ? (
-          <div className="text-center py-12">
-            <Icon name="MessageCircle" className="w-16 h-16 mx-auto text-text-muted mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
-            <p className="text-text-secondary mb-6">Please configure your Gemini API key in Settings to chat with Drift.</p>
-            <button 
-              className="px-4 py-2 bg-surface-700 text-text-secondary rounded hover:bg-surface-600 transition-colors" 
-              onClick={resetGemini}
-            >
-              Reset Connection
-            </button>
-          </div>
-        ) : null}
+        )}
 
         {/* Search Modal */}
         {isSearchOpen && (

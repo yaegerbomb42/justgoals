@@ -71,15 +71,17 @@ const DayProgressTracker = () => {
           const parsed = JSON.parse(savedPlan);
           const normalized = normalizePlanData(parsed);
           if (normalized) {
-            const total = normalized.length;
-            const completed = normalized.filter(activity => activity.completed).length;
+            console.log('DEBUG DayProgressTracker normalized before filter:', normalized, typeof normalized, Array.isArray(normalized));
+            const safeNormalized = Array.isArray(normalized) ? normalized : [];
+            const total = safeNormalized.length;
+            const completed = safeNormalized.filter(activity => activity.completed).length;
             const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
             history.push({
               date: dateStr,
               total,
               completed,
               percentage,
-              plan: normalized
+              plan: safeNormalized
             });
           } // else skip invalid plan
         } catch (error) {
