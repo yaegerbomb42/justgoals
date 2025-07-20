@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
-import geminiService from '../../../services/geminiService';
+import { geminiService } from '../../../services/geminiService';
 
 const AIAssistantPanel = ({ isExpanded, onToggle, selectedDate, milestones, goals }) => {
   const [messages, setMessages] = useState([

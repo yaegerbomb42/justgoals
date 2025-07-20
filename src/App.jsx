@@ -4,7 +4,6 @@ import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { PlanDataProvider } from './context/PlanDataContext';
 import { AchievementProvider } from './context/AchievementContext';
-import { GeminiProvider } from './context/GeminiContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Routes from './Routes';
 import Header from './components/ui/Header';
@@ -26,16 +25,14 @@ const App = () => {
         <SettingsProvider>
           <PlanDataProvider>
             <AchievementProvider>
-              <GeminiProvider>
-                <NotificationProvider>
-                  <NotificationWrapper>
-                    <div className="min-h-screen bg-background text-text-primary">
-                      <Header />
-                      <Routes />
-                    </div>
-                  </NotificationWrapper>
-                </NotificationProvider>
-              </GeminiProvider>
+              <NotificationProvider>
+                <NotificationWrapper>
+                  <div className="min-h-screen bg-background text-text-primary">
+                    <Header />
+                    <Routes />
+                  </div>
+                </NotificationWrapper>
+              </NotificationProvider>
             </AchievementProvider>
           </PlanDataProvider>
         </SettingsProvider>

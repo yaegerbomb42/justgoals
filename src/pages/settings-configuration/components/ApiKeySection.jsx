@@ -4,7 +4,7 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { useAuth } from '../../../context/AuthContext';
-import geminiService from '../../../services/geminiService';
+import { geminiService } from '../../../services/geminiService';
 
 const ApiKeySection = () => {
   const { user } = useAuth();

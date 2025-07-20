@@ -6,7 +6,7 @@ import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { getGoals } from '../../utils/goalUtils';
-import geminiService from '../../services/geminiService';
+import { geminiService } from '../../services/geminiService';
 import calendarSyncService from '../../services/calendarSyncService';
 
 // Add Event Modal Component

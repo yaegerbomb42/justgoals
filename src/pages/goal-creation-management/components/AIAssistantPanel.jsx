@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
-import geminiService from '../../../services/geminiService';
+import { geminiService } from '../../../services/geminiService';
 
 const AIAssistantPanel = ({ isCollapsed, onToggle, goalContext = null }) => {
   const [messages, setMessages] = useState([

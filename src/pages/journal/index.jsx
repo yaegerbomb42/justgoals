@@ -11,7 +11,7 @@ import JournalEntry from './components/JournalEntry';
 import JournalEditor from './components/JournalEditor';
 import AIInsightsPanel from './components/AIInsightsPanel';
 import SearchFilter from './components/SearchFilter';
-import geminiService from '../../services/geminiService';
+import { geminiService } from '../../services/geminiService';
 
 const Journal = () => {
   const [entries, setEntries] = useState([]);

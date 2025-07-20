@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import calendarSyncService from '../services/calendarSyncService';
-import Icon from '../components/AppIcon';
+import Icon from '../components/ui/Icon';
 
 const Oauth2Callback = () => {
   const [status, setStatus] = useState('loading');
@@ -40,10 +40,26 @@ const Oauth2Callback = () => {
     doOAuth();
   }, [navigate]);
 
+  const getIconName = () => {
+    switch (status) {
+      case 'success':
+        return 'CheckCircle';
+      case 'error':
+        return 'XCircle';
+      default:
+        return 'Loader';
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-      <Icon name={status === 'success' ? 'CheckCircle' : status === 'error' ? 'XCircle' : 'Loader'} className="w-16 h-16 mb-4 text-primary-500 animate-spin" />
-      <h2 className="text-xl font-bold mb-2">Google Calendar Sync</h2>
+      <div className={`w-16 h-16 mb-4 ${status === 'loading' ? 'animate-spin' : ''}`}>
+        <Icon 
+          name={getIconName()} 
+          className={`w-16 h-16 ${status === 'success' ? 'text-green-500' : status === 'error' ? 'text-red-500' : 'text-primary'}`} 
+        />
+      </div>
+      <h2 className="text-xl font-bold mb-2 text-text-primary">Google Calendar Sync</h2>
       <p className="text-text-secondary text-center max-w-md">{message}</p>
     </div>
   );
