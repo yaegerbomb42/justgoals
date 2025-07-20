@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef here
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Icon from '../../components/AppIcon';
-import { useAuth } from '../../context/AuthContext'; // Import useAuth
+import Icon from '../../components/ui/Icon';
+import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import Button from '../../components/ui/Button';
 import GoalSelector from './components/GoalSelector';
 import FocusTimer from './components/FocusTimer';
@@ -13,8 +14,6 @@ import QuickLinksPanel from './components/QuickLinksPanel';
 import FocusFloatingActions from './components/FocusFloatingActions';
 import FlowingParticlesBackground from '../../components/ui/FlowingParticlesBackground';
 import * as entityService from '../../services/entityManagementService';
-import notificationManager from '../../utils/notificationUtils';
-import firestoreService from '../../services/firestoreService';
 
 const soundMap = {
   none: '',
@@ -42,7 +41,8 @@ const FocusMode = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const audioRef = useRef(null); // Ref for the audio element
+  const { settings, updateFocusModeSettings } = useSettings();
+  const audioRef = useRef(null);
 
   const getStorageKey = useCallback((baseKey) => {
     if (user && user.id) {
@@ -51,7 +51,7 @@ const FocusMode = () => {
     return null;
   }, [user]);
   
-  // Load goals using entityService instead of mock data
+  // Load goals using entityService
   const [goals, setGoals] = useState([]);
 
   // Load goals using the entity service
@@ -71,22 +71,10 @@ const FocusMode = () => {
     id: null, startTime: null, elapsed: 0, goal: null, notes: [], isActive: false
   });
   
-  // Local session settings (e.g., for UI like background, completion sound if specific to this page)
-  // These might be distinct from the global app settings for focus mode durations / ambient sound choice
+  // Local session settings for UI-specific settings
   const [localSessionSettings, setLocalSessionSettings] = useState({
     background: 'solid',
-    completionSound: 'chime', // This seems specific to this page's timer completion
-    // breakReminders: true // This might come from global settings.focusMode.autoStartBreaks
-  });
-
-  // Global focus mode settings (from main app settings)
-  const [globalFocusSettings, setGlobalFocusSettings] = useState({
-    defaultDuration: 25,
-    shortBreakDuration: 5,
-    longBreakDuration: 15,
-    soundEnabled: true,
-    selectedAmbientSound: 'none',
-    autoStartBreaks: true,
+    completionSound: 'chime',
   });
 
   const [isNotesOpen, setIsNotesOpen] = useState(false);
@@ -96,16 +84,23 @@ const FocusMode = () => {
   const [sessionStats, setSessionStats] = useState({
     totalFocusTime: 0, sessionsToday: 0, currentStreak: 0
   });
-  const [sessionSettings, setSessionSettings] = useState({
-    background: 'solid',
-    completionSound: 'chime',
-    autoStartBreaks: true
-  });
   const [sessionNotes, setSessionNotes] = useState([]);
   const [sessionLinks, setSessionLinks] = useState([]);
   const [goalChatMessages, setGoalChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
+
+  // Get focus mode settings from the new settings context
+  const focusSettings = settings?.focusMode || {
+    defaultDuration: 25,
+    breakDuration: 5,
+    longBreakDuration: 15,
+    autoStartBreaks: true,
+    autoStartSessions: false,
+    ambientSounds: true,
+    backgroundEffects: true,
+    soundVolume: 0.5,
+  };
 
   // Initialize from URL params or localStorage
   useEffect(() => {
@@ -133,29 +128,11 @@ const FocusMode = () => {
     }
 
     // Load local session settings (background, completion sound)
-    const savedLocalSettings = localStorage.getItem('focus_page_local_settings'); // More specific key
+    const savedLocalSettings = localStorage.getItem('focus_page_local_settings');
     if (savedLocalSettings) {
       try { setLocalSessionSettings(JSON.parse(savedLocalSettings)); }
       catch (e) { console.error("Error parsing local focus settings:", e); }
     }
-
-    // Load global focus settings from main app settings
-    if (isAuthenticated && user) {
-      const appSettingsKey = getStorageKey('app_settings'); // Uses user ID
-      if (appSettingsKey) {
-        const allAppSettingsText = localStorage.getItem(appSettingsKey);
-        if (allAppSettingsText) {
-          try {
-            const allAppSettings = JSON.parse(allAppSettingsText);
-            if (allAppSettings && allAppSettings.focusMode) {
-              setGlobalFocusSettings(prev => ({ ...prev, ...allAppSettings.focusMode }));
-            }
-          } catch (e) { console.error("Error parsing global app settings for focus mode:", e); }
-        }
-      }
-    }
-    // If not authenticated or no user, globalFocusSettings will retain its defaults
-    // which include soundEnabled: true, selectedAmbientSound: 'none'
 
   }, [location.search, isAuthenticated, user, getStorageKey, goals]);
 
@@ -179,13 +156,14 @@ const FocusMode = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const { soundEnabled, selectedAmbientSound } = globalFocusSettings;
+    const { ambientSounds, soundVolume } = focusSettings;
+    const selectedAmbientSound = localSessionSettings.selectedAmbientSound || 'none';
     const soundFile = soundMap[selectedAmbientSound];
 
     let cancelled = false;
 
     const playAmbient = async () => {
-      if (isTimerActive && soundEnabled && soundFile && selectedAmbientSound !== 'none') {
+      if (isTimerActive && ambientSounds && soundFile && selectedAmbientSound !== 'none') {
         // Check if file exists before playing
         const exists = await checkSoundFileExists(soundFile);
         if (!exists) {
@@ -196,92 +174,56 @@ const FocusMode = () => {
           audio.src = soundFile;
         }
         audio.loop = true;
-        audio.volume = 0.3;
+        audio.volume = soundVolume || 0.5;
         try {
           await audio.play();
         } catch (error) {
           console.error('Error playing ambient sound:', error);
-          audio.play().catch(e => console.warn('Could not play audio:', e));
         }
       } else {
-        // Fade out audio smoothly
-        if (audio.volume > 0) {
-          const fadeOut = setInterval(() => {
-            if (audio.volume > 0.1) {
-              audio.volume -= 0.1;
-            } else {
-              audio.pause();
-              audio.volume = 0.3;
-              clearInterval(fadeOut);
-            }
-          }, 100);
-        } else {
-          audio.pause();
-        }
+        audio.pause();
+        audio.currentTime = 0;
       }
     };
 
-    playAmbient();
+    if (!cancelled) {
+      playAmbient();
+    }
 
-    // Cleanup
     return () => {
       cancelled = true;
       if (audio) {
         audio.pause();
-        audio.volume = 0.3;
+        audio.currentTime = 0;
       }
     };
-  }, [isTimerActive, globalFocusSettings.soundEnabled, globalFocusSettings.selectedAmbientSound]);
+  }, [isTimerActive, focusSettings.ambientSounds, focusSettings.soundVolume, localSessionSettings.selectedAmbientSound]);
 
-  // Load chat messages for selected goal from Firestore and localStorage
+  // Load goal chat history
   useEffect(() => {
     const loadChat = async () => {
-      if (selectedGoal && user && user.id) {
+      if (selectedGoal && isAuthenticated && user) {
         const chatKey = getGoalChatKey(selectedGoal.id, user.id);
-        // Try Firestore first
-        try {
-          const cloudMsgs = await firestoreService.getGoalChatMessages(user.id, selectedGoal.id);
-          if (cloudMsgs && Array.isArray(cloudMsgs)) {
-            setGoalChatMessages(cloudMsgs);
-            localStorage.setItem(chatKey, JSON.stringify(cloudMsgs));
-            return;
+        const savedChat = localStorage.getItem(chatKey);
+        if (savedChat) {
+          try {
+            setGoalChatMessages(JSON.parse(savedChat));
+          } catch (e) {
+            console.error("Error parsing goal chat:", e);
           }
-        } catch {}
-        // Fallback to localStorage
-        const saved = localStorage.getItem(chatKey);
-        if (saved) {
-          try { setGoalChatMessages(JSON.parse(saved)); }
-          catch { setGoalChatMessages([]); }
-        } else {
-          setGoalChatMessages([]);
         }
-      } else {
-        setGoalChatMessages([]);
       }
     };
     loadChat();
-  }, [selectedGoal, user]);
-
-  // Save chat messages to Firestore and localStorage
-  useEffect(() => {
-    if (selectedGoal && user && user.id) {
-      const chatKey = getGoalChatKey(selectedGoal.id, user.id);
-      localStorage.setItem(chatKey, JSON.stringify(goalChatMessages));
-      firestoreService.saveGoalChatMessages(user.id, selectedGoal.id, goalChatMessages);
-    }
-  }, [goalChatMessages, selectedGoal, user]);
+  }, [selectedGoal, isAuthenticated, user, getGoalChatKey]);
 
   const startSession = () => {
     if (!selectedGoal) return;
-    // Duration should now come from globalFocusSettings.defaultDuration (in minutes)
-    // The timer itself likely expects seconds, so this needs to be handled by FocusTimer or here.
-    // For now, FocusTimer might still use its own internal duration logic based on props.
-    // The currentSession.elapsed is in seconds.
     
     const sessionId = Date.now();
     setCurrentSession({
       id: sessionId,
-      startTime: Date.now(),
+      startTime: new Date(),
       elapsed: 0,
       goal: selectedGoal,
       notes: [],
@@ -292,122 +234,88 @@ const FocusMode = () => {
 
   const pauseSession = () => {
     setIsTimerActive(false);
-    setCurrentSession(prev => ({ ...prev, isActive: false }));
   };
 
   const resumeSession = () => {
     setIsTimerActive(true);
-    setCurrentSession(prev => ({ ...prev, isActive: true }));
   };
 
   const stopSession = () => {
-    if (currentSession.elapsed > 60) { // Only show confirmation if session > 1 minute
-      setShowExitConfirmation(true);
-    } else {
-      endSession();
-    }
+    setIsTimerActive(false);
+    setCurrentSession(prev => ({ ...prev, isActive: false }));
   };
 
   const endSession = async () => {
     if (!currentSession.isActive) return;
 
-    const sessionData = {
-      id: currentSession.id,
-      startTime: currentSession.startTime,
-      endTime: Date.now(),
-      elapsed: currentSession.elapsed,
-      goal: currentSession.goal,
-      notes: sessionNotes.filter(note => note.type === 'permanent'), // Only save permanent notes
-      links: sessionLinks,
-      temporaryNotesCount: sessionNotes.filter(note => note.type === 'temporary').length
-    };
-
-    // Play completion sound
-    if (sessionSettings.completionSound !== 'none') {
-      const chimeUrl = soundMap.chime;
-      const exists = await checkSoundFileExists(chimeUrl);
-      if (exists) {
-        const chimeAudio = new Audio(chimeUrl);
-        chimeAudio.volume = 0.5;
-        chimeAudio.play().catch(e => console.warn('Could not play completion sound:', e));
-      } else {
-        console.warn(`Chime sound file missing: ${chimeUrl}`);
-      }
-    }
-
-    // Send completion notification
-    notificationManager.sendSessionCompleteNotification(sessionData);
-
-    // Show completion celebration
-    const celebration = document.querySelector('.timer-container');
-    if (celebration) {
-      celebration.classList.add('micro-celebration');
-      setTimeout(() => celebration.classList.remove('micro-celebration'), 800);
-    }
-
-    // Save session to history
-    if (isAuthenticated && user) {
-      const historyKey = getStorageKey('focus_session_history');
-      if (historyKey) {
-        try {
-          const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-          existingHistory.unshift(sessionData);
-          // Keep only last 50 sessions
-          const trimmedHistory = existingHistory.slice(0, 50);
-          localStorage.setItem(historyKey, JSON.stringify(trimmedHistory));
-        } catch (e) {
-          console.error("Error saving session history:", e);
-        }
-      }
-    }
-
-    // Update stats
+    const sessionDuration = currentSession.elapsed;
+    const newTotalTime = sessionStats.totalFocusTime + sessionDuration;
+    
+    // Update session stats
     setSessionStats(prev => ({
-      totalFocusTime: prev.totalFocusTime + currentSession.elapsed,
-      sessionsToday: prev.sessionsToday + 1,
-      currentStreak: prev.currentStreak // Streak calculation is handled elsewhere
+      ...prev,
+      totalFocusTime: newTotalTime,
+      sessionsToday: prev.sessionsToday + 1
     }));
 
-    // Reset session and clear temporary data
-    setCurrentSession({
-      id: null,
-      startTime: null,
-      elapsed: 0,
-      goal: null,
-      notes: [],
-      isActive: false
-    });
-    setSessionNotes([]); // Clear all notes (temporary ones are lost)
-    setSessionLinks([]); // Clear session-specific links
+    // Save session data
+    if (isAuthenticated && user) {
+      const sessionData = {
+        id: currentSession.id,
+        goalId: selectedGoal?.id,
+        duration: sessionDuration,
+        startTime: currentSession.startTime,
+        endTime: new Date(),
+        notes: sessionNotes
+      };
+
+      // Save to localStorage for now
+      const sessionsKey = getStorageKey('focus_sessions');
+      if (sessionsKey) {
+        const existingSessions = JSON.parse(localStorage.getItem(sessionsKey) || '[]');
+        existingSessions.push(sessionData);
+        localStorage.setItem(sessionsKey, JSON.stringify(existingSessions));
+      }
+    }
+
+    // Play completion sound if enabled
+    if (localSessionSettings.completionSound !== 'none') {
+      const completionSound = new Audio(soundMap[localSessionSettings.completionSound] || soundMap.chime);
+      completionSound.volume = 0.3;
+      try {
+        await completionSound.play();
+      } catch (error) {
+        console.error('Error playing completion sound:', error);
+      }
+    }
+
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    setCurrentSession(prev => ({ ...prev, isActive: false }));
     setIsTimerActive(false);
   };
 
   const resetSession = () => {
-    setIsTimerActive(false);
-    setCurrentSession(prev => ({
-      ...prev,
+    setCurrentSession({
+      id: null,
+      startTime: null,
       elapsed: 0,
+      goal: selectedGoal,
+      notes: [],
       isActive: false
-    }));
+    });
+    setIsTimerActive(false);
+    
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   };
-
-  // const handleTimerComplete = () => { // No longer directly used by stopwatch
-  //   // Play completion sound
-  //   if (sessionSettings.completionSound !== 'none') {
-  //     // In a real app, you would play the actual sound here
-  //     console.log(`Playing ${sessionSettings.completionSound} sound`);
-  //   }
-
-  //   // Show completion celebration
-  //   const celebration = document.querySelector('.timer-container');
-  //   if (celebration) {
-  //     celebration.classList.add('micro-celebration');
-  //     setTimeout(() => celebration.classList.remove('micro-celebration'), 800);
-  //   }
-
-  //   // Auto-end session
-  //   endSession();
-  // };
 
   const handleTimeUpdate = (newElapsedTime) => {
     setCurrentSession(prev => ({ ...prev, elapsed: newElapsedTime }));
@@ -415,10 +323,7 @@ const FocusMode = () => {
 
   const handleGoalChange = (goal) => {
     setSelectedGoal(goal);
-    // Update URL without navigation
-    const params = new URLSearchParams(location.search);
-    params.set('goalId', goal.id.toString());
-    window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`);
+    resetSession();
   };
 
   const handleSaveNote = (note) => {
@@ -434,52 +339,61 @@ const FocusMode = () => {
   };
 
   const handleLinkClick = (link) => {
-    // Track link usage for analytics if needed
-    console.log('Link clicked:', link.title);
+    window.open(link.url, '_blank');
   };
 
   const handleToggleNotes = () => {
     setIsNotesOpen(!isNotesOpen);
-    if (isLinksOpen) setIsLinksOpen(false);
   };
 
   const handleToggleLinks = () => {
     setIsLinksOpen(!isLinksOpen);
-    if (isNotesOpen) setIsNotesOpen(false);
   };
 
   const handleSettingsChange = (newSettings) => {
-    setSessionSettings(newSettings);
+    setLocalSessionSettings(newSettings);
+  };
+
+  const handleAmbientSoundChange = (soundId) => {
+    setLocalSessionSettings(prev => ({ ...prev, selectedAmbientSound: soundId }));
   };
 
   const handleExit = () => {
-    if (currentSession.isActive && currentSession.elapsed > 60) {
+    if (currentSession.isActive) {
       setShowExitConfirmation(true);
     } else {
-      navigate('/goals-dashboard');
+      confirmExit();
     }
   };
 
   const confirmExit = () => {
-    if (currentSession.isActive) {
-      endSession();
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
     navigate('/goals-dashboard');
   };
 
-  const handleSendChat = async () => {
-    if (!chatInput.trim() || !selectedGoal || !user) return;
+  const handleSendChat = async (message) => {
+    if (!selectedGoal || !message.trim()) return;
+
     const newMsg = {
       id: Date.now(),
-      content: chatInput.trim(),
-      timestamp: new Date().toISOString(),
-      userId: user.id,
-      goalId: selectedGoal.id
+      content: message,
+      timestamp: new Date(),
+      sender: 'user'
     };
+
     setGoalChatMessages(prev => [...prev, newMsg]);
     setChatInput('');
-    // Immediately update Drift's context (e.g., via a shared context, event, or queue)
-    window.dispatchEvent(new CustomEvent('drift-goal-chat', { detail: { goalId: selectedGoal.id, message: newMsg } }));
+    
+    // Save to localStorage
+    if (isAuthenticated && user) {
+      const chatKey = getGoalChatKey(selectedGoal.id, user.id);
+      const updatedChat = [...goalChatMessages, newMsg];
+      localStorage.setItem(chatKey, JSON.stringify(updatedChat));
+    }
   };
 
   const getBackgroundClass = () => {
@@ -501,28 +415,6 @@ const FocusMode = () => {
       default:
         return 'bg-background';
     }
-  };
-
-  // When user changes ambient sound in settings, update globalFocusSettings and persist
-  const handleAmbientSoundChange = (soundId) => {
-    setGlobalFocusSettings(prev => {
-      const updated = { ...prev, selectedAmbientSound: soundId };
-      
-      // Save to localStorage
-      if (isAuthenticated && user) {
-        const settingsKey = getStorageKey('app_settings');
-        if (settingsKey) {
-          const existing = localStorage.getItem(settingsKey);
-          let settings = {};
-          if (existing) {
-            try { settings = JSON.parse(existing); } catch {}
-          }
-          settings.focusMode = { ...settings.focusMode, ...updated };
-          localStorage.setItem(settingsKey, JSON.stringify(settings));
-        }
-      }
-      return updated;
-    });
   };
 
   return (
@@ -583,7 +475,7 @@ const FocusMode = () => {
           
           {selectedGoal && (
             <div className="flex items-center space-x-2 text-text-secondary text-sm">
-              <Icon name="Target" size={16} />
+              <Icon name="Target" className="w-4 h-4" />
               <span>Focusing on: {selectedGoal.title}</span>
             </div>
           )}
@@ -622,6 +514,8 @@ const FocusMode = () => {
             onToggle={isTimerActive ? pauseSession : (currentSession.id ? resumeSession : startSession)}
             onReset={resetSession}
             onStop={stopSession}
+            onEnd={endSession}
+            defaultDuration={focusSettings.defaultDuration * 60}
           />
         </div>
 
@@ -675,83 +569,28 @@ const FocusMode = () => {
       <SessionSettings
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        settings={sessionSettings}
+        settings={localSessionSettings}
         onSettingsChange={handleSettingsChange}
         onAmbientSoundChange={handleAmbientSoundChange}
+        focusSettings={focusSettings}
+        onFocusSettingsChange={updateFocusModeSettings}
+      />
+
+      {/* Floating Actions */}
+      <FocusFloatingActions
+        onToggleNotes={handleToggleNotes}
+        onToggleLinks={handleToggleLinks}
+        isNotesOpen={isNotesOpen}
+        isLinksOpen={isLinksOpen}
       />
 
       {/* Exit Confirmation */}
       <ExitConfirmation
         isOpen={showExitConfirmation}
+        onClose={() => setShowExitConfirmation(false)}
         onConfirm={confirmExit}
-        onCancel={() => setShowExitConfirmation(false)}
-        sessionData={{
-          elapsed: currentSession.elapsed,
-          goal: currentSession.goal,
-          notesCount: sessionNotes.length
-        }}
+        currentSession={currentSession}
       />
-
-      {/* Floating Action Button */}
-      <FocusFloatingActions
-        onToggleNotes={handleToggleNotes}
-        onToggleLinks={handleToggleLinks}
-        notesCount={sessionNotes.length}
-        linksCount={sessionLinks.length}
-        isNotesOpen={isNotesOpen}
-        isLinksOpen={isLinksOpen}
-      />
-
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-border px-4 py-2 flex items-center space-x-2" style={{ maxWidth: '100vw' }}>
-        <button
-          type="button"
-          className="p-2 rounded-full bg-primary text-white hover:bg-primary-dark transition-colors"
-          onClick={() => setIsChatHistoryOpen(v => !v)}
-          aria-label="Show chat history"
-        >
-          <Icon name={isChatHistoryOpen ? 'Minus' : 'Plus'} size={18} />
-        </button>
-        <input
-          type="text"
-          className="flex-1 px-4 py-2 rounded-lg border border-border bg-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder={selectedGoal ? `Update Drift or log progress for "${selectedGoal.title}"...` : 'Select a goal to log progress...'}
-          value={chatInput}
-          onChange={e => setChatInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleSendChat(); }}
-          disabled={!selectedGoal}
-        />
-        <Button
-          variant="primary"
-          size="md"
-          onClick={handleSendChat}
-          disabled={!chatInput.trim() || !selectedGoal}
-          iconName="Send"
-          iconPosition="left"
-        >
-          Send
-        </Button>
-      </div>
-
-      {/* Chat History Panel (replaces notes if open) */}
-      {isChatHistoryOpen && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 max-h-48 overflow-y-auto bg-surface border-t border-border px-4 py-2 shadow-lg" style={{ maxWidth: '100vw' }}>
-          <div className="space-y-2">
-            {goalChatMessages.length === 0 ? (
-              <div className="text-text-secondary text-sm text-center py-4">No chat history for this goal yet.</div>
-            ) : (
-              goalChatMessages.map(msg => (
-                <div key={msg.id} className="flex items-start space-x-2 py-2">
-                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-text-secondary">{new Date(msg.timestamp).toLocaleString()}</div>
-                    <div className="text-sm text-text-primary bg-surface-700 rounded-lg px-3 py-2 mt-1 break-words">{msg.content}</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

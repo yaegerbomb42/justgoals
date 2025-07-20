@@ -1,38 +1,23 @@
-import React from 'react';
-import Icon from '../../../components/AppIcon';
+import React, { useState } from 'react';
+import { useSettings } from '../../../context/SettingsContext';
+import Icon from '../../../components/ui/Icon';
 
-const FocusModeSection = ({ settings, onSettingChange }) => {
-  // Extract values from settings.focusMode, providing defaults
-  const focusModeSettings = settings?.focusMode || {};
-  const focusSessionDuration = focusModeSettings?.defaultDuration || 25;
-  const shortBreakDuration = focusModeSettings?.shortBreakDuration || 5;
-  const longBreakDuration = focusModeSettings?.longBreakDuration || 15;
-  const ambientSoundsEnabled = focusModeSettings?.soundEnabled !== undefined ? focusModeSettings.soundEnabled : true;
-  const selectedAmbientSound = focusModeSettings?.selectedAmbientSound || 'none';
+const FocusModeSection = () => {
+  const { settings, updateFocusModeSettings } = useSettings();
+  const [localSettings, setLocalSettings] = useState(settings?.focusMode || {});
 
-  // Handlers to update settings via onSettingChange
-  const handleChange = (key, value) => {
-    // Ensure numeric values for durations are parsed correctly
-    const numericKeys = ['defaultDuration', 'shortBreakDuration', 'longBreakDuration'];
-    const valToSet = numericKeys.includes(key) ? parseInt(value, 10) : value;
-    onSettingChange('focusMode', key, valToSet);
+  const handleSettingChange = (key, value) => {
+    const updated = { ...localSettings, [key]: value };
+    setLocalSettings(updated);
+    updateFocusModeSettings(updated);
   };
 
-  const durationOptions = [
-    { value: 15, label: '15 minutes' },
-    { value: 25, label: '25 minutes' },
-    { value: 30, label: '30 minutes' },
-    { value: 45, label: '45 minutes' },
-    { value: 60, label: '1 hour' },
-    { value: 90, label: '1.5 hours' }
-  ];
-
-  const breakOptions = [
-    { value: 5, label: '5 minutes' },
-    { value: 10, label: '10 minutes' },
-    { value: 15, label: '15 minutes' },
-    { value: 20, label: '20 minutes' },
-    { value: 30, label: '30 minutes' }
+  const presetDurations = [
+    { label: '15 min', value: 15, icon: 'Clock' },
+    { label: '25 min', value: 25, icon: 'Timer' },
+    { label: '45 min', value: 45, icon: 'Clock' },
+    { label: '60 min', value: 60, icon: 'Clock' },
+    { label: '90 min', value: 90, icon: 'Clock' }
   ];
 
   const ambientSoundOptions = [
@@ -41,130 +26,223 @@ const FocusModeSection = ({ settings, onSettingChange }) => {
     { id: 'forest', name: 'Forest', icon: 'Trees' },
     { id: 'ocean', name: 'Ocean Waves', icon: 'Waves' },
     { id: 'cafe', name: 'Coffee Shop', icon: 'Coffee' },
-    { id: 'whitenoise', name: 'White Noise', icon: 'Radio' }
+    { id: 'whitenoise', name: 'White Noise', icon: 'Radio' },
+    { id: 'chime', name: 'Gentle Chime', icon: 'Bell' }
   ];
 
   return (
-    <div className="bg-surface rounded-lg p-6 border border-border">
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="w-8 h-8 bg-gradient-to-br from-primary to-warning rounded-lg flex items-center justify-center">
-          <Icon name="Focus" size={16} color="#FFFFFF" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center space-x-3">
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Icon name="Zap" className="w-5 h-5 text-primary" />
         </div>
         <div>
           <h3 className="text-lg font-heading-semibold text-text-primary">Focus Mode</h3>
-          <p className="text-sm text-text-secondary">Configure your focus sessions and break preferences</p>
+          <p className="text-sm text-text-secondary">Configure your focus session settings and preferences</p>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Focus Session Duration */}
-        <div>
-          <label className="block text-sm font-body-medium text-text-primary mb-2">
-            Focus Session Duration
-          </label>
-          <select
-            value={focusSessionDuration}
-            onChange={(e) => handleChange('defaultDuration', e.target.value)}
-            className="w-full px-3 py-2 bg-surface-800 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            {durationOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Break Durations */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-body-medium text-text-primary mb-2">
-              Short Break Duration
-            </label>
-            <select
-              value={shortBreakDuration}
-              onChange={(e) => handleChange('shortBreakDuration', e.target.value)}
-              className="w-full px-3 py-2 bg-surface-800 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+      {/* Session Duration */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-text-primary">Session Duration</h4>
+        
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {presetDurations.map((preset) => (
+            <button
+              key={preset.value}
+              onClick={() => handleSettingChange('defaultDuration', preset.value)}
+              className={`
+                p-3 rounded-lg border transition-all duration-200 text-center
+                ${localSettings.defaultDuration === preset.value
+                  ? 'border-primary bg-primary/10 text-primary' :'border-border text-text-secondary hover:text-text-primary hover:border-border-strong'
+                }
+              `}
             >
-              {breakOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-body-medium text-text-primary mb-2">
-              Long Break Duration
-            </label>
-            <select
-              value={longBreakDuration}
-              onChange={(e) => handleChange('longBreakDuration', e.target.value)}
-              className="w-full px-3 py-2 bg-surface-800 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              {breakOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+              <Icon name={preset.icon} className="w-4 h-4 mx-auto mb-1" />
+              <div className="text-xs font-caption">{preset.label}</div>
+            </button>
+          ))}
         </div>
+        
+        {/* Custom Duration */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="number"
+            placeholder="Custom minutes"
+            value={localSettings.defaultDuration || 25}
+            onChange={(e) => handleSettingChange('defaultDuration', parseInt(e.target.value) || 25)}
+            min="1"
+            max="180"
+            className="flex-1 px-3 py-2 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <span className="text-text-secondary text-sm">minutes</span>
+        </div>
+      </div>
 
-        {/* Ambient Sounds */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-body-medium text-text-primary">
-              Ambient Sounds
-            </label>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={ambientSoundsEnabled}
-                onChange={(e) => handleChange('soundEnabled', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="relative w-11 h-6 bg-surface-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-          </div>
-
-          {ambientSoundsEnabled && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {ambientSoundOptions.map((sound) => (
-                <button
-                  key={sound.id}
-                  onClick={() => handleChange('selectedAmbientSound', sound.id)}
-                  className={`
-                    flex flex-col items-center space-y-2 p-3 rounded-lg border transition-all duration-normal
-                    ${selectedAmbientSound === sound.id
-                      ? 'border-primary bg-primary/5' :'border-border hover:border-border-strong hover:bg-surface-700'
-                    }
-                  `}
-                >
-                  <Icon 
-                    name={sound.icon} 
-                    size={20} 
-                    color={selectedAmbientSound === sound.id ? '#6366F1' : '#94A3B8'} 
-                  />
-                  <span className="text-xs font-caption text-text-primary text-center">{sound.name}</span>
-                  {selectedAmbientSound === sound.id && (
-                    <Icon name="Check" size={12} color="#6366F1" />
-                  )}
-                </button>
-              ))}
+      {/* Break Settings */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-text-primary">Break Settings</h4>
+        
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-text-primary">Short Break Duration</label>
+              <p className="text-xs text-text-secondary">Duration of short breaks between sessions</p>
             </div>
-          )}
+            <div className="flex items-center space-x-2">
+              <input
+                type="number"
+                value={localSettings.breakDuration || 5}
+                onChange={(e) => handleSettingChange('breakDuration', parseInt(e.target.value) || 5)}
+                min="1"
+                max="30"
+                className="w-16 px-2 py-1 bg-surface-600 border border-border rounded text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span className="text-text-secondary text-sm">min</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-text-primary">Long Break Duration</label>
+              <p className="text-xs text-text-secondary">Duration of long breaks after multiple sessions</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="number"
+                value={localSettings.longBreakDuration || 15}
+                onChange={(e) => handleSettingChange('longBreakDuration', parseInt(e.target.value) || 15)}
+                min="5"
+                max="60"
+                className="w-16 px-2 py-1 bg-surface-600 border border-border rounded text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span className="text-text-secondary text-sm">min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sound Settings */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-text-primary">Sound Settings</h4>
+        
+        {/* Enable/Disable Ambient Sounds */}
+        <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
+          <div>
+            <label className="text-sm font-medium text-text-primary">Ambient Sounds</label>
+            <p className="text-xs text-text-secondary">Play background sounds during focus sessions</p>
+          </div>
+          <button
+            onClick={() => handleSettingChange('ambientSounds', !localSettings.ambientSounds)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+              localSettings.ambientSounds ? 'bg-primary' : 'bg-surface-600'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                localSettings.ambientSounds ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
         </div>
 
-        <div className="bg-surface-800 rounded-lg p-4">
-          <h4 className="text-sm font-heading-medium text-text-primary mb-2">Focus Session Tips</h4>
-          <ul className="text-xs text-text-secondary space-y-1 font-caption">
-            <li>• 25-minute sessions are scientifically proven for optimal focus</li>
-            <li>• Take regular breaks to maintain productivity throughout the day</li>
-            <li>• Ambient sounds can help mask distracting background noise</li>
-            <li>• Long breaks every 4 sessions help prevent mental fatigue</li>
-          </ul>
+        {/* Sound Volume */}
+        {localSettings.ambientSounds && (
+          <div className="p-3 bg-surface-700 rounded-lg border border-border">
+            <label className="block text-sm font-medium text-text-primary mb-2">
+              Sound Volume: {Math.round((localSettings.soundVolume || 0.5) * 100)}%
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={localSettings.soundVolume || 0.5}
+              onChange={(e) => handleSettingChange('soundVolume', parseFloat(e.target.value))}
+              className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
+        )}
+
+        {/* Background Effects */}
+        <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
+          <div>
+            <label className="text-sm font-medium text-text-primary">Background Effects</label>
+            <p className="text-xs text-text-secondary">Show animated background effects during focus sessions</p>
+          </div>
+          <button
+            onClick={() => handleSettingChange('backgroundEffects', !localSettings.backgroundEffects)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+              localSettings.backgroundEffects ? 'bg-primary' : 'bg-surface-600'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                localSettings.backgroundEffects ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Auto-start Settings */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-text-primary">Auto-start Settings</h4>
+        
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
+            <div>
+              <label className="text-sm font-medium text-text-primary">Auto-start Breaks</label>
+              <p className="text-xs text-text-secondary">Automatically start break timer after focus session</p>
+            </div>
+            <button
+              onClick={() => handleSettingChange('autoStartBreaks', !localSettings.autoStartBreaks)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                localSettings.autoStartBreaks ? 'bg-primary' : 'bg-surface-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
+                  localSettings.autoStartBreaks ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
+            <div>
+              <label className="text-sm font-medium text-text-primary">Auto-start Sessions</label>
+              <p className="text-xs text-text-secondary">Automatically start focus session when goal is selected</p>
+            </div>
+            <button
+              onClick={() => handleSettingChange('autoStartSessions', !localSettings.autoStartSessions)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                localSettings.autoStartSessions ? 'bg-primary' : 'bg-surface-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
+                  localSettings.autoStartSessions ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Box */}
+      <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+        <div className="flex items-start space-x-3">
+          <Icon name="Info" className="w-5 h-5 text-primary mt-0.5" />
+          <div>
+            <h4 className="text-sm font-medium text-primary mb-1">Focus Mode Tips</h4>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Focus mode helps you maintain concentration on your goals. Ambient sounds can improve focus, 
+              while background effects create a calming environment. Adjust these settings to match your 
+              personal productivity preferences.
+            </p>
+          </div>
         </div>
       </div>
     </div>
