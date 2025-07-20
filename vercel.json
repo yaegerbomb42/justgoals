@@ -2,6 +2,12 @@
   "rewrites": [
     { "source": "/__/auth/handler", "destination": "/index.html" },
     { "source": "/assets/:match*", "destination": "/assets/:match*" },
-    { "source": "/:path*", "destination": "/index.html" }
+    {
+      "source": "/:path*",
+      "destination": "/index.html",
+      "missing": [
+        { "type": "file" }
+      ]
+    }
   ]
 }
