@@ -471,10 +471,10 @@ const DayPlanner = () => {
           <Button
             variant="outline"
             iconName="Calendar"
-            onClick={handleCalendarSync}
+            onClick={handleGoogleLink}
             className="ml-2"
           >
-            Sync with Google Calendar
+            Link Google Calendar
           </Button>
         </div>
         {syncStatus && (
@@ -582,21 +582,6 @@ const DayPlanner = () => {
             <p className="text-text-secondary">
               Unable to connect to Gemini API. Please check your API key in Settings.
             </p>
-          </div>
-        ) : !googleLinked ? (
-          <div className="text-center py-12">
-            <Icon name="Link" className="w-16 h-16 mx-auto text-text-muted mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">Google Calendar Not Linked</h3>
-            <p className="text-text-secondary">
-              Please link your Google Calendar to sync events and reminders.
-            </p>
-            <Button
-              onClick={handleGoogleLink}
-              iconName="Link"
-              className="mt-4"
-            >
-              Link Google Calendar
-            </Button>
           </div>
         ) : dayPlan.length === 0 ? (
           <div className="text-center py-12">

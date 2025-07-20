@@ -31,17 +31,12 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
           placeholder={placeholder}
           disabled={isProcessing}
           className={`
-            w-full resize-none bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12
-            text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50
+            w-full resize-none bg-surface-700 border border-border rounded-xl px-4 py-3 pr-12
+            text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/50
             transition-all duration-200 min-h-[48px] max-h-32
-            ${isFocused ? 'border-purple-500/50 bg-white/10' : ''}
+            ${isFocused ? 'border-primary/50 bg-surface-600' : ''}
             ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
           `}
-          style={{ 
-            background: isFocused 
-              ? 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))' 
-              : 'rgba(255,255,255,0.05)'
-          }}
         />
         
         {/* Send Button */}
@@ -53,8 +48,8 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
             w-8 h-8 rounded-lg flex items-center justify-center
             transition-all duration-200
             ${message.trim() && !isProcessing
-              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-lg'
-              : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
+              ? 'bg-primary text-primary-foreground hover:bg-primary-dark shadow-lg'
+              : 'bg-surface-600 text-text-secondary cursor-not-allowed'
             }
           `}
           whileHover={message.trim() && !isProcessing ? { scale: 1.05 } : {}}
@@ -70,7 +65,7 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
       
       {/* Character count and status */}
       <div className="flex justify-between items-center mt-2 px-1">
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-text-secondary">
           {message.length}/2000
         </span>
         <div className="flex items-center space-x-2">
@@ -80,8 +75,8 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
               animate={{ opacity: 1 }}
               className="flex items-center space-x-1"
             >
-              <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-              <span className="text-xs text-purple-400">Processing...</span>
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-xs text-primary">Processing...</span>
             </motion.div>
           )}
         </div>

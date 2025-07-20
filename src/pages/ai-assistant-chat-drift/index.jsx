@@ -128,9 +128,9 @@ const AiAssistantChatDrift = () => {
       setMessages([
         {
           id: 'intro',
-          sender: 'drift',
-          text: "Hi! I'm Drift, your AI assistant. I can help you plan your day, add goals, milestones, or habits, and track your progress. What would you like to do today?",
-          timestamp: Date.now(),
+          sender: 'ai',
+          content: "Hi! I'm Drift, your AI assistant. I can help you plan your day, add goals, milestones, or habits, and track your progress. What would you like to do today?",
+          timestamp: new Date().toISOString()
         },
       ]);
     }
@@ -198,7 +198,7 @@ const AiAssistantChatDrift = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-background">
         <Header title="Drift AI Assistant" />
         <div className="flex items-center justify-center min-h-screen">
           <motion.div
@@ -207,11 +207,11 @@ const AiAssistantChatDrift = () => {
             className="text-center"
           >
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-              <div className="absolute inset-0 w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" style={{ animationDelay: '-0.5s' }}></div>
+              <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+              <div className="absolute inset-0 w-16 h-16 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto" style={{ animationDelay: '-0.5s' }}></div>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Loading Drift</h2>
-            <p className="text-purple-200">Preparing your AI assistant...</p>
+            <h2 className="text-2xl font-bold text-text-primary mb-2">Loading Drift</h2>
+            <p className="text-text-secondary">Preparing your AI assistant...</p>
           </motion.div>
         </div>
       </div>
@@ -221,7 +221,7 @@ const AiAssistantChatDrift = () => {
   // Show error if connection failed
   if (!apiKey || !isConnected) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-background">
         <Header title="Drift AI Assistant" />
         <div className="flex items-center justify-center min-h-screen">
           <motion.div
@@ -229,18 +229,17 @@ const AiAssistantChatDrift = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center max-w-md mx-auto p-8"
           >
-            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Icon name={!apiKey ? "MessageCircle" : "AlertCircle"} className="w-10 h-10 text-red-400" />
+            <div className="w-20 h-20 bg-error/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Icon name={!apiKey ? "MessageCircle" : "AlertCircle"} className="w-10 h-10 text-error" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">{!apiKey ? 'API Key Required' : 'Connection Failed'}</h3>
-            <p className="text-purple-200 mb-8 leading-relaxed">
+            <h3 className="text-2xl font-bold text-text-primary mb-4">{!apiKey ? 'API Key Required' : 'Connection Failed'}</h3>
+            <p className="text-text-secondary mb-8 leading-relaxed">
               {connectionError || (!apiKey ? 'Please configure your Gemini API key in Settings to chat with Drift.' : 'Unable to connect to Gemini API. Please check your API key in Settings.')}
             </p>
             <Button 
               variant="outline" 
               iconName="RefreshCw" 
               onClick={() => window.location.reload()}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
               Retry Connection
             </Button>
@@ -252,7 +251,7 @@ const AiAssistantChatDrift = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-background">
       <Header title="Drift AI Assistant" />
       
       <div className="flex flex-col h-screen pt-16">
@@ -337,7 +336,7 @@ const AiAssistantChatDrift = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-4"
+                className="bg-surface rounded-2xl border border-border p-4 shadow-lg"
               >
                 <MessageInput
                   message={message}

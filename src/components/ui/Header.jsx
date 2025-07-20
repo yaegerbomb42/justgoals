@@ -107,20 +107,20 @@ const Header = () => {
   // Move navigation items left, and group profile/achievement on the right
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Left: Logo and Navigation */}
-          <div className="flex items-center space-x-2 md:space-x-4 lg:space-x-6">
+          <div className="flex items-center space-x-1 md:space-x-2 lg:space-x-3">
             {/* Download Dropdown */}
             <div className="relative" ref={downloadMenuRef}>
               <button
-                className="flex items-center px-2 py-1 rounded hover:bg-surface-700 transition-colors"
+                className="flex items-center px-1 py-1 rounded hover:bg-surface-700 transition-colors"
                 onClick={() => setShowDownloadMenu(v => !v)}
                 aria-label="Download App"
               >
-                <Icon name="Download" size={18} className="mr-1" />
-                <span className="font-body-medium text-sm">Download</span>
-                <svg className="ml-1 w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                <Icon name="Download" size={16} className="mr-1" />
+                <span className="font-body-medium text-xs">Download</span>
+                <svg className="ml-1 w-2 h-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
               </button>
               {showDownloadMenu && (
                 <div className="absolute left-0 mt-2 w-48 bg-surface-800 border border-border rounded shadow-lg z-50">
@@ -145,20 +145,20 @@ const Header = () => {
               )}
             </div>
             {/* App Logo/Title */}
-            <Link to="/goals-dashboard" className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
-                <Icon name="Target" size={20} color="#FFFFFF" />
+            <Link to="/goals-dashboard" className="flex items-center space-x-1">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
+                <Icon name="Target" size={16} color="#FFFFFF" />
               </div>
-              <span className="text-xl font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
+              <span className="text-lg font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
             </Link>
             {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-1 lg:space-x-2 xl:space-x-3">
+            <nav className="hidden md:flex items-center space-x-1">
               {navigationItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={`
-                    flex items-center space-x-1 px-2 py-2 rounded-lg text-sm font-body-medium transition-colors
+                    flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-body-medium transition-colors
                     ${isActive(item.path)
                       ? 'bg-primary text-primary-foreground'
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
@@ -166,7 +166,7 @@ const Header = () => {
                   `}
                   style={item.label === 'Drift AI' ? { whiteSpace: 'nowrap', minWidth: 0 } : {}}
                 >
-                  <Icon name={item.icon} size={16} />
+                  <Icon name={item.icon} size={14} />
                   <span className={item.label === 'Drift AI' ? 'whitespace-nowrap' : ''}>{item.label}</span>
                 </Link>
               ))}
@@ -174,7 +174,7 @@ const Header = () => {
           </div>
 
           {/* Right: Profile, Achievements, Settings */}
-          <div className="flex items-center space-x-3 ml-auto">
+          <div className="flex items-center space-x-2 ml-auto">
             {/* Achievement Badge */}
             <div className="relative flex items-center">
               <button
@@ -182,14 +182,14 @@ const Header = () => {
                 onClick={() => navigate('/achievements')}
                 title="Achievements"
               >
-                <Icon name="Award" className="text-yellow-600 mr-1" size={16} />
-                <span className="font-bold text-yellow-700 text-sm">{userPoints || 0}</span>
+                <Icon name="Award" className="text-yellow-600 mr-1" size={14} />
+                <span className="font-bold text-yellow-700 text-xs">{userPoints || 0}</span>
               </button>
             </div>
             {/* Profile Icon & Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-200 text-primary-900 font-bold border-2 border-primary-400 hover:shadow-lg transition-colors"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-primary-200 text-primary-900 font-bold border-2 border-primary-400 hover:shadow-lg transition-colors"
                 onClick={() => setProfileMenuOpen((v) => !v)}
                 title="Profile"
               >
@@ -231,11 +231,11 @@ const Header = () => {
             </div>
             {/* Settings Tab (icon) */}
             <button
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
               onClick={() => navigate('/settings-configuration')}
               title="Settings"
             >
-              <Icon name="Settings" className="text-primary-500" size={18} />
+              <Icon name="Settings" className="text-primary-500" size={16} />
             </button>
           </div>
         </div>

@@ -539,7 +539,8 @@ class CalendarSyncService {
 
   // Get Google OAuth URL for user to authenticate
   getGoogleAuthUrl(redirectUri) {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+    // TODO: Replace with your actual Google OAuth client ID
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id-here';
     const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email');
     const state = Math.random().toString(36).substring(2, 15); // Optionally store for CSRF
     return `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
