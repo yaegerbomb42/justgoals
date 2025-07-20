@@ -398,7 +398,7 @@ class NotificationService {
 
     const notification = new Notification(options.title, {
       body: options.body,
-      icon: options.icon,
+      icon: '/favicon.ico',
       tag: options.tag,
       requireInteraction: options.requireInteraction || false,
       data: options.data || {},

@@ -10,7 +10,6 @@ const NotificationSection = () => {
   const { settings, updateNotificationSettings } = useSettings();
   const { user } = useAuth();
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showChannels, setShowChannels] = useState(false);
   const [testStatus, setTestStatus] = useState({});
 
   const handleToggle = (key) => {
@@ -47,7 +46,7 @@ const NotificationSection = () => {
     });
     
     if (email) {
-      emailNotificationService.init(email, 'gmail');
+      emailNotificationService.init(email, 'emailjs');
     }
   };
 
@@ -177,171 +176,159 @@ const NotificationSection = () => {
 
       {/* Notification Channels */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium text-text-primary">Notification Channels</h4>
-          <button
-            onClick={() => setShowChannels(!showChannels)}
-            className="flex items-center space-x-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
-          >
-            <Icon name={showChannels ? "ChevronUp" : "ChevronDown"} className="w-4 h-4" />
-            <span>{showChannels ? 'Hide' : 'Show'} Channels</span>
-          </button>
+        <h4 className="font-medium text-text-primary">Notification Channels</h4>
+        
+        {/* Browser Notifications */}
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Icon name="Globe" className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <h5 className="font-medium text-text-primary">Browser Notifications</h5>
+                <p className="text-sm text-text-secondary">Push notifications in your browser</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleTestNotification('browser')}
+              disabled={!settings.notifications.enabled}
+              className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('browser')} ${
+                !settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {getTestButtonContent('browser')}
+            </button>
+          </div>
+          <p className="text-xs text-text-secondary">
+            Works when the app is open. Install as PWA for background notifications.
+          </p>
         </div>
 
-        {showChannels && (
-          <div className="space-y-4">
-            {/* Browser Notifications */}
-            <div className="bg-surface-700 rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-500/10 rounded-lg">
-                    <Icon name="Globe" className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-text-primary">Browser Notifications</h5>
-                    <p className="text-sm text-text-secondary">Push notifications in your browser</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleTestNotification('browser')}
-                  disabled={!settings.notifications.enabled}
-                  className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('browser')} ${
-                    !settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {getTestButtonContent('browser')}
-                </button>
+        {/* Email Notifications */}
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <Icon name="Mail" className="w-4 h-4 text-green-500" />
               </div>
-              <p className="text-xs text-text-secondary">
-                Works when the app is open. Install as PWA for background notifications.
-              </p>
-            </div>
-
-            {/* Email Notifications */}
-            <div className="bg-surface-700 rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-500/10 rounded-lg">
-                    <Icon name="Mail" className="w-4 h-4 text-green-500" />
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-text-primary">Email Notifications</h5>
-                    <p className="text-sm text-text-secondary">Receive notifications via email</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleTestNotification('email')}
-                  disabled={!settings.notifications.enabled || !settings.notifications.email?.address}
-                  className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('email')} ${
-                    !settings.notifications.enabled || !settings.notifications.email?.address ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {getTestButtonContent('email')}
-                </button>
-              </div>
-              <div className="space-y-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={settings.notifications.email?.address || ''}
-                  onChange={(e) => handleEmailChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <p className="text-xs text-text-secondary">
-                  Free via Gmail SMTP (500/day), SendGrid (100/day), or Mailgun (5,000/month)
-                </p>
+              <div>
+                <h5 className="font-medium text-text-primary">Email Notifications</h5>
+                <p className="text-sm text-text-secondary">Receive notifications via email</p>
               </div>
             </div>
-
-            {/* SMS Notifications */}
-            <div className="bg-surface-700 rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-purple-500/10 rounded-lg">
-                    <Icon name="Smartphone" className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-text-primary">SMS Notifications</h5>
-                    <p className="text-sm text-text-secondary">Receive notifications via text message</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleTestNotification('sms')}
-                  disabled={!settings.notifications.enabled || !settings.notifications.sms?.phoneNumber}
-                  className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('sms')} ${
-                    !settings.notifications.enabled || !settings.notifications.sms?.phoneNumber ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {getTestButtonContent('sms')}
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input
-                  type="tel"
-                  placeholder="Phone number (e.g., 555-123-4567)"
-                  value={settings.notifications.sms?.phoneNumber || ''}
-                  onChange={(e) => handleSMSChange(e.target.value, settings.notifications.sms?.carrier)}
-                  className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <select
-                  value={settings.notifications.sms?.carrier || ''}
-                  onChange={(e) => handleSMSChange(settings.notifications.sms?.phoneNumber, e.target.value)}
-                  className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Select carrier</option>
-                  <option value="att">AT&T</option>
-                  <option value="verizon">Verizon</option>
-                  <option value="tmobile">T-Mobile</option>
-                  <option value="sprint">Sprint</option>
-                  <option value="boost">Boost Mobile</option>
-                  <option value="cricket">Cricket</option>
-                  <option value="metro">Metro PCS</option>
-                  <option value="uscellular">US Cellular</option>
-                  <option value="virgin">Virgin Mobile</option>
-                </select>
-              </div>
-              <p className="text-xs text-text-secondary mt-2">
-                Free via email-to-SMS gateways. Works with most US carriers.
-              </p>
-            </div>
-
-            {/* Discord Notifications */}
-            <div className="bg-surface-700 rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-indigo-500/10 rounded-lg">
-                    <Icon name="MessageCircle" className="w-4 h-4 text-indigo-500" />
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-text-primary">Discord Notifications</h5>
-                    <p className="text-sm text-text-secondary">Receive notifications in Discord</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleTestNotification('discord')}
-                  disabled={!settings.notifications.enabled || !settings.notifications.discord?.webhookUrl}
-                  className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('discord')} ${
-                    !settings.notifications.enabled || !settings.notifications.discord?.webhookUrl ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {getTestButtonContent('discord')}
-                </button>
-              </div>
-              <div className="space-y-2">
-                <input
-                  type="url"
-                  placeholder="Discord webhook URL"
-                  value={settings.notifications.discord?.webhookUrl || ''}
-                  onChange={(e) => handleDiscordChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <p className="text-xs text-text-secondary">
-                  Free and unlimited. Create a webhook in your Discord server settings.
-                </p>
-              </div>
-            </div>
+            <button
+              onClick={() => handleTestNotification('email')}
+              disabled={!settings.notifications.enabled || !settings.notifications.email?.address}
+              className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('email')} ${
+                !settings.notifications.enabled || !settings.notifications.email?.address ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {getTestButtonContent('email')}
+            </button>
           </div>
-        )}
+          <div className="space-y-2">
+            <input
+              type="email"
+              placeholder="Enter your email address"
+              value={settings.notifications.email?.address || ''}
+              onChange={(e) => handleEmailChange(e.target.value)}
+              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-text-secondary">
+              Free via EmailJS (200/month), SendGrid (100/day), or Mailgun (5,000/month)
+            </p>
+          </div>
+        </div>
+
+        {/* SMS Notifications */}
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-purple-500/10 rounded-lg">
+                <Icon name="Smartphone" className="w-4 h-4 text-purple-500" />
+              </div>
+              <div>
+                <h5 className="font-medium text-text-primary">SMS Notifications</h5>
+                <p className="text-sm text-text-secondary">Receive notifications via text message</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleTestNotification('sms')}
+              disabled={!settings.notifications.enabled || !settings.notifications.sms?.phoneNumber}
+              className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('sms')} ${
+                !settings.notifications.enabled || !settings.notifications.sms?.phoneNumber ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {getTestButtonContent('sms')}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <input
+              type="tel"
+              placeholder="Phone number (e.g., 555-123-4567)"
+              value={settings.notifications.sms?.phoneNumber || ''}
+              onChange={(e) => handleSMSChange(e.target.value, settings.notifications.sms?.carrier)}
+              className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <select
+              value={settings.notifications.sms?.carrier || ''}
+              onChange={(e) => handleSMSChange(settings.notifications.sms?.phoneNumber, e.target.value)}
+              className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Select carrier</option>
+              <option value="att">AT&T</option>
+              <option value="verizon">Verizon</option>
+              <option value="tmobile">T-Mobile</option>
+              <option value="sprint">Sprint</option>
+              <option value="boost">Boost Mobile</option>
+              <option value="cricket">Cricket</option>
+              <option value="metro">Metro PCS</option>
+              <option value="uscellular">US Cellular</option>
+              <option value="virgin">Virgin Mobile</option>
+              <option value="xfinity">Xfinity Mobile</option>
+            </select>
+          </div>
+          <p className="text-xs text-text-secondary mt-2">
+            Free via email-to-SMS gateways. Works with most US carriers.
+          </p>
+        </div>
+
+        {/* Discord Notifications */}
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-indigo-500/10 rounded-lg">
+                <Icon name="MessageCircle" className="w-4 h-4 text-indigo-500" />
+              </div>
+              <div>
+                <h5 className="font-medium text-text-primary">Discord Notifications</h5>
+                <p className="text-sm text-text-secondary">Receive notifications in Discord</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleTestNotification('discord')}
+              disabled={!settings.notifications.enabled || !settings.notifications.discord?.webhookUrl}
+              className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('discord')} ${
+                !settings.notifications.enabled || !settings.notifications.discord?.webhookUrl ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {getTestButtonContent('discord')}
+            </button>
+          </div>
+          <div className="space-y-2">
+            <input
+              type="url"
+              placeholder="Discord webhook URL"
+              value={settings.notifications.discord?.webhookUrl || ''}
+              onChange={(e) => handleDiscordChange(e.target.value)}
+              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-text-secondary">
+              Free and unlimited. Create a webhook in your Discord server settings.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Notification Types */}
@@ -603,7 +590,7 @@ const NotificationSection = () => {
             <p className="text-xs text-text-secondary leading-relaxed">
               Configure multiple notification channels to stay on track with your goals. All services are completely free:
               <br />• <strong>Browser:</strong> Works when app is open, install as PWA for background notifications
-              <br />• <strong>Email:</strong> Free via Gmail, SendGrid, or Mailgun
+              <br />• <strong>Email:</strong> Free via EmailJS (200/month), SendGrid (100/day), or Mailgun (5,000/month)
               <br />• <strong>SMS:</strong> Free via email-to-SMS gateways (most US carriers)
               <br />• <strong>Discord:</strong> Free and unlimited via webhooks
             </p>

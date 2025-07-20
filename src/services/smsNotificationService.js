@@ -16,7 +16,8 @@ class SMSNotificationService {
       'cricket': '@sms.cricketwireless.net',
       'metro': '@mymetropcs.com',
       'uscellular': '@email.uscc.net',
-      'virgin': '@vmobl.com'
+      'virgin': '@vmobl.com',
+      'xfinity': '@vtext.com'
     };
   }
 

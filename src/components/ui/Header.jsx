@@ -55,6 +55,7 @@ const Header = () => {
     { path: '/journal', label: 'Journal', icon: 'BookOpen' },
     { path: '/analytics-dashboard', label: 'Analytics', icon: 'BarChart3' },
     { path: '/ai-assistant-chat-drift', label: 'Drift', icon: 'MessageCircle' },
+    { path: '/settings-configuration', label: 'Settings', icon: 'Settings' },
   ];
 
   const getCurrentPage = () => {
@@ -168,15 +169,7 @@ const Header = () => {
                     {/* Menu Items */}
                     <div className="p-2">
                       <button
-                        className="w-full flex items-center space-x-3 px-3 py-2 text-left text-text-primary hover:bg-surface-700 rounded-lg transition-colors duration-200"
-                        onClick={() => navigate('/settings-configuration')}
-                      >
-                        <Icon name="Settings" className="w-4 h-4 text-primary" />
-                        <span className="text-sm">Settings</span>
-                      </button>
-                      
-                      <button
-                        className="w-full flex items-center space-x-3 px-3 py-2 text-left text-red-500 hover:bg-red-500/10 rounded-lg transition-colors duration-200 mt-1"
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-left text-red-500 hover:bg-red-500/10 rounded-lg transition-colors duration-200"
                         onClick={handleLogout}
                       >
                         <Icon name="LogOut" className="w-4 h-4" />

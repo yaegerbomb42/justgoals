@@ -1,18 +1,25 @@
 // Free Email Notification Service
-// Uses Gmail SMTP or other free email providers
+// Uses EmailJS (free tier) or other free email providers
 
 class EmailNotificationService {
   constructor() {
     this.isEnabled = false;
     this.userEmail = null;
-    this.provider = 'gmail'; // gmail, sendgrid, mailgun
+    this.provider = 'emailjs'; // emailjs, sendgrid, mailgun
+    this.emailjsUserId = null;
   }
 
   // Initialize with user email
-  init(userEmail, provider = 'gmail') {
+  init(userEmail, provider = 'emailjs') {
     this.userEmail = userEmail;
     this.provider = provider;
     this.isEnabled = !!userEmail;
+    
+    // For EmailJS, you'd need to set up a template and service
+    // This is a simplified version that would work with EmailJS
+    if (provider === 'emailjs') {
+      this.emailjsUserId = process.env.REACT_APP_EMAILJS_USER_ID;
+    }
   }
 
   // Send email notification using free services
@@ -24,14 +31,14 @@ class EmailNotificationService {
 
     try {
       switch (this.provider) {
-        case 'gmail':
-          return await this.sendViaGmail(subject, body, options);
+        case 'emailjs':
+          return await this.sendViaEmailJS(subject, body, options);
         case 'sendgrid':
           return await this.sendViaSendGrid(subject, body, options);
         case 'mailgun':
           return await this.sendViaMailgun(subject, body, options);
         default:
-          return await this.sendViaGmail(subject, body, options);
+          return await this.sendViaEmailJS(subject, body, options);
       }
     } catch (error) {
       console.error('Email notification failed:', error);
@@ -39,28 +46,36 @@ class EmailNotificationService {
     }
   }
 
-  // Gmail SMTP (Free - 500 emails/day)
-  async sendViaGmail(subject, body, options = {}) {
-    // This would typically use a backend API endpoint
-    // For now, we'll simulate the email sending
-    const emailData = {
-      to: this.userEmail,
-      subject,
-      body,
-      from: 'justgoals@yourdomain.com',
+  // EmailJS (Free - 200 emails/month)
+  async sendViaEmailJS(subject, body, options = {}) {
+    // EmailJS is a client-side email service
+    // You need to set up a template in EmailJS dashboard
+    const templateParams = {
+      to_email: this.userEmail,
+      subject: subject,
+      message: body,
+      from_name: 'JustGoals',
       ...options
     };
 
-    // In production, you'd send this to your backend API
-    console.log('Sending email via Gmail:', emailData);
-    
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Email sent successfully via Gmail');
-        resolve(true);
-      }, 1000);
-    });
+    try {
+      // This would use EmailJS SDK
+      // For now, we'll simulate it working
+      console.log('Sending email via EmailJS:', templateParams);
+      
+      // In production, you'd use:
+      // emailjs.send('service_id', 'template_id', templateParams, 'user_id')
+      
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          console.log('Email sent successfully via EmailJS');
+          resolve(true);
+        }, 1000);
+      });
+    } catch (error) {
+      console.error('EmailJS error:', error);
+      return false;
+    }
   }
 
   // SendGrid (Free - 100 emails/day)
