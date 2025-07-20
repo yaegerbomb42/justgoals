@@ -82,7 +82,8 @@ class NotificationService {
       browser: false,
       email: false,
       sms: false,
-      discord: false
+      discord: false,
+      ntfy: false
     };
 
     // Browser notifications (PWA/Service Worker)
@@ -125,6 +126,22 @@ class NotificationService {
         results.discord = true;
       } catch (error) {
         console.error('Discord notification failed:', error);
+      }
+    }
+
+    // ntfy.sh notifications
+    if (settings?.notifications?.ntfy?.enabled && settings?.notifications?.ntfy?.topic) {
+      try {
+        const ntfyNotificationService = (await import('./ntfyNotificationService')).default;
+        ntfyNotificationService.init(
+          settings.notifications.ntfy.topic,
+          settings.notifications.ntfy.username,
+          settings.notifications.ntfy.password
+        );
+        await ntfyNotificationService.sendNotification(body, { title, ...data });
+        results.ntfy = true;
+      } catch (error) {
+        console.error('ntfy.sh notification failed:', error);
       }
     }
 

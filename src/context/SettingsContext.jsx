@@ -59,6 +59,12 @@ export const SettingsProvider = ({ children }) => {
         enabled: false,
         webhookUrl: '',
       },
+      ntfy: {
+        enabled: false,
+        topic: '',
+        username: '',
+        password: '',
+      },
     },
     
     // Progress Tracking
@@ -127,6 +133,10 @@ export const SettingsProvider = ({ children }) => {
             discord: {
               ...prev.notifications.discord,
               ...parsed.notifications?.discord,
+            },
+            ntfy: {
+              ...prev.notifications.ntfy,
+              ...parsed.notifications?.ntfy,
             },
           },
         }));

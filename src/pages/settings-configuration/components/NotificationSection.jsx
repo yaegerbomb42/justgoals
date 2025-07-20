@@ -5,6 +5,7 @@ import Icon from '../../../components/ui/Icon';
 import emailNotificationService from '../../../services/emailNotificationService';
 import smsNotificationService from '../../../services/smsNotificationService';
 import discordNotificationService from '../../../services/discordNotificationService';
+import ntfyNotificationService from '../../../services/ntfyNotificationService';
 
 const NotificationSection = () => {
   const { settings, updateNotificationSettings } = useSettings();
@@ -79,6 +80,21 @@ const NotificationSection = () => {
     }
   };
 
+  const handleNtfyChange = (topic, username, password) => {
+    updateNotificationSettings({
+      ntfy: {
+        ...settings.notifications.ntfy,
+        topic,
+        username,
+        password,
+        enabled: !!topic
+      }
+    });
+    if (topic) {
+      ntfyNotificationService.init(topic, username, password);
+    }
+  };
+
   const handleTestNotification = async (type) => {
     setTestStatus(prev => ({ ...prev, [type]: 'sending' }));
     
@@ -104,6 +120,9 @@ const NotificationSection = () => {
             });
             success = true;
           }
+          break;
+        case 'ntfy':
+          success = await ntfyNotificationService.sendTestNotification();
           break;
       }
       
@@ -371,6 +390,57 @@ const NotificationSection = () => {
             />
             <p className="text-xs text-text-secondary">
               Free and unlimited. Create a webhook in your Discord server settings.
+            </p>
+          </div>
+        </div>
+
+        {/* ntfy.sh Notifications */}
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-orange-500/10 rounded-lg">
+                <Icon name="Bell" className="w-4 h-4 text-orange-500" />
+              </div>
+              <div>
+                <h5 className="font-medium text-text-primary">ntfy.sh Push Notifications</h5>
+                <p className="text-sm text-text-secondary">Free push notifications to your phone using the ntfy app</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleTestNotification('ntfy')}
+              disabled={!settings.notifications.enabled || !settings.notifications.ntfy?.topic}
+              className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('ntfy')} ${
+                !settings.notifications.enabled || !settings.notifications.ntfy?.topic ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {getTestButtonContent('ntfy')}
+            </button>
+          </div>
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="ntfy topic (e.g. mywebapp_alerts_xyz123)"
+              value={settings.notifications.ntfy?.topic || ''}
+              onChange={(e) => handleNtfyChange(e.target.value, settings.notifications.ntfy?.username, settings.notifications.ntfy?.password)}
+              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <input
+              type="text"
+              placeholder="ntfy username (optional)"
+              value={settings.notifications.ntfy?.username || ''}
+              onChange={(e) => handleNtfyChange(settings.notifications.ntfy?.topic, e.target.value, settings.notifications.ntfy?.password)}
+              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <input
+              type="password"
+              placeholder="ntfy password (optional)"
+              value={settings.notifications.ntfy?.password || ''}
+              onChange={(e) => handleNtfyChange(settings.notifications.ntfy?.topic, settings.notifications.ntfy?.username, e.target.value)}
+              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-text-secondary">
+              <strong>How to use:</strong> Download the <a href="https://ntfy.sh/app/" target="_blank" rel="noopener noreferrer" className="underline text-primary">ntfy app</a> on your phone, choose a unique topic, and subscribe to it in the app. Optionally set a username and password for privacy. Enter your topic (and credentials if set) above. <br />
+              <strong>Test:</strong> Click the Test button to send a notification to your phone.
             </p>
           </div>
         </div>

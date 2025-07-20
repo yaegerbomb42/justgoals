@@ -31,7 +31,8 @@ class SMSNotificationService {
       'signal-cli': 'Signal CLI (Self-hosted, Free)',
       'matrix': 'Matrix Bot (Self-hosted, Free)',
       'custom-sms': 'Custom SMS Gateway (Self-hosted)',
-      'twilio-free': 'Twilio Free Tier (250 SMS/month)'
+      'twilio-free': 'Twilio Free Tier (250 SMS/month)',
+      'ntfy': 'ntfy.sh Push Notifications (Free, iOS/Android/Web)'
     };
   }
 
