@@ -50,9 +50,6 @@ const Routes = () => {
         {/* OAuth2 callback route */}
         <Route path="/oauth2callback" element={<Oauth2Callback />} />
 
-        {/* Demo route for testing habits */}
-        <Route path="/habits-demo" element={<HabitsDemo />} />
-
         {/* Protected routes */}
         <Route path="/goals-dashboard" element={<ProtectedRoute><GoalsDashboard /></ProtectedRoute>} />
         <Route path="/ai-assistant-chat-drift" element={<ProtectedRoute><AiAssistantChatDrift /></ProtectedRoute>} />
@@ -62,10 +59,9 @@ const Routes = () => {
         <Route path="/goal-creation-management" element={<ProtectedRoute><GoalCreationManagement /></ProtectedRoute>} />
         <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
         <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
-        <Route path="/habits" element={<ProtectedRoute><HabitTracking /></ProtectedRoute>} />
+        <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
         <Route path="/day" element={<ProtectedRoute><Day /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
-        <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
 
         {/* Default route */}
         <Route
