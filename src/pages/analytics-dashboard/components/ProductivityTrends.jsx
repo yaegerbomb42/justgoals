@@ -1,8 +1,14 @@
 import React from 'react';
+import Icon from '@/components/Icon';
 
 const ProductivityTrends = ({ data }) => {
   if (!data || !data.productivity || data.productivity.length === 0) {
-    return <div className="mb-4 p-2 bg-warning/10 border border-warning/20 rounded text-warning text-center">No productivity data yet. Start using the app to see your trends!</div>;
+    return (
+      <div className="text-center py-8">
+        <Icon name="TrendingUp" size={48} className="text-text-muted mx-auto mb-4" />
+        <p className="text-text-secondary">No productivity trends available</p>
+      </div>
+    );
   }
 
   const maxValue = Math.max(...data.productivity.map(d => d.value));

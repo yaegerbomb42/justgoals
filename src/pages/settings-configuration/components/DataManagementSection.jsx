@@ -175,6 +175,9 @@ const DataManagementSection = ({
                 checked={autoBackup}
                 onChange={(e) => handleAutoBackupChange(e.target.checked)}
                 className="sr-only peer"
+                role="switch"
+                aria-checked={autoBackup}
+                aria-label="Enable Automatic Backup"
               />
               <div className="relative w-11 h-6 bg-surface-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
@@ -189,6 +192,7 @@ const DataManagementSection = ({
                 value={backupFrequency}
                 onChange={(e) => handleBackupFrequencyChange(e.target.value)}
                 className="w-full px-3 py-2 bg-surface-800 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                aria-label="Backup Frequency"
               >
                 {backupFrequencyOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -211,6 +215,7 @@ const DataManagementSection = ({
               iconName="Download"
               iconPosition="left"
               fullWidth
+              aria-label="Export Data"
             >
               Export Data
             </Button>
@@ -228,13 +233,17 @@ const DataManagementSection = ({
                 iconPosition="left"
                 fullWidth
                 loading={isImporting}
+                aria-label="Import Data"
               >
                 Import Data
               </Button>
             </div>
           </div>
           {importError && (
-            <p className="text-xs text-error mt-2">{importError}</p>
+            <div>
+              <p className="text-xs text-error mt-2">{importError}</p>
+              <div role="alert" aria-live="assertive" className="sr-only">{importError}</div>
+            </div>
           )}
           <p className="text-xs text-text-secondary mt-2">
             Export your data as JSON or import from a previous backup
@@ -253,6 +262,7 @@ const DataManagementSection = ({
               onClick={() => setShowResetConfirmation(true)}
               iconName="Trash2"
               iconPosition="left"
+              aria-label="Reset All Data"
             >
               Reset All Data
             </Button>
@@ -274,6 +284,7 @@ const DataManagementSection = ({
                   onClick={handleResetData}
                   iconName="Trash2"
                   iconPosition="left"
+                  aria-label="Confirm Reset All Data"
                 >
                   Yes, Reset Everything
                 </Button>
@@ -281,6 +292,7 @@ const DataManagementSection = ({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowResetConfirmation(false)}
+                  aria-label="Cancel Data Reset"
                 >
                   Cancel
                 </Button>

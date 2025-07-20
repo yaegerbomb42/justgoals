@@ -58,16 +58,36 @@ const SettingsPage = () => {
               
               {isMobile ? (
                 // Mobile: Horizontal scrollable tabs
-                <div className="flex space-x-2 overflow-x-auto pb-2">
+                <div
+                  className="flex space-x-2 overflow-x-auto pb-2"
+                  role="tablist"
+                  aria-label="Settings Categories"
+                  onKeyDown={e => {
+                    if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+                      e.preventDefault();
+                      const idx = sections.findIndex(s => s.id === activeSection);
+                      let nextIdx = e.key === "ArrowLeft" ? idx - 1 : idx + 1;
+                      if (nextIdx < 0) nextIdx = sections.length - 1;
+                      if (nextIdx >= sections.length) nextIdx = 0;
+                      setActiveSection(sections[nextIdx].id);
+                      document.getElementById(`settings-tab-${sections[nextIdx].id}`)?.focus();
+                    }
+                  }}
+                >
                   {sections.map((section) => (
                     <button
                       key={section.id}
+                      id={`settings-tab-${section.id}`}
                       onClick={() => setActiveSection(section.id)}
                       className={`flex items-center space-x-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all duration-200 ${
                         activeSection === section.id
                           ? 'bg-primary text-white shadow-lg'
                           : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
                       }`}
+                      role="tab"
+                      aria-selected={activeSection === section.id}
+                      aria-controls={`settings-tabpanel-${section.id}`}
+                      tabIndex={activeSection === section.id ? 0 : -1}
                     >
                       <Icon name={section.icon} className="w-4 h-4" />
                       <span className="text-sm font-medium">{section.label}</span>
@@ -76,16 +96,36 @@ const SettingsPage = () => {
                 </div>
               ) : (
                 // Desktop: Vertical sidebar
-                <nav className="space-y-1">
+                <nav
+                  className="space-y-1"
+                  role="tablist"
+                  aria-label="Settings Categories"
+                  onKeyDown={e => {
+                    if (["ArrowUp", "ArrowDown"].includes(e.key)) {
+                      e.preventDefault();
+                      const idx = sections.findIndex(s => s.id === activeSection);
+                      let nextIdx = e.key === "ArrowUp" ? idx - 1 : idx + 1;
+                      if (nextIdx < 0) nextIdx = sections.length - 1;
+                      if (nextIdx >= sections.length) nextIdx = 0;
+                      setActiveSection(sections[nextIdx].id);
+                      document.getElementById(`settings-tab-${sections[nextIdx].id}`)?.focus();
+                    }
+                  }}
+                >
                   {sections.map((section) => (
                     <button
                       key={section.id}
+                      id={`settings-tab-${section.id}`}
                       onClick={() => setActiveSection(section.id)}
                       className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
                         activeSection === section.id
                           ? 'bg-primary text-white shadow-lg'
                           : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
                       }`}
+                      role="tab"
+                      aria-selected={activeSection === section.id}
+                      aria-controls={`settings-tabpanel-${section.id}`}
+                      tabIndex={activeSection === section.id ? 0 : -1}
                     >
                       <Icon name={section.icon} className="w-4 h-4" />
                       <span className="font-medium">{section.label}</span>
@@ -97,10 +137,18 @@ const SettingsPage = () => {
           </div>
 
           {/* Main Content */}
-          <div className={`flex-1 ${isMobile ? 'order-1' : 'order-2'}`}>
-            <div className="bg-surface rounded-lg border border-border p-6">
-              {renderSection()}
-            </div>
+          <div className={`flex-1 ${isMobile ? 'order-1' : 'order-2'}`}> 
+            {sections.map(section => (
+              <div
+                key={section.id}
+                id={`settings-tabpanel-${section.id}`}
+                role="tabpanel"
+                aria-labelledby={`settings-tab-${section.id}`}
+                hidden={activeSection !== section.id}
+              >
+                {activeSection === section.id && renderSection()}
+              </div>
+            ))}
           </div>
         </div>
       </div>

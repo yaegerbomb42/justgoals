@@ -101,10 +101,10 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
   }, [timeData, selectedCategory]);
 
   const views = [
-    { id: 'pie', label: 'Overview', icon: 'PieChart' },
-    { id: 'hourly', label: 'Hourly', icon: 'Clock' },
-    { id: 'treemap', label: 'Breakdown', icon: 'Grid' },
-    { id: 'efficiency', label: 'Efficiency', icon: 'Zap' }
+    { id: 'pie', label: 'Overview', icon: 'PieChart', help: 'See a breakdown of your time allocation by category.' },
+    { id: 'hourly', label: 'Hourly', icon: 'Clock', help: 'View your activity and productivity by hour of the day.' },
+    { id: 'treemap', label: 'Breakdown', icon: 'Grid', help: 'Explore detailed breakdowns for each category.' },
+    { id: 'efficiency', label: 'Efficiency', icon: 'Zap', help: 'See productivity, focus, and context switching metrics.' }
   ];
 
   const timeFrames = [
@@ -398,8 +398,14 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
                 <Icon name={metric.icon} size={20} className={metric.color} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-body-medium text-text-primary">{metric.label}</p>
-                <p className="text-xs text-text-secondary">{metric.description}</p>
+                <p className="text-sm font-body-medium text-text-primary flex items-center">{metric.label}
+                  <span className="ml-1 relative group">
+                    <Icon name="HelpCircle" size={12} className="text-accent group-hover:text-primary" />
+                    <span className="absolute z-10 left-0 mt-2 w-48 bg-surface-700 text-xs text-text-secondary rounded-lg shadow-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200">
+                      {metric.description}
+                    </span>
+                  </span>
+                </p>
               </div>
             </div>
             <div className={`text-2xl font-heading-bold ${metric.color}`}>{metric.value}</div>
@@ -454,10 +460,9 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
 
   if (!data || Object.keys(data).length === 0) {
     return (
-      <div className="text-center py-8 text-text-secondary">
-        <Icon name="Clock" size={48} className="mx-auto mb-4 opacity-50" />
-        <p>No time allocation data available yet.</p>
-        <p className="text-sm">Start tracking your activities to see time analytics.</p>
+      <div className="text-center py-8">
+        <Icon name="Clock" size={48} className="text-text-muted mx-auto mb-4" />
+        <p className="text-text-secondary">No time allocation data available</p>
       </div>
     );
   }
@@ -468,20 +473,26 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {views.map((view) => (
-            <button
-              key={view.id}
-              onClick={() => setSelectedView(view.id)}
-              className={`
-                flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-all
-                ${selectedView === view.id
-                  ? 'bg-primary text-primary-foreground shadow-lg'
-                  : 'bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600'
+            <div className="relative group" key={view.id}>
+              <button
+                onClick={() => setSelectedView(view.id)}
+                className={
+                  `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-all
+                  ${selectedView === view.id
+                    ? 'bg-primary text-primary-foreground shadow-lg'
+                    : 'bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600'
+                  }`
                 }
-              `}
-            >
-              <Icon name={view.icon} size={16} />
-              <span>{view.label}</span>
-            </button>
+                aria-label={view.label}
+              >
+                <Icon name={view.icon} size={16} />
+                <span>{view.label}</span>
+                <Icon name="HelpCircle" size={14} className="ml-1 text-accent group-hover:text-primary" />
+              </button>
+              <div className="absolute z-10 left-0 mt-2 w-56 bg-surface-700 text-xs text-text-secondary rounded-lg shadow-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200">
+                {view.help}
+              </div>
+            </div>
           ))}
         </div>
 

@@ -1,12 +1,16 @@
 // Free Email Notification Service
 // Uses EmailJS (free tier) or other free email providers
 
+import emailjs from 'emailjs-com';
+
 class EmailNotificationService {
   constructor() {
     this.isEnabled = false;
     this.userEmail = null;
     this.provider = 'emailjs'; // emailjs, sendgrid, mailgun
-    this.emailjsUserId = null;
+    this.emailjsUserId = process.env.REACT_APP_EMAILJS_USER_ID;
+    this.emailjsServiceId = process.env.REACT_APP_EMAILJS_SERVICE_ID || 'service_q8rpz6m';
+    this.emailjsTemplateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID || 'template_default';
   }
 
   // Initialize with user email
@@ -14,55 +18,27 @@ class EmailNotificationService {
     this.userEmail = userEmail;
     this.provider = provider;
     this.isEnabled = !!userEmail;
-    
-    // For EmailJS, you'd need to set up a template and service
-    // This is a simplified version that would work with EmailJS
     if (provider === 'emailjs') {
       this.emailjsUserId = process.env.REACT_APP_EMAILJS_USER_ID;
+      this.emailjsServiceId = process.env.REACT_APP_EMAILJS_SERVICE_ID || 'service_q8rpz6m';
+      this.emailjsTemplateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID || 'template_default';
     }
   }
 
-  // Send email notification using free services
+  // Send email notification using EmailJS
   async sendEmail(subject, body, options = {}) {
     if (!this.isEnabled || !this.userEmail) {
       console.warn('Email notifications not configured');
       return false;
     }
-    // Check for provider credentials
-    if (this.provider === 'emailjs' && !process.env.REACT_APP_EMAILJS_USER_ID) {
-      console.error('EmailJS is not configured. Please set REACT_APP_EMAILJS_USER_ID in your environment.');
+    if (this.provider !== 'emailjs') {
+      console.error('Only EmailJS is currently supported for real email sending.');
       return false;
     }
-    if (this.provider === 'sendgrid' && !process.env.REACT_APP_SENDGRID_API_KEY) {
-      console.error('SendGrid is not configured. Please set REACT_APP_SENDGRID_API_KEY in your environment.');
+    if (!this.emailjsUserId || !this.emailjsServiceId || !this.emailjsTemplateId) {
+      console.error('EmailJS is not fully configured. Please set REACT_APP_EMAILJS_USER_ID, REACT_APP_EMAILJS_SERVICE_ID, and REACT_APP_EMAILJS_TEMPLATE_ID in your environment.');
       return false;
     }
-    if (this.provider === 'mailgun' && !process.env.REACT_APP_MAILGUN_API_KEY) {
-      console.error('Mailgun is not configured. Please set REACT_APP_MAILGUN_API_KEY in your environment.');
-      return false;
-    }
-
-    try {
-      switch (this.provider) {
-        case 'emailjs':
-          return await this.sendViaEmailJS(subject, body, options);
-        case 'sendgrid':
-          return await this.sendViaSendGrid(subject, body, options);
-        case 'mailgun':
-          return await this.sendViaMailgun(subject, body, options);
-        default:
-          return await this.sendViaEmailJS(subject, body, options);
-      }
-    } catch (error) {
-      console.error('Email notification failed:', error);
-      return false;
-    }
-  }
-
-  // EmailJS (Free - 200 emails/month)
-  async sendViaEmailJS(subject, body, options = {}) {
-    // EmailJS is a client-side email service
-    // You need to set up a template in EmailJS dashboard
     const templateParams = {
       to_email: this.userEmail,
       subject: subject,
@@ -70,65 +46,19 @@ class EmailNotificationService {
       from_name: 'JustGoals',
       ...options
     };
-
     try {
-      // This would use EmailJS SDK
-      // For now, we'll simulate it working
-      console.log('Sending email via EmailJS:', templateParams);
-      
-      // In production, you'd use:
-      // emailjs.send('service_id', 'template_id', templateParams, 'user_id')
-      
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          console.log('Email sent successfully via EmailJS');
-          resolve(true);
-        }, 1000);
-      });
+      const result = await emailjs.send(
+        this.emailjsServiceId,
+        this.emailjsTemplateId,
+        templateParams,
+        this.emailjsUserId
+      );
+      console.log('Email sent successfully via EmailJS', result);
+      return true;
     } catch (error) {
       console.error('EmailJS error:', error);
       return false;
     }
-  }
-
-  // SendGrid (Free - 100 emails/day)
-  async sendViaSendGrid(subject, body, options = {}) {
-    const emailData = {
-      to: this.userEmail,
-      subject,
-      body,
-      from: 'justgoals@yourdomain.com',
-      ...options
-    };
-
-    console.log('Sending email via SendGrid:', emailData);
-    
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Email sent successfully via SendGrid');
-        resolve(true);
-      }, 1000);
-    });
-  }
-
-  // Mailgun (Free - 5,000 emails/month)
-  async sendViaMailgun(subject, body, options = {}) {
-    const emailData = {
-      to: this.userEmail,
-      subject,
-      body,
-      from: 'justgoals@yourdomain.com',
-      ...options
-    };
-
-    console.log('Sending email via Mailgun:', emailData);
-    
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Email sent successfully via Mailgun');
-        resolve(true);
-      }, 1000);
-    });
   }
 
   // Morning motivation email
@@ -212,65 +142,10 @@ class EmailNotificationService {
         <p>Keep the momentum going!</p>
       `;
     }
-
-    body += `
-      <p><a href="https://justgoals.vercel.app/goals-dashboard" style="background: #ff9800; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Goals</a></p>
-    `;
-
-    return this.sendEmail(subject, body, { html: true });
-  }
-
-  // Goal deadline email
-  async sendGoalDeadlineAlert(goal, daysLeft) {
-    let subject, body;
-    
-    if (daysLeft <= 1) {
-      subject = '🚨 DEADLINE TOMORROW - Push Hard!';
-      body = `
-        <h2>🚨 Deadline Tomorrow!</h2>
-        <p>"${goal.title}" is due tomorrow!</p>
-        <p><strong>Time to push hard!</strong></p>
-      `;
-    } else if (daysLeft <= 3) {
-      subject = '⚠️ Deadline Approaching - Keep Pushing!';
-      body = `
-        <h2>⚠️ Deadline Approaching</h2>
-        <p>"${goal.title}" is due in ${daysLeft} days.</p>
-        <p>Keep pushing!</p>
-      `;
-    } else if (daysLeft <= 7) {
-      subject = '📅 Deadline This Week - Stay on Track!';
-      body = `
-        <h2>📅 Deadline This Week</h2>
-        <p>"${goal.title}" is due in ${daysLeft} days.</p>
-        <p>Stay on track!</p>
-      `;
-    }
-
-    body += `
-      <p><a href="https://justgoals.vercel.app/goals-dashboard" style="background: #ff9800; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Goal</a></p>
-    `;
-
-    return this.sendEmail(subject, body, { html: true });
-  }
-
-  // Achievement celebration email
-  async sendAchievementCelebration(achievement) {
-    const subject = '🏆 Achievement Unlocked - Congratulations!';
-    const body = `
-      <h2>🏆 Achievement Unlocked!</h2>
-      <p>Congratulations! You've earned:</p>
-      <h3>${achievement.title}</h3>
-      <p>${achievement.description || ''}</p>
-      <p><strong>Points Earned:</strong> ${achievement.points || 0}</p>
-      <p><a href="https://justgoals.vercel.app/achievements" style="background: #ff9800; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Achievements</a></p>
-    `;
-
-    return this.sendEmail(subject, body, { html: true });
   }
 }
 
 // Create singleton instance
 const emailNotificationService = new EmailNotificationService();
 
-export default emailNotificationService; 
+export default emailNotificationService;

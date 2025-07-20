@@ -534,7 +534,7 @@ const DayPlanner = () => {
           )}
         </AnimatePresence>
         <div className="flex flex-col items-center text-center mb-6">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-primary drop-shadow mb-2">Day Planner</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-primary drop-shadow mb-2">Day</h1>
           <p className="text-lg text-text-secondary font-medium mb-2">Plan your day with AI-powered scheduling</p>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">

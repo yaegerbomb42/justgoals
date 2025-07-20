@@ -423,18 +423,39 @@ const AnalyticsDashboard = () => {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div
+            className="flex flex-wrap gap-2 mb-6"
+            role="tablist"
+            aria-label="Analytics Dashboard Tabs"
+            onKeyDown={e => {
+              if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                const idx = tabs.findIndex(tab => tab.id === activeTab);
+                let nextIdx = e.key === 'ArrowLeft' ? idx - 1 : idx + 1;
+                if (nextIdx < 0) nextIdx = tabs.length - 1;
+                if (nextIdx >= tabs.length) nextIdx = 0;
+                setActiveTab(tabs[nextIdx].id);
+                // Move focus to the new tab
+                document.getElementById(`dashboard-tab-${tabs[nextIdx].id}`)?.focus();
+              }
+            }}
+          >
             {tabs.map((tab) => (
               <button
                 key={tab.id}
+                id={`dashboard-tab-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
-                className={`
-                  flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-body-medium transition-colors
+                className={
+                  `flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-body-medium transition-colors
                   ${activeTab === tab.id
                     ? 'bg-primary text-primary-foreground'
                     : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                  }
-                `}
+                  }`
+                }
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`dashboard-tabpanel-${tab.id}`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
               >
                 <Icon name={tab.icon} size={16} />
                 <span>{tab.label}</span>
@@ -450,14 +471,70 @@ const AnalyticsDashboard = () => {
               </div>
             ) : (
               <>
-                {activeTab === 'overview' && renderOverview()}
-                {activeTab === 'productivity' && renderProductivity()}
-                {activeTab === 'goals' && renderGoals()}
-                {activeTab === 'habits' && renderHabits()}
-                {activeTab === 'time' && renderTimeTracking()}
-                {activeTab === 'streaks' && renderStreaks()}
-                {activeTab === 'performance' && renderPerformance()}
-                {activeTab === 'predictions' && renderPredictions()}
+                <div
+                  id={`dashboard-tabpanel-overview`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-overview`}
+                  hidden={activeTab !== 'overview'}
+                >
+                  {activeTab === 'overview' && renderOverview()}
+                </div>
+                <div
+                  id={`dashboard-tabpanel-productivity`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-productivity`}
+                  hidden={activeTab !== 'productivity'}
+                >
+                  {activeTab === 'productivity' && renderProductivity()}
+                </div>
+                <div
+                  id={`dashboard-tabpanel-goals`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-goals`}
+                  hidden={activeTab !== 'goals'}
+                >
+                  {activeTab === 'goals' && renderGoals()}
+                </div>
+                <div
+                  id={`dashboard-tabpanel-habits`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-habits`}
+                  hidden={activeTab !== 'habits'}
+                >
+                  {activeTab === 'habits' && renderHabits()}
+                </div>
+                <div
+                  id={`dashboard-tabpanel-time`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-time`}
+                  hidden={activeTab !== 'time'}
+                >
+                  {activeTab === 'time' && renderTimeTracking()}
+                </div>
+                <div
+                  id={`dashboard-tabpanel-streaks`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-streaks`}
+                  hidden={activeTab !== 'streaks'}
+                >
+                  {activeTab === 'streaks' && renderStreaks()}
+                </div>
+                <div
+                  id={`dashboard-tabpanel-performance`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-performance`}
+                  hidden={activeTab !== 'performance'}
+                >
+                  {activeTab === 'performance' && renderPerformance()}
+                </div>
+                <div
+                  id={`dashboard-tabpanel-predictions`}
+                  role="tabpanel"
+                  aria-labelledby={`dashboard-tab-predictions`}
+                  hidden={activeTab !== 'predictions'}
+                >
+                  {activeTab === 'predictions' && renderPredictions()}
+                </div>
               </>
             )}
           </div>

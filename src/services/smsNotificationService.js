@@ -88,26 +88,31 @@ class SMSNotificationService {
 
     const emailAddress = `${this.phoneNumber}${this.carriers[this.carrier]}`;
     const subject = options.subject || 'JustGoals Notification';
-    
-    // This would typically use a backend API endpoint
-    const smsData = {
-      to: emailAddress,
-      subject,
-      body: message,
-      from: 'justgoals@yourdomain.com',
-      ...options
-    };
 
-    console.log('Sending SMS via Email-to-SMS:', smsData);
-    
-    // In production, you'd send this to your backend API
-    // which would then send the email to the carrier's SMS gateway
-    return new Promise((resolve) => {
-      setTimeout(() => {
+    // Call backend API to send email to SMS gateway
+    try {
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: emailAddress,
+          subject,
+          body: message,
+          from: 'justgoals@yourdomain.com',
+          ...options
+        })
+      });
+      if (response.ok) {
         console.log('SMS sent successfully via Email-to-SMS');
-        resolve(true);
-      }, 1000);
-    });
+        return true;
+      } else {
+        console.error('SMS via Email-to-SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('SMS via Email-to-SMS error:', error);
+      return false;
+    }
   }
 
   // Telegram Bot (Free - unlimited messages)

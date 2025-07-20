@@ -50,6 +50,15 @@ const ProductivityHeatmap = ({ data = [] }) => {
   const maxGoals = Math.max(1, ...data.map(d => d.goals || 0));
   const maxFocus = Math.max(1, ...data.map(d => d.focus || 0));
 
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <Icon name="BarChart3" size={48} className="text-text-muted mx-auto mb-4" />
+        <p className="text-text-secondary">No heatmap data available</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="overflow-x-auto">

@@ -13,7 +13,12 @@ export const useSettings = () => {
 export const SettingsProvider = ({ children }) => {
   const [settings, setSettings] = useState({
     // Appearance
-    theme: 'system',
+    appearance: {
+      theme: 'system',
+      accentColor: 'indigo',
+      backgroundEffect: 'none',
+    },
+    theme: 'system', // legacy, for migration
     fontSize: 'medium',
     compactMode: false,
     
@@ -83,6 +88,21 @@ export const SettingsProvider = ({ children }) => {
       touchOptimized: true,
     },
   });
+
+  // Apply theme to document body
+  useEffect(() => {
+    const theme = settings.appearance?.theme || settings.theme || 'system';
+    document.body.classList.remove('dark', 'light');
+    if (theme === 'dark') {
+      document.body.classList.add('dark');
+    } else if (theme === 'light') {
+      document.body.classList.add('light');
+    } else {
+      // System theme
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.body.classList.add(prefersDark ? 'dark' : 'light');
+    }
+  }, [settings.appearance?.theme, settings.theme]);
 
   // Mobile detection
   useEffect(() => {
@@ -188,12 +208,24 @@ export const SettingsProvider = ({ children }) => {
     }));
   };
 
+  // Update appearance settings
+  const updateAppearanceSettings = (updates) => {
+    setSettings(prev => ({
+      ...prev,
+      appearance: {
+        ...prev.appearance,
+        ...updates,
+      },
+    }));
+  };
+
   const value = {
     settings,
     updateSettings,
     updateFocusModeSettings,
     updateNotificationSettings,
     updateProgressMeterSettings,
+    updateAppearanceSettings,
   };
 
   return (

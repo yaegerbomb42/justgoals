@@ -56,17 +56,16 @@ const AdvancedProductivityChart = ({ data = [], timeRange = 'month' }) => {
   }, [processedData]);
 
   const chartTypes = [
-    { id: 'line', label: 'Trends', icon: 'TrendingUp' },
-    { id: 'bar', label: 'Daily', icon: 'BarChart3' },
-    { id: 'area', label: 'Areas', icon: 'Activity' },
-    { id: 'pie', label: 'Allocation', icon: 'PieChart' }
+    { id: 'line', label: 'Trends', icon: 'TrendingUp', help: 'See how your productivity changes over time.' },
+    { id: 'bar', label: 'Daily', icon: 'BarChart3', help: 'Compare average productivity by day of the week.' },
+    { id: 'area', label: 'Areas', icon: 'Activity', help: 'Visualize the area under your productivity curve.' },
+    { id: 'pie', label: 'Allocation', icon: 'PieChart', help: 'See the proportion of time spent on each activity.' }
   ];
-
   const metrics = [
-    { id: 'productivity', label: 'Productivity', color: '#3b82f6' },
-    { id: 'goals', label: 'Goals', color: '#22c55e' },
-    { id: 'focus', label: 'Focus', color: '#f59e0b' },
-    { id: 'efficiency', label: 'Efficiency', color: '#8b5cf6' }
+    { id: 'productivity', label: 'Productivity', color: '#3b82f6', help: 'Weighted score based on goals and focus.' },
+    { id: 'goals', label: 'Goals', color: '#22c55e', help: 'Time or points spent on goal-related work.' },
+    { id: 'focus', label: 'Focus', color: '#f59e0b', help: 'Time spent in focused work sessions.' },
+    { id: 'efficiency', label: 'Efficiency', color: '#8b5cf6', help: 'Average of goals and focus scores.' }
   ];
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -206,10 +205,9 @@ const AdvancedProductivityChart = ({ data = [], timeRange = 'month' }) => {
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-8 text-text-secondary">
-        <Icon name="BarChart3" size={48} className="mx-auto mb-4 opacity-50" />
-        <p>No productivity data available yet.</p>
-        <p className="text-sm">Start using the app to see your productivity patterns.</p>
+      <div className="text-center py-8">
+        <Icon name="TrendingUp" size={48} className="text-text-muted mx-auto mb-4" />
+        <p className="text-text-secondary">No productivity data available</p>
       </div>
     );
   }
@@ -219,20 +217,26 @@ const AdvancedProductivityChart = ({ data = [], timeRange = 'month' }) => {
       {/* Chart Type Selector */}
       <div className="flex flex-wrap gap-2">
         {chartTypes.map((type) => (
-          <button
-            key={type.id}
-            onClick={() => setChartType(type.id)}
-            className={`
-              flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-all
-              ${chartType === type.id
-                ? 'bg-primary text-primary-foreground shadow-lg'
-                : 'bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600'
+          <div className="relative group" key={type.id}>
+            <button
+              onClick={() => setChartType(type.id)}
+              className={
+                `flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-all
+                ${chartType === type.id
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600'
+                }`
               }
-            `}
-          >
-            <Icon name={type.icon} size={16} />
-            <span>{type.label}</span>
-          </button>
+              aria-label={type.label}
+            >
+              <Icon name={type.icon} size={16} />
+              <span>{type.label}</span>
+              <Icon name="HelpCircle" size={14} className="ml-1 text-accent group-hover:text-primary" />
+            </button>
+            <div className="absolute z-10 left-0 mt-2 w-56 bg-surface-700 text-xs text-text-secondary rounded-lg shadow-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200">
+              {type.help}
+            </div>
+          </div>
         ))}
       </div>
 
@@ -240,19 +244,25 @@ const AdvancedProductivityChart = ({ data = [], timeRange = 'month' }) => {
       {chartType !== 'pie' && (
         <div className="flex flex-wrap gap-2">
           {metrics.map((metric) => (
-            <button
-              key={metric.id}
-              onClick={() => setSelectedMetric(metric.id)}
-              className={`
-                px-3 py-1 rounded-full text-xs font-body-medium transition-all border
-                ${selectedMetric === metric.id
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-surface-700 text-text-secondary hover:text-text-primary'
+            <div className="relative group" key={metric.id}>
+              <button
+                onClick={() => setSelectedMetric(metric.id)}
+                className={
+                  `px-3 py-1 rounded-full text-xs font-body-medium transition-all border
+                  ${selectedMetric === metric.id
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-surface-700 text-text-secondary hover:text-text-primary'
+                  }`
                 }
-              `}
-            >
-              {metric.label}
-            </button>
+                aria-label={metric.label}
+              >
+                {metric.label}
+                <Icon name="HelpCircle" size={12} className="ml-1 text-accent group-hover:text-primary" />
+              </button>
+              <div className="absolute z-10 left-0 mt-2 w-48 bg-surface-700 text-xs text-text-secondary rounded-lg shadow-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200">
+                {metric.help}
+              </div>
+            </div>
           ))}
         </div>
       )}

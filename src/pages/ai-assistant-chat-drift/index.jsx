@@ -295,6 +295,30 @@ const DriftChat = () => {
     localStorage.removeItem(`drift-conversation-${user?.uid}`);
   };
 
+  if (!user?.id) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Icon name="AlertCircle" className="w-16 h-16 mx-auto text-error mb-4" />
+          <h3 className="text-xl font-semibold text-text-primary mb-2">Sign In Required</h3>
+          <p className="text-text-secondary">Please sign in to use the Drift AI Assistant.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!settings?.geminiApiKey) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Icon name="Key" className="w-16 h-16 mx-auto text-warning mb-4" />
+          <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
+          <p className="text-text-secondary">Please configure your Gemini API key in Settings to use Drift.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}

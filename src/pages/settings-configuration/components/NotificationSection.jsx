@@ -181,6 +181,10 @@ const NotificationSection = () => {
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
               settings.notifications.enabled ? 'bg-primary' : 'bg-surface-600'
             }`}
+            role="switch"
+            aria-checked={settings.notifications.enabled}
+            aria-label="Enable Notifications"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
@@ -192,7 +196,7 @@ const NotificationSection = () => {
       </div>
 
       {/* Notification Channels */}
-      <div className="space-y-4">
+      <div className="space-y-4" role="group" aria-label="Notification Channels">
         <h4 className="font-medium text-text-primary">Notification Channels</h4>
         
         {/* Browser Notifications */}
@@ -213,6 +217,7 @@ const NotificationSection = () => {
               className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('browser')} ${
                 !settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''
               }`}
+              aria-label="Test Browser Notification"
             >
               {getTestButtonContent('browser')}
             </button>
@@ -240,6 +245,7 @@ const NotificationSection = () => {
               className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('email')} ${
                 !settings.notifications.enabled || !settings.notifications.email?.address ? 'opacity-50 cursor-not-allowed' : ''
               }`}
+              aria-label="Test Email Notification"
             >
               {getTestButtonContent('email')}
             </button>
@@ -253,7 +259,7 @@ const NotificationSection = () => {
               className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
-              Free via EmailJS (200/month), SendGrid (100/day), or Mailgun (5,000/month)
+              Receive notifications via email
             </p>
           </div>
         </div>
@@ -276,6 +282,7 @@ const NotificationSection = () => {
               className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('sms')} ${
                 !settings.notifications.enabled || !settings.notifications.sms?.phoneNumber || !settings.notifications.sms?.carrier ? 'opacity-50 cursor-not-allowed' : ''
               }`}
+              aria-label="Test SMS Notification"
             >
               {getTestButtonContent('sms')}
             </button>
@@ -296,7 +303,7 @@ const NotificationSection = () => {
               className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
-              Free via email-to-SMS gateways. Works with most US carriers.
+              Receive notifications via SMS (US carriers only)
             </p>
           </div>
         </div>
@@ -319,6 +326,7 @@ const NotificationSection = () => {
               className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('discord')} ${
                 !settings.notifications.enabled || !settings.notifications.discord?.webhookUrl ? 'opacity-50 cursor-not-allowed' : ''
               }`}
+              aria-label="Test Discord Notification"
             >
               {getTestButtonContent('discord')}
             </button>
@@ -332,7 +340,7 @@ const NotificationSection = () => {
               className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
-              Free and unlimited. Create a webhook in your Discord server settings.
+              Create a webhook in your Discord server settings.
             </p>
           </div>
         </div>
@@ -355,6 +363,7 @@ const NotificationSection = () => {
               className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('ntfy')} ${
                 !settings.notifications.enabled || !settings.notifications.ntfy?.topic ? 'opacity-50 cursor-not-allowed' : ''
               }`}
+              aria-label="Test ntfy Notification"
             >
               {getTestButtonContent('ntfy')}
             </button>
@@ -368,15 +377,14 @@ const NotificationSection = () => {
               className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
-              <strong>How to use:</strong> Download the <a href="https://ntfy.sh/app/" target="_blank" rel="noopener noreferrer" className="underline text-primary">ntfy app</a> on your phone, choose a unique topic, and subscribe to it in the app. Enter your topic above. <br />
-              <strong>Test:</strong> Click the Test button to send a notification to your phone.
+              <strong>How to use:</strong> Download the <a href="https://ntfy.sh/app/" target="_blank" rel="noopener noreferrer" className="underline text-primary">ntfy app</a> on your phone, choose a unique topic, and subscribe to it in the app. Enter your topic above.
             </p>
           </div>
         </div>
       </div>
 
       {/* Notification Types */}
-      <div className="space-y-4">
+      <div className="space-y-4" role="group" aria-label="Notification Types">
         <h4 className="font-medium text-text-primary">Notification Types</h4>
         
         {/* Morning Motivation */}
@@ -398,6 +406,10 @@ const NotificationSection = () => {
                 ? 'bg-yellow-500' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            role="switch"
+            aria-checked={settings.notifications.enabled && settings.notifications.morningMotivation}
+            aria-label="Toggle Morning Motivation Notifications"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -428,6 +440,10 @@ const NotificationSection = () => {
                 ? 'bg-blue-500' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            role="switch"
+            aria-checked={settings.notifications.enabled && settings.notifications.eveningReflection}
+            aria-label="Toggle Evening Reflection Notifications"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -458,6 +474,10 @@ const NotificationSection = () => {
                 ? 'bg-red-500' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            role="switch"
+            aria-checked={settings.notifications.enabled && settings.notifications.streakProtection}
+            aria-label="Toggle Streak Protection Notifications"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -488,6 +508,10 @@ const NotificationSection = () => {
                 ? 'bg-green-500' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            role="switch"
+            aria-checked={settings.notifications.enabled && settings.notifications.focusReminders}
+            aria-label="Toggle Focus Reminders Notifications"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -518,6 +542,10 @@ const NotificationSection = () => {
                 ? 'bg-orange-500' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            role="switch"
+            aria-checked={settings.notifications.enabled && settings.notifications.goalDeadlines}
+            aria-label="Toggle Goal Deadlines Notifications"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -548,6 +576,10 @@ const NotificationSection = () => {
                 ? 'bg-purple-500' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            role="switch"
+            aria-checked={settings.notifications.enabled && settings.notifications.achievementCelebrations}
+            aria-label="Toggle Achievement Celebrations Notifications"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -587,6 +619,10 @@ const NotificationSection = () => {
                       ? 'bg-primary' 
                       : 'bg-surface-600'
                   } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  role="switch"
+                  aria-checked={settings.notifications.enabled && settings.notifications.quietHours.enabled}
+                  aria-label="Toggle Quiet Hours"
+                  tabIndex={0}
                 >
                   <span
                     className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -623,23 +659,6 @@ const NotificationSection = () => {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Info Box */}
-      <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-        <div className="flex items-start space-x-3">
-          <Icon name="Info" className="w-5 h-5 text-primary mt-0.5" />
-          <div>
-            <h4 className="text-sm font-medium text-primary mb-1">About Notifications</h4>
-            <p className="text-xs text-text-secondary leading-relaxed">
-              Configure multiple notification channels to stay on track with your goals. All services are completely free:
-              <br />• <strong>Browser:</strong> Works when app is open, install as PWA for background notifications
-              <br />• <strong>Email:</strong> Free via EmailJS (200/month), SendGrid (100/day), or Mailgun (5,000/month)
-              <br />• <strong>SMS:</strong> Free via email-to-SMS gateways (most US carriers)
-              <br />• <strong>Discord:</strong> Free and unlimited via webhooks
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -47,10 +47,23 @@ const FocusModeSection = () => {
       <div className="space-y-4">
         <h4 className="font-medium text-text-primary">Session Duration</h4>
         
-        <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3" role="radiogroup" aria-label="Session Duration Presets"
+          onKeyDown={e => {
+            if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+              e.preventDefault();
+              const idx = presetDurations.findIndex(p => p.value === localSettings.defaultDuration);
+              let nextIdx = e.key === "ArrowLeft" ? idx - 1 : idx + 1;
+              if (nextIdx < 0) nextIdx = presetDurations.length - 1;
+              if (nextIdx >= presetDurations.length) nextIdx = 0;
+              handleSettingChange('defaultDuration', presetDurations[nextIdx].value);
+              document.getElementById(`focus-duration-radio-${presetDurations[nextIdx].value}`)?.focus();
+            }
+          }}
+        >
           {presetDurations.map((preset) => (
             <button
               key={preset.value}
+              id={`focus-duration-radio-${preset.value}`}
               onClick={() => handleSettingChange('defaultDuration', preset.value)}
               className={`
                 p-3 rounded-lg border transition-all duration-200 text-center
@@ -58,6 +71,10 @@ const FocusModeSection = () => {
                   ? 'border-primary bg-primary/10 text-primary' :'border-border text-text-secondary hover:text-text-primary hover:border-border-strong'
                 }
               `}
+              role="radio"
+              aria-checked={localSettings.defaultDuration === preset.value}
+              aria-label={`Set session duration to ${preset.label}`}
+              tabIndex={localSettings.defaultDuration === preset.value ? 0 : -1}
             >
               <Icon name={preset.icon} className="w-4 h-4 mx-auto mb-1" />
               <div className="text-xs font-caption">{preset.label}</div>
@@ -138,6 +155,10 @@ const FocusModeSection = () => {
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
               localSettings.ambientSounds ? 'bg-primary' : 'bg-surface-600'
             }`}
+            role="switch"
+            aria-checked={localSettings.ambientSounds}
+            aria-label="Toggle Ambient Sounds"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
@@ -161,6 +182,7 @@ const FocusModeSection = () => {
               value={localSettings.soundVolume || 0.5}
               onChange={(e) => handleSettingChange('soundVolume', parseFloat(e.target.value))}
               className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
+              aria-label="Sound Volume"
             />
           </div>
         )}
@@ -176,6 +198,10 @@ const FocusModeSection = () => {
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
               localSettings.backgroundEffects ? 'bg-primary' : 'bg-surface-600'
             }`}
+            role="switch"
+            aria-checked={localSettings.backgroundEffects}
+            aria-label="Toggle Background Effects"
+            tabIndex={0}
           >
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
@@ -201,6 +227,10 @@ const FocusModeSection = () => {
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                 localSettings.autoStartBreaks ? 'bg-primary' : 'bg-surface-600'
               }`}
+              role="switch"
+              aria-checked={localSettings.autoStartBreaks}
+              aria-label="Toggle Auto-start Breaks"
+              tabIndex={0}
             >
               <span
                 className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
@@ -220,6 +250,10 @@ const FocusModeSection = () => {
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                 localSettings.autoStartSessions ? 'bg-primary' : 'bg-surface-600'
               }`}
+              role="switch"
+              aria-checked={localSettings.autoStartSessions}
+              aria-label="Toggle Auto-start Sessions"
+              tabIndex={0}
             >
               <span
                 className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${

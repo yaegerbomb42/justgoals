@@ -1,8 +1,9 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
+import { useSettings } from '../../../context/SettingsContext';
 
-const AppearanceSection = ({ settings, onSettingChange }) => {
-  // Extract values from settings.appearance, providing defaults
+const AppearanceSection = () => {
+  const { settings, updateAppearanceSettings } = useSettings();
   const appearance = settings?.appearance || {};
   const theme = appearance?.theme || 'dark';
   const accentColor = appearance?.accentColor || 'indigo';
@@ -10,11 +11,11 @@ const AppearanceSection = ({ settings, onSettingChange }) => {
   // animationIntensity is being removed
 
   const handleThemeChange = (newTheme) => {
-    onSettingChange('appearance', 'theme', newTheme);
+    updateAppearanceSettings({ theme: newTheme });
   };
 
   const handleAccentColorChange = (newAccentColor) => {
-    onSettingChange('appearance', 'accentColor', newAccentColor);
+    updateAppearanceSettings({ accentColor: newAccentColor });
   };
 
   const themes = [
@@ -67,20 +68,25 @@ const AppearanceSection = ({ settings, onSettingChange }) => {
   ];
 
   const handlePaletteChange = (paletteId) => {
-    onSettingChange('appearance', 'accentColor', paletteId);
+    updateAppearanceSettings({ accentColor: paletteId });
   };
 
   // animationLevels removed
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border">
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="w-8 h-8 bg-gradient-to-br from-secondary to-accent rounded-lg flex items-center justify-center">
-          <Icon name="Palette" size={16} color="#FFFFFF" />
+      {/* Live Preview Bar */}
+      <div className="flex items-center space-x-4 mb-6">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-lg border-2 ${theme === 'dark' ? 'bg-slate-900 border-primary' : theme === 'light' ? 'bg-slate-50 border-accent' : 'bg-gradient-to-r from-slate-900 to-slate-50 border-secondary'}`}>
+          <Icon name={theme === 'dark' ? 'Moon' : theme === 'light' ? 'Sun' : 'Monitor'} size={20} color={theme === 'light' ? '#0F172A' : '#FFFFFF'} />
         </div>
-        <div>
-          <h3 className="text-lg font-heading-semibold text-text-primary">Appearance</h3>
-          <p className="text-sm text-text-secondary">Customize the visual experience to match your preferences</p>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-text-secondary">Accent:</span>
+          <span className="w-5 h-5 rounded-full border border-border" style={{ backgroundColor: palettes.find(p => p.id === accentColor)?.colors[0] || '#6366F1' }}></span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-text-secondary">Effect:</span>
+          <span className="text-xs font-body-medium text-text-primary">{backgroundEffect.charAt(0).toUpperCase() + backgroundEffect.slice(1)}</span>
         </div>
       </div>
 
@@ -90,16 +96,36 @@ const AppearanceSection = ({ settings, onSettingChange }) => {
           <label className="block text-sm font-body-medium text-text-primary mb-3">
             Theme
           </label>
-          <div className="grid gap-3">
+          <div
+            className="grid gap-3"
+            role="radiogroup"
+            aria-label="Theme Selection"
+            onKeyDown={e => {
+              if (["ArrowUp", "ArrowDown"].includes(e.key)) {
+                e.preventDefault();
+                const idx = themes.findIndex(t => t.id === theme);
+                let nextIdx = e.key === "ArrowUp" ? idx - 1 : idx + 1;
+                if (nextIdx < 0) nextIdx = themes.length - 1;
+                if (nextIdx >= themes.length) nextIdx = 0;
+                handleThemeChange(themes[nextIdx].id);
+                document.getElementById(`theme-radio-${themes[nextIdx].id}`)?.focus();
+              }
+            }}
+          >
             {themes.map((themeOption) => (
               <label
                 key={themeOption.id}
+                id={`theme-radio-${themeOption.id}`}
                 className={`
                   relative flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all duration-normal
                   ${theme === themeOption.id
-                    ? 'border-primary bg-primary/5' :'border-border hover:border-border-strong hover:bg-surface-700'
-                  }
+                    ? 'border-primary bg-primary/5 ring-2 ring-primary'
+                    : 'border-border hover:border-border-strong hover:bg-surface-700'}
                 `}
+                role="radio"
+                aria-checked={theme === themeOption.id}
+                aria-label={themeOption.title}
+                tabIndex={theme === themeOption.id ? 0 : -1}
               >
                 <input
                   type="radio"
@@ -108,6 +134,7 @@ const AppearanceSection = ({ settings, onSettingChange }) => {
                   checked={theme === themeOption.id}
                   onChange={(e) => handleThemeChange(e.target.value)}
                   className="sr-only"
+                  tabIndex={-1}
                 />
                 <div className={`w-8 h-8 rounded-lg ${themeOption.preview} flex items-center justify-center`}>
                   <Icon name={themeOption.icon} size={16} color={themeOption.id === 'light' ? '#0F172A' : '#FFFFFF'} />
@@ -125,34 +152,52 @@ const AppearanceSection = ({ settings, onSettingChange }) => {
         </div>
 
         {/* Theme Palette Selection */}
-        <div>
+        <div className="mt-6">
           <label className="block text-sm font-body-medium text-text-primary mb-3">
-            Theme Palette
+            Accent Color
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div
+            className="flex flex-wrap gap-3"
+            role="radiogroup"
+            aria-label="Accent Color Selection"
+            onKeyDown={e => {
+              if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+                e.preventDefault();
+                const idx = palettes.findIndex(p => p.id === accentColor);
+                let nextIdx = e.key === "ArrowLeft" ? idx - 1 : idx + 1;
+                if (nextIdx < 0) nextIdx = palettes.length - 1;
+                if (nextIdx >= palettes.length) nextIdx = 0;
+                handlePaletteChange(palettes[nextIdx].id);
+                document.getElementById(`palette-radio-${palettes[nextIdx].id}`)?.focus();
+              }
+            }}
+          >
             {palettes.map((palette) => (
               <button
                 key={palette.id}
+                id={`palette-radio-${palette.id}`}
+                type="button"
                 onClick={() => handlePaletteChange(palette.id)}
-                className={`
-                  flex items-center space-x-3 p-4 rounded-lg border transition-all duration-normal
-                  ${accentColor === palette.id
-                    ? 'border-primary bg-primary/5' :'border-border hover:border-border-strong hover:bg-surface-700'
-                  }
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
+                  ${accentColor === palette.id ? 'border-primary bg-primary/10 shadow-lg' : 'border-border hover:border-primary/30 hover:bg-surface-700'}
                 `}
+                role="radio"
+                aria-checked={accentColor === palette.id}
+                aria-label={`Select ${palette.name} accent color`}
+                tabIndex={accentColor === palette.id ? 0 : -1}
               >
                 <div className="flex space-x-1">
                   {palette.colors.map((color, idx) => (
                     <span
                       key={color}
-                      className="w-6 h-6 rounded-full border border-border"
-                      style={{ backgroundColor: color, marginLeft: idx === 0 ? 0 : 4 }}
+                      className="w-4 h-4 rounded-full border border-border"
+                      style={{ backgroundColor: color, marginLeft: idx > 0 ? '-0.5rem' : 0 }}
                     />
                   ))}
                 </div>
-                <span className="ml-4 text-sm font-body-medium text-text-primary">{palette.name}</span>
+                <span className="ml-2 text-sm font-body-medium text-text-primary">{palette.name}</span>
                 {accentColor === palette.id && (
-                  <Icon name="Check" size={16} color="#6366F1" className="ml-auto" />
+                  <Icon name="Check" size={16} color="#6366F1" className="ml-2" />
                 )}
               </button>
             ))}
@@ -160,46 +205,58 @@ const AppearanceSection = ({ settings, onSettingChange }) => {
         </div>
 
         {/* Background Effect Selection */}
-        <div>
+        <div className="mt-6">
           <label className="block text-sm font-body-medium text-text-primary mb-3">
-            Animated Background Effect
+            Background Effect
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div
+            className="flex flex-wrap gap-3"
+            role="radiogroup"
+            aria-label="Background Effect Selection"
+            onKeyDown={e => {
+              if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+                e.preventDefault();
+                const effects = [
+                  { id: 'none', label: 'None' },
+                  { id: 'particles', label: 'Particles' },
+                  { id: 'creative', label: 'Creative' },
+                  { id: 'abstract', label: 'Abstract' },
+                  { id: 'motivational', label: 'Motivational' },
+                ];
+                const idx = effects.findIndex(eff => eff.id === backgroundEffect);
+                let nextIdx = e.key === "ArrowLeft" ? idx - 1 : idx + 1;
+                if (nextIdx < 0) nextIdx = effects.length - 1;
+                if (nextIdx >= effects.length) nextIdx = 0;
+                updateAppearanceSettings({ backgroundEffect: effects[nextIdx].id });
+                document.getElementById(`effect-radio-${effects[nextIdx].id}`)?.focus();
+              }
+            }}
+          >
             {[
-              { id: 'none', name: 'None', description: 'Solid background color' },
-              { id: 'subtle-gradient', name: 'Gentle Gradient', description: 'Slowly shifting background colors' },
-              { id: 'flowing-particles', name: 'Flowing Particles', description: 'Abstract particle animation' },
-              { id: 'abstract-waves', name: 'Abstract Waves', description: 'Calm wave-like motion' },
-              { id: 'energy', name: 'Energy', description: 'Vibrant, motivational energy background' },
-              { id: 'confetti', name: 'Confetti', description: 'Celebratory confetti animation' },
-              { id: 'sunrise', name: 'Sunrise', description: 'Uplifting animated sunrise' },
+              { id: 'none', label: 'None' },
+              { id: 'particles', label: 'Particles' },
+              { id: 'creative', label: 'Creative' },
+              { id: 'abstract', label: 'Abstract' },
+              { id: 'motivational', label: 'Motivational' },
             ].map((effect) => (
-              <label
+              <button
                 key={effect.id}
-                className={`
-                  relative flex flex-col items-start p-4 rounded-lg border cursor-pointer transition-all duration-normal
-                  ${backgroundEffect === effect.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-border-strong hover:bg-surface-700'
-                  }
+                id={`effect-radio-${effect.id}`}
+                type="button"
+                onClick={() => updateAppearanceSettings({ backgroundEffect: effect.id })}
+                className={`px-4 py-2 rounded-lg border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
+                  ${backgroundEffect === effect.id ? 'border-primary bg-primary/10 shadow-lg' : 'border-border hover:border-primary/30 hover:bg-surface-700'}
                 `}
+                role="radio"
+                aria-checked={backgroundEffect === effect.id}
+                aria-label={`Select ${effect.label} background effect`}
+                tabIndex={backgroundEffect === effect.id ? 0 : -1}
               >
-                <input
-                  type="radio"
-                  name="backgroundEffect"
-                  value={effect.id}
-                  checked={backgroundEffect === effect.id}
-                  onChange={(e) => onSettingChange('appearance', 'backgroundEffect', e.target.value)}
-                  className="sr-only"
-                />
-                <div className="flex items-center justify-between w-full mb-1">
-                  <span className="text-sm font-body-medium text-text-primary">{effect.name}</span>
-                  {backgroundEffect === effect.id && (
-                    <Icon name="CheckCircle" size={18} className="text-primary" />
-                  )}
-                </div>
-                <p className="text-xs text-text-secondary">{effect.description}</p>
-              </label>
+                <span className="text-sm font-body-medium text-text-primary">{effect.label}</span>
+                {backgroundEffect === effect.id && (
+                  <Icon name="Check" size={16} color="#6366F1" className="ml-2" />
+                )}
+              </button>
             ))}
           </div>
         </div>

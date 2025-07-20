@@ -64,16 +64,33 @@ const ProgressMeterSection = ({ settings, onSettingChange }) => {
           <label className="block text-sm font-body-medium text-text-primary mb-3">
             Progress Update Mode
           </label>
-          <div className="grid gap-3">
+          <div className="grid gap-3" role="radiogroup" aria-label="Progress Update Mode"
+            onKeyDown={e => {
+              if (["ArrowUp", "ArrowDown"].includes(e.key)) {
+                e.preventDefault();
+                const idx = progressModes.findIndex(m => m.id === progressMode);
+                let nextIdx = e.key === "ArrowUp" ? idx - 1 : idx + 1;
+                if (nextIdx < 0) nextIdx = progressModes.length - 1;
+                if (nextIdx >= progressModes.length) nextIdx = 0;
+                handleProgressModeChange(progressModes[nextIdx].id);
+                document.getElementById(`progress-mode-radio-${progressModes[nextIdx].id}`)?.focus();
+              }
+            }}
+          >
             {progressModes.map((mode) => (
               <label
                 key={mode.id}
+                id={`progress-mode-radio-${mode.id}`}
                 className={`
                   relative flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-all duration-normal
                   ${progressMode === mode.id
                     ? 'border-primary bg-primary/5' :'border-border hover:border-border-strong hover:bg-surface-700'
                   }
                 `}
+                role="radio"
+                aria-checked={progressMode === mode.id}
+                tabIndex={progressMode === mode.id ? 0 : -1}
+                aria-label={mode.title}
               >
                 <input
                   type="radio"
@@ -114,6 +131,7 @@ const ProgressMeterSection = ({ settings, onSettingChange }) => {
               value={autoUpdateInterval}
               onChange={(e) => handleAutoUpdateIntervalChange(e.target.value)}
               className="w-full px-3 py-2 bg-surface-800 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              aria-label="Auto-Update Interval"
             >
               {intervalOptions.map((option) => (
                 <option key={option.value} value={option.value}>

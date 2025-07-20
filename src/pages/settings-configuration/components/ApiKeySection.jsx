@@ -81,6 +81,8 @@ const ApiKeySection = () => {
   };
 
   const handleTestConnection = () => {
+    setMessage('');
+    setConnectionStatus(null);
     testConnection();
   };
 
@@ -124,11 +126,13 @@ const ApiKeySection = () => {
               onChange={(e) => handleApiKeyChange(e.target.value)}
               className="pr-12"
               disabled={isLoading}
+              aria-label="Gemini API Key"
             />
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors duration-fast"
+              aria-label={showKey ? "Hide API Key" : "Show API Key"}
             >
               <Icon name={showKey ? "EyeOff" : "Eye"} size={16} />
             </button>
@@ -172,8 +176,9 @@ const ApiKeySection = () => {
             loading={isTestingConnection}
             iconName="Zap"
             iconPosition="left"
+            aria-label="Test Gemini API Connection"
           >
-            Test Connection
+            {isTestingConnection ? 'Testing...' : 'Test Connection'}
           </Button>
 
           {connectionStatus === 'success' && (
@@ -181,9 +186,23 @@ const ApiKeySection = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center space-x-2 text-success"
+              role="status"
+              aria-live="polite"
             >
               <Icon name="CheckCircle" size={16} />
               <span className="text-sm font-caption">Connected</span>
+            </motion.div>
+          )}
+          {connectionStatus === 'error' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center space-x-2 text-error"
+              role="status"
+              aria-live="polite"
+            >
+              <Icon name="AlertCircle" size={16} />
+              <span className="text-sm font-caption">Connection Failed</span>
             </motion.div>
           )}
         </div>
