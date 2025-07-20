@@ -5,15 +5,11 @@ class NtfyNotificationService {
   constructor() {
     this.isEnabled = false;
     this.topic = '';
-    this.username = '';
-    this.password = '';
   }
 
-  // Initialize with topic and optional credentials
-  init(topic, username = '', password = '') {
+  // Initialize with topic only
+  init(topic) {
     this.topic = topic;
-    this.username = username;
-    this.password = password;
     this.isEnabled = !!topic;
   }
 
@@ -28,9 +24,6 @@ class NtfyNotificationService {
     if (options.title) headers['Title'] = options.title;
     if (options.priority) headers['Priority'] = String(options.priority);
     if (options.tags) headers['Tags'] = options.tags.join(',');
-    if (this.username && this.password) {
-      headers['Authorization'] = 'Basic ' + btoa(`${this.username}:${this.password}`);
-    }
     try {
       const response = await fetch(url, {
         method: 'POST',

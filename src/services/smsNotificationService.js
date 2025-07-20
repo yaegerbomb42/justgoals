@@ -17,22 +17,8 @@ class SMSNotificationService {
       'metro': '@mymetropcs.com',
       'uscellular': '@email.uscc.net',
       'virgin': '@vmobl.com',
-      'xfinity': '@vtext.com'
-    };
-    
-    // Free SMS alternatives
-    this.freeAlternatives = {
-      'telegram': 'Telegram Bot (Free & Unlimited)',
-      'discord': 'Discord Webhook (Free & Unlimited)',
-      'whatsapp': 'WhatsApp Business API (Free Tier)',
-      'signal': 'Signal Bot (Free & Unlimited)',
-      'slack': 'Slack Webhook (Free & Unlimited)',
-      'email': 'Email Fallback (Free & Unlimited)',
-      'signal-cli': 'Signal CLI (Self-hosted, Free)',
-      'matrix': 'Matrix Bot (Self-hosted, Free)',
-      'custom-sms': 'Custom SMS Gateway (Self-hosted)',
-      'twilio-free': 'Twilio Free Tier (250 SMS/month)',
-      'ntfy': 'ntfy.sh Push Notifications (Free, iOS/Android/Web)'
+      'xfinity': '@vtext.com', // Try @vtext.com (Verizon) for Xfinity Mobile SMS
+      'xfinity-mms': '@mypixmessages.com', // Try for MMS if SMS fails
     };
   }
 
@@ -559,7 +545,7 @@ class SMSNotificationService {
 
   // Get available free SMS alternatives
   getFreeAlternatives() {
-    return this.freeAlternatives;
+    return {}; // No longer available alternatives
   }
 
   // Get available carriers

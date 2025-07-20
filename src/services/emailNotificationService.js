@@ -28,6 +28,19 @@ class EmailNotificationService {
       console.warn('Email notifications not configured');
       return false;
     }
+    // Check for provider credentials
+    if (this.provider === 'emailjs' && !process.env.REACT_APP_EMAILJS_USER_ID) {
+      console.error('EmailJS is not configured. Please set REACT_APP_EMAILJS_USER_ID in your environment.');
+      return false;
+    }
+    if (this.provider === 'sendgrid' && !process.env.REACT_APP_SENDGRID_API_KEY) {
+      console.error('SendGrid is not configured. Please set REACT_APP_SENDGRID_API_KEY in your environment.');
+      return false;
+    }
+    if (this.provider === 'mailgun' && !process.env.REACT_APP_MAILGUN_API_KEY) {
+      console.error('Mailgun is not configured. Please set REACT_APP_MAILGUN_API_KEY in your environment.');
+      return false;
+    }
 
     try {
       switch (this.provider) {

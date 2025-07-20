@@ -224,7 +224,8 @@ const GoalsDashboard = () => {
           {/* Welcome Hero Section - always show */}
           <WelcomeHero
             userName={displayUserStats.name}
-            overallProgress={displayUserStats.totalGoals > 0 ? (displayUserStats.completedGoals / displayUserStats.totalGoals) * 100 : 0}
+            userId={user?.id}
+            overallProgress={0} // If you have this value, pass it
             totalGoals={displayUserStats.totalGoals}
             completedGoals={displayUserStats.completedGoals}
             streakDays={displayUserStats.streakDays}

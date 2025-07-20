@@ -155,8 +155,8 @@ class NotificationService {
     try {
       await this.serviceWorkerRegistration.showNotification(title, {
         body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/assets/images/app-icon.png',
+        badge: '/assets/images/app-icon.png',
         vibrate: [100, 50, 100],
         data,
         requireInteraction: false,
@@ -164,7 +164,7 @@ class NotificationService {
           {
             action: 'open',
             title: 'Open App',
-            icon: '/favicon.ico'
+            icon: '/assets/images/app-icon.png'
           }
         ]
       });
@@ -415,7 +415,8 @@ class NotificationService {
 
     const notification = new Notification(options.title, {
       body: options.body,
-      icon: '/favicon.ico',
+      icon: '/assets/images/app-icon.png',
+      badge: '/assets/images/app-icon.png',
       tag: options.tag,
       requireInteraction: options.requireInteraction || false,
       data: options.data || {},

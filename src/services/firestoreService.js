@@ -399,6 +399,24 @@ class FirestoreService {
     }
   }
 
+  // Save total time logged (in seconds) to Firestore appSettings
+  async saveTotalTimeLogged(userId, totalTime) {
+    if (!userId) throw new Error('User ID required');
+    const settingsDoc = this.getUserDoc(userId, 'appSettings', 'current');
+    await setDoc(settingsDoc, { totalTimeLoggedSeconds: totalTime }, { merge: true });
+  }
+
+  // Get total time logged (in seconds) from Firestore appSettings
+  async getTotalTimeLogged(userId) {
+    if (!userId) throw new Error('User ID required');
+    const settingsDoc = this.getUserDoc(userId, 'appSettings', 'current');
+    const docSnap = await getDoc(settingsDoc);
+    if (docSnap.exists() && typeof docSnap.data().totalTimeLoggedSeconds === 'number') {
+      return docSnap.data().totalTimeLoggedSeconds;
+    }
+    return 0;
+  }
+
   // Migration helper: migrate from localStorage to Firestore
   async migrateFromLocalStorage(userId) {
     if (!userId) {

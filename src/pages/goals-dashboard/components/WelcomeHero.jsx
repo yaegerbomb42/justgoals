@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
+import firestoreService from '../../../services/firestoreService';
 
 const getTotalTime = () => {
   const stored = localStorage.getItem('totalTimeLoggedSeconds');
   return stored ? parseInt(stored, 10) : 0;
 };
 
-const WelcomeHero = ({ userName, overallProgress, totalGoals, completedGoals, streakDays }) => {
+const WelcomeHero = ({ userName, userId, overallProgress, totalGoals, completedGoals, streakDays }) => {
   const progressPercentage = totalGoals > 0 ? (completedGoals / totalGoals) * 100 : 0;
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
@@ -17,21 +18,44 @@ const WelcomeHero = ({ userName, overallProgress, totalGoals, completedGoals, st
   // Total time logged state (in seconds)
   const [totalTime, setTotalTime] = useState(getTotalTime());
 
-  // Update live clock every second
+  // On mount, load total time from Firestore if userId is present
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
+    let isMounted = true;
+    async function fetchTotalTime() {
+      if (userId) {
+        try {
+          const firestoreTotal = await firestoreService.getTotalTimeLogged(userId);
+          if (typeof firestoreTotal === 'number' && firestoreTotal > getTotalTime()) {
+            localStorage.setItem('totalTimeLoggedSeconds', firestoreTotal);
+            if (isMounted) setTotalTime(firestoreTotal);
+          }
+        } catch (e) {
+          // Ignore Firestore errors, fallback to localStorage
+        }
+      }
+    }
+    fetchTotalTime();
+    return () => { isMounted = false; };
+  }, [userId]);
 
-  // Update total time logged every 5 seconds
+  // Update total time logged every 5 seconds, save to Firestore if userId
   useEffect(() => {
     const interval = setInterval(() => {
       setTotalTime(prev => {
         const updated = prev + 5;
         localStorage.setItem('totalTimeLoggedSeconds', updated);
+        if (userId) {
+          firestoreService.saveTotalTimeLogged(userId, updated).catch(() => {});
+        }
         return updated;
       });
     }, 5000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  // Update live clock every second
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 

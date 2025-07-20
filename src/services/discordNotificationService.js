@@ -24,8 +24,8 @@ class DiscordNotificationService {
     try {
       const payload = {
         content,
-        username: 'JustGoals Bot',
-        avatar_url: 'https://justgoals.vercel.app/favicon.ico',
+        username: 'JustGoals',
+        avatar_url: 'https://justgoals.vercel.app/assets/images/app-icon.png',
         ...options
       };
 

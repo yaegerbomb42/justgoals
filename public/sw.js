@@ -1,28 +1,40 @@
-const CACHE_NAME = 'justgoals-v1';
-const urlsToCache = [
+const CACHE_VERSION = 'v2'; // Increment this on every deploy!
+const CACHE_NAME = `justgoals-cache-${CACHE_VERSION}`;
+const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/favicon.ico'
+  '/assets/index-B7Jt2LEL.js', // Update this with your current main JS file
+  '/assets/index-3JjS-6J9.css', // Update this with your current main CSS file
+  '/favicon.ico',
+  '/manifest.json',
+  '/robots.txt',
+  '/sw.js',
 ];
 
-// Install event - cache resources
-self.addEventListener('install', (event) => {
+// Install event: cache files
+self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
   );
 });
 
-// Fetch event - serve from cache when offline
-self.addEventListener('fetch', (event) => {
+// Activate event: delete old caches
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch event: serve from cache, then network
+self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
+    caches.match(event.request).then(response => response || fetch(event.request))
   );
 });
 

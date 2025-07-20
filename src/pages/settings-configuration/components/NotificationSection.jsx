@@ -80,18 +80,16 @@ const NotificationSection = () => {
     }
   };
 
-  const handleNtfyChange = (topic, username, password) => {
+  const handleNtfyChange = (topic) => {
     updateNotificationSettings({
       ntfy: {
         ...settings.notifications.ntfy,
         topic,
-        username,
-        password,
         enabled: !!topic
       }
     });
     if (topic) {
-      ntfyNotificationService.init(topic, username, password);
+      ntfyNotificationService.init(topic);
     }
   };
 
@@ -264,96 +262,41 @@ const NotificationSection = () => {
         <div className="bg-surface-700 rounded-lg p-4 border border-border">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-500/10 rounded-lg">
-                <Icon name="Smartphone" className="w-4 h-4 text-purple-500" />
+              <div className="p-2 bg-pink-500/10 rounded-lg">
+                <Icon name="MessageCircle" className="w-4 h-4 text-pink-500" />
               </div>
               <div>
                 <h5 className="font-medium text-text-primary">SMS Notifications</h5>
-                <p className="text-sm text-text-secondary">Receive notifications via text message</p>
+                <p className="text-sm text-text-secondary">Receive notifications via SMS (US carriers only)</p>
               </div>
             </div>
             <button
               onClick={() => handleTestNotification('sms')}
-              disabled={!settings.notifications.enabled || !settings.notifications.sms?.phoneNumber}
+              disabled={!settings.notifications.enabled || !settings.notifications.sms?.phoneNumber || !settings.notifications.sms?.carrier}
               className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('sms')} ${
-                !settings.notifications.enabled || !settings.notifications.sms?.phoneNumber ? 'opacity-50 cursor-not-allowed' : ''
+                !settings.notifications.enabled || !settings.notifications.sms?.phoneNumber || !settings.notifications.sms?.carrier ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
               {getTestButtonContent('sms')}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="space-y-2">
             <input
               type="tel"
-              placeholder="Phone number (e.g., 555-123-4567)"
+              placeholder="Enter your phone number"
               value={settings.notifications.sms?.phoneNumber || ''}
               onChange={(e) => handleSMSChange(e.target.value, settings.notifications.sms?.carrier)}
-              className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <select
+            <input
+              type="text"
+              placeholder="Carrier (e.g. xfinity, att, verizon)"
               value={settings.notifications.sms?.carrier || ''}
               onChange={(e) => handleSMSChange(settings.notifications.sms?.phoneNumber, e.target.value)}
-              className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select carrier</option>
-              <option value="att">AT&T</option>
-              <option value="verizon">Verizon</option>
-              <option value="tmobile">T-Mobile</option>
-              <option value="sprint">Sprint</option>
-              <option value="boost">Boost Mobile</option>
-              <option value="cricket">Cricket</option>
-              <option value="metro">Metro PCS</option>
-              <option value="uscellular">US Cellular</option>
-              <option value="virgin">Virgin Mobile</option>
-              <option value="xfinity">Xfinity Mobile</option>
-            </select>
-          </div>
-          <p className="text-xs text-text-secondary mt-2">
-            Free via email-to-SMS gateways. Works with most US carriers.
-          </p>
-          
-          {/* Free SMS Alternatives */}
-          <div className="mt-3 p-3 bg-surface-600 rounded-lg border border-border">
-            <h6 className="text-xs font-medium text-text-primary mb-2">💡 Free SMS Alternatives (if email-to-SMS doesn't work):</h6>
-            <div className="space-y-1">
-              <div className="text-xs text-text-secondary">
-                • <strong>Telegram Bot:</strong> Free & unlimited - Create bot, get chat ID
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>Discord Webhook:</strong> Free & unlimited - Send to Discord channel
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>WhatsApp Business:</strong> Free tier (1000/month) - Business API
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>Signal Bot:</strong> Free & unlimited - Signal REST API
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>Slack Webhook:</strong> Free & unlimited - Send to Slack channel
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>Email Fallback:</strong> Free & unlimited - Send as email instead
-              </div>
-            </div>
-            
-            <h6 className="text-xs font-medium text-text-primary mt-3 mb-2">🏠 Self-Hosted Options:</h6>
-            <div className="space-y-1">
-              <div className="text-xs text-text-secondary">
-                • <strong>Signal CLI:</strong> Easy (2/10) - Install Signal CLI on server
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>Matrix Bot:</strong> Medium (4/10) - Set up Matrix server + bot
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>Custom SMS Gateway:</strong> Hard (7/10) - Build your own gateway
-              </div>
-              <div className="text-xs text-text-secondary">
-                • <strong>Twilio Free Tier:</strong> Easy (1/10) - 250 SMS/month free
-              </div>
-            </div>
-            
-            <p className="text-xs text-text-secondary mt-2">
-              Set environment variables to enable these services (see documentation).
+              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-text-secondary">
+              Free via email-to-SMS gateways. Works with most US carriers.
             </p>
           </div>
         </div>
@@ -421,25 +364,11 @@ const NotificationSection = () => {
               type="text"
               placeholder="ntfy topic (e.g. mywebapp_alerts_xyz123)"
               value={settings.notifications.ntfy?.topic || ''}
-              onChange={(e) => handleNtfyChange(e.target.value, settings.notifications.ntfy?.username, settings.notifications.ntfy?.password)}
-              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <input
-              type="text"
-              placeholder="ntfy username (optional)"
-              value={settings.notifications.ntfy?.username || ''}
-              onChange={(e) => handleNtfyChange(settings.notifications.ntfy?.topic, e.target.value, settings.notifications.ntfy?.password)}
-              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <input
-              type="password"
-              placeholder="ntfy password (optional)"
-              value={settings.notifications.ntfy?.password || ''}
-              onChange={(e) => handleNtfyChange(settings.notifications.ntfy?.topic, settings.notifications.ntfy?.username, e.target.value)}
+              onChange={(e) => handleNtfyChange(e.target.value)}
               className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
-              <strong>How to use:</strong> Download the <a href="https://ntfy.sh/app/" target="_blank" rel="noopener noreferrer" className="underline text-primary">ntfy app</a> on your phone, choose a unique topic, and subscribe to it in the app. Optionally set a username and password for privacy. Enter your topic (and credentials if set) above. <br />
+              <strong>How to use:</strong> Download the <a href="https://ntfy.sh/app/" target="_blank" rel="noopener noreferrer" className="underline text-primary">ntfy app</a> on your phone, choose a unique topic, and subscribe to it in the app. Enter your topic above. <br />
               <strong>Test:</strong> Click the Test button to send a notification to your phone.
             </p>
           </div>
