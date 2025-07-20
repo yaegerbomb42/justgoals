@@ -1,118 +1,92 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
-import Button from '../../../components/ui/Button';
+import { motion } from 'framer-motion';
 
-const MessageInput = ({ onSendMessage, disabled = false, isTyping = false }) => {
-  const [message, setMessage] = useState('');
-  const textareaRef = useRef(null);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [message]);
-
-  // Auto-focus input when typing stops (AI response is complete)
-  useEffect(() => {
-    if (!isTyping && textareaRef.current) {
-      // Small delay to ensure the message has been added to the chat
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 100);
-    }
-  }, [isTyping]);
+const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder = "Type your message..." }) => {
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (message.trim() && !disabled && !isTyping) {
-      onSendMessage(message.trim());
-      setMessage('');
-      // Keep focus on input for quick follow-up messages
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 50);
+    if (message.trim() && !isProcessing) {
+      onSubmit(e);
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
-  // Auto-resize textarea on mount to ensure proper height
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, []);
-
   return (
-    <div className="bg-surface border-t border-border p-4">
-      <form onSubmit={handleSubmit} className="flex items-end space-x-3">
-        {/* Message Input */}
-        <div className="flex-1 relative">
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isTyping ? "Drift is responding..." : "Ask Drift anything about your goals, or say 'help me create a goal'..."}
-            disabled={disabled || isTyping}
-            className={`
-              w-full px-4 py-3 bg-surface-700 border border-border rounded-2xl
-              text-text-primary placeholder-text-muted font-body
-              resize-none min-h-[48px] max-h-[120px]
-              focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-              transition-all duration-normal
-              ${(disabled || isTyping) ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}
-            `}
-            rows={1}
-          />
-          
-          {/* Character Counter */}
-          {message.length > 0 && (
-            <div className="absolute bottom-1 right-3 text-xs text-text-muted font-caption">
-              {message.length}/2000
-            </div>
-          )}
-        </div>
-
+    <form onSubmit={handleSubmit} className="relative">
+      <div className="relative">
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={placeholder}
+          disabled={isProcessing}
+          className={`
+            w-full resize-none bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12
+            text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50
+            transition-all duration-200 min-h-[48px] max-h-32
+            ${isFocused ? 'border-purple-500/50 bg-white/10' : ''}
+            ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+          style={{ 
+            background: isFocused 
+              ? 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))' 
+              : 'rgba(255,255,255,0.05)'
+          }}
+        />
+        
         {/* Send Button */}
-        <Button
+        <motion.button
           type="submit"
-          variant="primary"
-          size="md"
-          disabled={!message.trim() || disabled || isTyping}
-          className="flex-shrink-0 h-12 w-12 rounded-full p-0 transition-all duration-200 hover:scale-105"
+          disabled={!message.trim() || isProcessing}
+          className={`
+            absolute right-2 top-1/2 transform -translate-y-1/2
+            w-8 h-8 rounded-lg flex items-center justify-center
+            transition-all duration-200
+            ${message.trim() && !isProcessing
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-lg'
+              : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
+            }
+          `}
+          whileHover={message.trim() && !isProcessing ? { scale: 1.05 } : {}}
+          whileTap={message.trim() && !isProcessing ? { scale: 0.95 } : {}}
         >
-          {isTyping ? (
-            <Icon name="Loader2" size={20} className="animate-spin" />
+          {isProcessing ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : (
-            <Icon name="Send" size={20} />
+            <Icon name="Send" className="w-4 h-4" />
           )}
-        </Button>
-      </form>
-
-      {/* Input Hints */}
-      <div className="mt-2 flex items-center justify-between text-xs text-text-muted">
-        <span className="font-caption">
-          {isTyping ? "Drift is thinking..." : "Press Enter to send, Shift+Enter for new line"}
+        </motion.button>
+      </div>
+      
+      {/* Character count and status */}
+      <div className="flex justify-between items-center mt-2 px-1">
+        <span className="text-xs text-gray-400">
+          {message.length}/2000
         </span>
-        <div className="flex items-center space-x-4">
-          <span className="flex items-center space-x-1">
-            <Icon name="Zap" size={12} />
-            <span>AI-powered</span>
-          </span>
-          <span className="flex items-center space-x-1">
-            <Icon name="Shield" size={12} />
-            <span>Secure</span>
-          </span>
+        <div className="flex items-center space-x-2">
+          {isProcessing && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center space-x-1"
+            >
+              <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-purple-400">Processing...</span>
+            </motion.div>
+          )}
         </div>
       </div>
-    </div>
+    </form>
   );
 };
 

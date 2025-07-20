@@ -11,6 +11,7 @@ import geminiService from '../../services/geminiService';
 import firestoreService from '../../services/firestoreService';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/ui/Button';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AiAssistantChatDrift = () => {
   const { user, isAuthenticated } = useAuth();
@@ -197,13 +198,21 @@ const AiAssistantChatDrift = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <Header title="Drift AI Assistant" />
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-text-secondary">Loading Drift...</p>
-          </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center"
+          >
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+              <div className="absolute inset-0 w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" style={{ animationDelay: '-0.5s' }}></div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Loading Drift</h2>
+            <p className="text-purple-200">Preparing your AI assistant...</p>
+          </motion.div>
         </div>
       </div>
     );
@@ -212,15 +221,30 @@ const AiAssistantChatDrift = () => {
   // Show error if connection failed
   if (!apiKey || !isConnected) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <Header title="Drift AI Assistant" />
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <div className="text-center py-12">
-            <Icon name={!apiKey ? "MessageCircle" : "AlertCircle"} className="w-16 h-16 mx-auto text-text-muted mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">{!apiKey ? 'API Key Required' : 'Connection Failed'}</h3>
-            <p className="text-text-secondary mb-6">{connectionError || (!apiKey ? 'Please configure your Gemini API key in Settings to chat with Drift.' : 'Unable to connect to Gemini API. Please check your API key in Settings.')}</p>
-            <Button variant="outline" iconName="RefreshCw" onClick={() => window.location.reload()}>Retry</Button>
-          </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-md mx-auto p-8"
+          >
+            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Icon name={!apiKey ? "MessageCircle" : "AlertCircle"} className="w-10 h-10 text-red-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">{!apiKey ? 'API Key Required' : 'Connection Failed'}</h3>
+            <p className="text-purple-200 mb-8 leading-relaxed">
+              {connectionError || (!apiKey ? 'Please configure your Gemini API key in Settings to chat with Drift.' : 'Unable to connect to Gemini API. Please check your API key in Settings.')}
+            </p>
+            <Button 
+              variant="outline" 
+              iconName="RefreshCw" 
+              onClick={() => window.location.reload()}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              Retry Connection
+            </Button>
+          </motion.div>
         </div>
         <FloatingActionButton />
       </div>
@@ -228,83 +252,105 @@ const AiAssistantChatDrift = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <Header title="Drift AI Assistant" />
       
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {messages.length === 0 && isConnected ? (
-          <WelcomeScreen
-            isConnected={isConnected}
-            onQuickStart={async (prompt) => {
-              // Add a user message and trigger chat UI
-              const userMessage = {
-                id: Date.now(),
-                content: prompt,
-                sender: 'user',
-                timestamp: new Date().toISOString()
-              };
-              setMessages([userMessage]);
-              setMessage('');
-              setIsProcessing(true);
-              try {
-                const aiResponse = await geminiService.generateChatResponse(prompt, {
-                  userId: user?.id,
-                  isAuthenticated
-                });
-                const aiMessage = {
-                  id: Date.now() + 1,
-                  content: aiResponse,
-                  sender: 'ai',
+      <div className="flex flex-col h-screen pt-16">
+        {/* Chat Container */}
+        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-6">
+          {messages.length === 0 && isConnected ? (
+            <WelcomeScreen
+              isConnected={isConnected}
+              onQuickStart={async (prompt) => {
+                // Add a user message and trigger chat UI
+                const userMessage = {
+                  id: Date.now(),
+                  content: prompt,
+                  sender: 'user',
                   timestamp: new Date().toISOString()
                 };
-                setMessages(prev => [...prev, aiMessage]);
-              } catch (error) {
-                const errorMessage = {
-                  id: Date.now() + 1,
-                  content: "I encountered an error while processing your message. Please check your API key in Settings and try again.",
-                  sender: 'ai',
-                  timestamp: new Date().toISOString()
-                };
-                setMessages(prev => [...prev, errorMessage]);
-              } finally {
-                setIsProcessing(false);
-              }
-            }}
-          />
-        ) : messages.length === 0 ? (
-          <WelcomeScreen isConnected={isConnected} />
-        ) : (
-          <>
-            <ConversationHeader onClearChat={handleClearChat} />
-            {/* Chat UI */}
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto pb-32">
-                {/* Message bubbles */}
-                {messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} />
-                ))}
+                setMessages([userMessage]);
+                setMessage('');
+                setIsProcessing(true);
+                try {
+                  const aiResponse = await geminiService.generateChatResponse(prompt, {
+                    userId: user?.id,
+                    isAuthenticated,
+                    profile
+                  });
+                  const aiMessage = {
+                    id: Date.now() + 1,
+                    content: aiResponse,
+                    sender: 'ai',
+                    timestamp: new Date().toISOString()
+                  };
+                  setMessages([userMessage, aiMessage]);
+                } catch (error) {
+                  console.error('Error generating AI response:', error);
+                  const errorMessage = {
+                    id: Date.now() + 1,
+                    content: "I encountered an error while processing your message. Please check your API key in Settings and try again.",
+                    sender: 'ai',
+                    timestamp: new Date().toISOString()
+                  };
+                  setMessages([userMessage, errorMessage]);
+                } finally {
+                  setIsProcessing(false);
+                }
+              }}
+            />
+          ) : (
+            <>
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto mb-6 space-y-4">
+                <AnimatePresence>
+                  {messages.map((msg, index) => (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                    >
+                      <MessageBubble
+                        message={msg}
+                        isProcessing={isProcessing && index === messages.length - 1}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                <div ref={messagesEndRef} />
               </div>
-              {/* Quick Features */}
-              <div className="fixed bottom-24 left-0 right-0 flex justify-center gap-4 z-40">
-                <Button onClick={() => handleQuickAction('add_goal')}>Add Goal</Button>
-                <Button onClick={() => handleQuickAction('add_milestone')}>Add Milestone</Button>
-                <Button onClick={() => handleQuickAction('add_habit')}>Add Habit</Button>
-                <Button variant="outline" onClick={handleClearChat}>Clear Chat</Button>
-              </div>
-              {/* Chat Bar */}
-              <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 flex items-center z-50">
-                <MessageInput
-                  value={message}
-                  onChange={setMessage}
-                  onSend={handleSendMessage}
-                  disabled={!isConnected || isProcessing}
-                />
-              </div>
-            </div>
-          </>
-        )}
-      </div>
 
+              {/* Quick Actions */}
+              {messages.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6"
+                >
+                  <QuickActionChips onAction={handleQuickAction} />
+                </motion.div>
+              )}
+
+              {/* Input Area */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-4"
+              >
+                <MessageInput
+                  message={message}
+                  setMessage={setMessage}
+                  onSubmit={handleSubmit}
+                  isProcessing={isProcessing}
+                  placeholder="Message Drift..."
+                />
+              </motion.div>
+            </>
+          )}
+        </div>
+      </div>
       <FloatingActionButton />
     </div>
   );

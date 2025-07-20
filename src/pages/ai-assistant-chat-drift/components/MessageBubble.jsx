@@ -1,82 +1,83 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
+import { motion } from 'framer-motion';
 
-const MessageBubble = ({ message, isUser, isTyping = false }) => {
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+const MessageBubble = ({ message, isProcessing = false }) => {
+  const isUser = message.sender === 'user';
+  const isAI = message.sender === 'ai' || message.sender === 'drift';
 
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div className={`max-w-xs md:max-w-md lg:max-w-lg ${isUser ? 'order-2' : 'order-1'}`}>
-        {/* Avatar */}
-        <div className={`flex items-end space-x-2 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-            isUser 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-gradient-to-br from-accent to-secondary text-white'
-          }`}>
-            {isUser ? (
-              <Icon name="User" size={16} color="#FFFFFF" />
-            ) : (
-              <Icon name="Bot" size={16} color="#FFFFFF" />
-            )}
+  if (isUser) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex justify-end mb-4"
+      >
+        <div className="max-w-[80%] lg:max-w-[70%]">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-lg">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          </div>
+          <div className="flex justify-end mt-2">
+            <span className="text-xs text-gray-400">
+              {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (isAI) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex justify-start mb-4"
+      >
+        <div className="flex items-start space-x-3 max-w-[80%] lg:max-w-[70%]">
+          {/* AI Avatar */}
+          <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+            <Icon name="Bot" className="w-4 h-4 text-white" />
           </div>
           
           {/* Message Content */}
-          <div className={`relative px-4 py-3 rounded-2xl ${
-            isUser 
-              ? 'bg-primary text-primary-foreground rounded-br-md' 
-              : 'bg-surface-700 text-text-primary rounded-bl-md border border-border'
-          }`}>
-            {isTyping ? (
-              <div className="flex items-center space-x-1">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-text-secondary rounded-full animate-pulse"></div>
-                  <div className="w-2 h-2 bg-text-secondary rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-text-secondary rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                </div>
-                <span className="text-sm text-text-secondary ml-2">Drift is thinking...</span>
-              </div>
-            ) : (
-              <>
-                <div className="text-sm font-body leading-relaxed whitespace-pre-wrap">
-                  {message.content}
-                </div>
-                
-                {/* Message Actions for AI responses */}
-                {!isUser && (
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-light">
-                    <span className="text-xs text-text-secondary font-caption">
-                      {formatTimestamp(message.timestamp)}
-                    </span>
-                    <div className="flex items-center space-x-2">
-                      <button className="p-1 rounded text-text-secondary hover:text-accent transition-colors duration-fast">
-                        <Icon name="Copy" size={12} />
-                      </button>
-                      <button className="p-1 rounded text-text-secondary hover:text-warning transition-colors duration-fast">
-                        <Icon name="Star" size={12} />
-                      </button>
-                    </div>
+          <div className="flex-1">
+            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl rounded-bl-md px-4 py-3 shadow-lg">
+              {isProcessing ? (
+                <div className="flex items-center space-x-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
-                )}
-                
-                {/* Timestamp for user messages */}
-                {isUser && (
-                  <div className="text-xs text-primary-foreground/70 mt-1 text-right font-caption">
-                    {formatTimestamp(message.timestamp)}
-                  </div>
-                )}
-              </>
-            )}
+                  <span className="text-sm text-purple-200">Drift is thinking...</span>
+                </div>
+              ) : (
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-sm leading-relaxed text-white whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center mt-2 space-x-2">
+              <span className="text-xs text-gray-400">
+                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              {!isProcessing && (
+                <div className="flex items-center space-x-1">
+                  <Icon name="Check" className="w-3 h-3 text-green-400" />
+                  <span className="text-xs text-green-400">Delivered</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
+      </motion.div>
+    );
+  }
+
+  return null;
 };
 
 export default MessageBubble;

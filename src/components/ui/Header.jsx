@@ -110,7 +110,7 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left: Logo and Navigation */}
-          <div className="flex items-center space-x-4 md:space-x-6 lg:space-x-8 pr-4 md:pr-8">
+          <div className="flex items-center space-x-2 md:space-x-4 lg:space-x-6">
             {/* Download Dropdown */}
             <div className="relative" ref={downloadMenuRef}>
               <button
@@ -118,7 +118,7 @@ const Header = () => {
                 onClick={() => setShowDownloadMenu(v => !v)}
                 aria-label="Download App"
               >
-                <Icon name="Download" size={20} className="mr-1" />
+                <Icon name="Download" size={18} className="mr-1" />
                 <span className="font-body-medium text-sm">Download</span>
                 <svg className="ml-1 w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
               </button>
@@ -152,13 +152,13 @@ const Header = () => {
               <span className="text-xl font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
             </Link>
             {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
+            <nav className="hidden md:flex items-center space-x-1 lg:space-x-2 xl:space-x-3">
               {navigationItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={`
-                    flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-body-medium transition-colors
+                    flex items-center space-x-1 px-2 py-2 rounded-lg text-sm font-body-medium transition-colors
                     ${isActive(item.path)
                       ? 'bg-primary text-primary-foreground'
                       : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
@@ -174,22 +174,22 @@ const Header = () => {
           </div>
 
           {/* Right: Profile, Achievements, Settings */}
-          <div className="flex items-center space-x-4 ml-auto">
+          <div className="flex items-center space-x-3 ml-auto">
             {/* Achievement Badge */}
             <div className="relative flex items-center">
               <button
-                className="flex items-center px-2 py-1 rounded-full bg-yellow-100 hover:bg-yellow-200 transition"
+                className="flex items-center px-2 py-1 rounded-full bg-yellow-100 hover:bg-yellow-200 transition-colors"
                 onClick={() => navigate('/achievements')}
                 title="Achievements"
               >
-                <Icon name="Award" className="text-yellow-500 mr-1" />
-                <span className="font-bold text-yellow-700 text-sm">{user?.points ?? 0}</span>
+                <Icon name="Award" className="text-yellow-600 mr-1" size={16} />
+                <span className="font-bold text-yellow-700 text-sm">{userPoints || 0}</span>
               </button>
             </div>
             {/* Profile Icon & Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-primary-200 text-primary-900 font-bold border-2 border-primary-400 hover:shadow-lg transition"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-200 text-primary-900 font-bold border-2 border-primary-400 hover:shadow-lg transition-colors"
                 onClick={() => setProfileMenuOpen((v) => !v)}
                 title="Profile"
               >
@@ -208,20 +208,20 @@ const Header = () => {
                       <div className="text-xs text-gray-500">{user?.email}</div>
                     </div>
                     <button
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
                       onClick={() => navigate('/achievements')}
                     >
                       <Icon name="Award" className="inline-block mr-2 text-yellow-500" /> View Achievements
                     </button>
                     <button
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
                       onClick={() => navigate('/settings-configuration')}
                     >
                       <Icon name="Settings" className="inline-block mr-2 text-primary-500" /> Settings
                     </button>
                     <button
-                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition border-t border-border"
-                      onClick={logout}
+                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors border-t border-border"
+                      onClick={handleLogout}
                     >
                       <Icon name="LogOut" className="inline-block mr-2 text-red-500" /> Sign Out
                     </button>
@@ -231,11 +231,11 @@ const Header = () => {
             </div>
             {/* Settings Tab (icon) */}
             <button
-              className="ml-2 p-2 rounded-full hover:bg-gray-100 transition"
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               onClick={() => navigate('/settings-configuration')}
               title="Settings"
             >
-              <Icon name="Settings" className="text-primary-500" />
+              <Icon name="Settings" className="text-primary-500" size={18} />
             </button>
           </div>
         </div>
