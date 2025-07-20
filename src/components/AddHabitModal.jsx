@@ -4,67 +4,65 @@ import Icon from './AppIcon';
 import Button from './ui/Button';
 import EmojiPicker from './EmojiPicker';
 
-const AddHabitModal = ({ isOpen, onClose, onAddHabit, isWeekly = false }) => {
-  const [habitName, setHabitName] = useState('');
-  const [selectedEmoji, setSelectedEmoji] = useState('😊');
-  const [selectedDay, setSelectedDay] = useState(null);
+const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
+  const [habitTitle, setHabitTitle] = useState('');
+  const [habitDescription, setHabitDescription] = useState('');
+  const [selectedEmoji, setSelectedEmoji] = useState('🎯');
+  const [targetChecks, setTargetChecks] = useState(1);
+  const [allowMultipleChecks, setAllowMultipleChecks] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('general');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const daysOfWeek = [
-    { value: null, label: 'Any day' },
-    { value: 0, label: 'Sunday' },
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' }
+  const categories = [
+    { id: 'general', name: 'General', icon: '🎯' },
+    { id: 'health', name: 'Health & Wellness', icon: '💪' },
+    { id: 'productivity', name: 'Productivity', icon: '⚡' },
+    { id: 'learning', name: 'Learning', icon: '📚' },
+    { id: 'social', name: 'Social', icon: '👥' },
+    { id: 'creative', name: 'Creative', icon: '🎨' },
+    { id: 'finance', name: 'Finance', icon: '💰' },
+    { id: 'home', name: 'Home & Life', icon: '🏠' }
   ];
 
-  // Habit suggestions based on type
-  const dailySuggestions = [
-    { name: 'Drink 8 glasses of water', emoji: '💧' },
-    { name: 'Take vitamins', emoji: '💊' },
-    { name: 'Stretch for 10 minutes', emoji: '🤸‍♂️' },
-    { name: 'Write in journal', emoji: '📔' },
-    { name: 'Meditate', emoji: '🧘‍♂️' },
-    { name: 'Read for 30 minutes', emoji: '📖' },
-    { name: 'Practice gratitude', emoji: '🙏' },
-    { name: 'Check in with family', emoji: '👨‍👩‍👧‍👦' }
+  // Habit suggestions with multiple check-ins
+  const habitSuggestions = [
+    { title: 'Drink water', description: 'Stay hydrated throughout the day', emoji: '💧', targetChecks: 8, allowMultiple: true, category: 'health' },
+    { title: 'Take breaks', description: 'Step away from screen every hour', emoji: '☕', targetChecks: 8, allowMultiple: true, category: 'health' },
+    { title: 'Practice gratitude', description: 'Write down things you\'re thankful for', emoji: '🙏', targetChecks: 3, allowMultiple: true, category: 'general' },
+    { title: 'Read', description: 'Read for personal development', emoji: '📖', targetChecks: 1, allowMultiple: false, category: 'learning' },
+    { title: 'Exercise', description: 'Get your body moving', emoji: '🏃‍♂️', targetChecks: 1, allowMultiple: false, category: 'health' },
+    { title: 'Meditate', description: 'Practice mindfulness and meditation', emoji: '🧘‍♂️', targetChecks: 1, allowMultiple: false, category: 'health' },
+    { title: 'Journal', description: 'Write about your day', emoji: '📔', targetChecks: 1, allowMultiple: false, category: 'creative' },
+    { title: 'Call family', description: 'Stay connected with loved ones', emoji: '📞', targetChecks: 1, allowMultiple: false, category: 'social' },
+    { title: 'Learn something new', description: 'Spend time learning a new skill', emoji: '🎓', targetChecks: 1, allowMultiple: false, category: 'learning' },
+    { title: 'Clean workspace', description: 'Keep your environment organized', emoji: '🧹', targetChecks: 1, allowMultiple: false, category: 'productivity' }
   ];
-
-  const weeklySuggestions = [
-    { name: 'Grocery shopping', emoji: '🛒' },
-    { name: 'Clean house', emoji: '🧹' },
-    { name: 'Meal prep', emoji: '🥘' },
-    { name: 'Visit gym', emoji: '🏋️‍♂️' },
-    { name: 'Call parents', emoji: '📞' },
-    { name: 'Pay bills', emoji: '💰' },
-    { name: 'Plan next week', emoji: '📅' },
-    { name: 'Water plants', emoji: '🌱' }
-  ];
-
-  const suggestions = isWeekly ? weeklySuggestions : dailySuggestions;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!habitName.trim()) return;
+    if (!habitTitle.trim()) return;
 
     setIsSubmitting(true);
     try {
       const habitData = {
-        name: habitName.trim(),
+        title: habitTitle.trim(),
+        description: habitDescription.trim(),
         emoji: selectedEmoji,
-        ...(isWeekly && { dayOfWeek: selectedDay })
+        targetChecks: parseInt(targetChecks),
+        allowMultipleChecks: allowMultipleChecks,
+        category: selectedCategory
       };
 
-      await onAddHabit(habitData, isWeekly);
+      await onAdd(habitData);
       
       // Reset form
-      setHabitName('');
-      setSelectedEmoji('😊');
-      setSelectedDay(null);
+      setHabitTitle('');
+      setHabitDescription('');
+      setSelectedEmoji('🎯');
+      setTargetChecks(1);
+      setAllowMultipleChecks(false);
+      setSelectedCategory('general');
       onClose();
     } catch (error) {
       console.error('Error adding habit:', error);
@@ -74,14 +72,21 @@ const AddHabitModal = ({ isOpen, onClose, onAddHabit, isWeekly = false }) => {
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setHabitName(suggestion.name);
+    setHabitTitle(suggestion.title);
+    setHabitDescription(suggestion.description);
     setSelectedEmoji(suggestion.emoji);
+    setTargetChecks(suggestion.targetChecks);
+    setAllowMultipleChecks(suggestion.allowMultiple);
+    setSelectedCategory(suggestion.category);
   };
 
   const handleClose = () => {
-    setHabitName('');
-    setSelectedEmoji('😊');
-    setSelectedDay(null);
+    setHabitTitle('');
+    setHabitDescription('');
+    setSelectedEmoji('🎯');
+    setTargetChecks(1);
+    setAllowMultipleChecks(false);
+    setSelectedCategory('general');
     setShowEmojiPicker(false);
     onClose();
   };
@@ -107,7 +112,7 @@ const AddHabitModal = ({ isOpen, onClose, onAddHabit, isWeekly = false }) => {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-heading-bold text-text-primary">
-              Add {isWeekly ? 'Weekly' : 'Daily'} Habit
+              Create New Habit
             </h3>
             <button
               onClick={handleClose}
@@ -119,22 +124,66 @@ const AddHabitModal = ({ isOpen, onClose, onAddHabit, isWeekly = false }) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Habit Name */}
+            {/* Habit Title */}
             <div>
               <label className="block text-sm font-body-medium text-text-primary mb-2">
-                Habit Name *
+                Habit Title *
               </label>
               <input
                 type="text"
-                value={habitName}
-                onChange={(e) => setHabitName(e.target.value)}
-                placeholder={`Enter your ${isWeekly ? 'weekly' : 'daily'} habit...`}
+                value={habitTitle}
+                onChange={(e) => setHabitTitle(e.target.value)}
+                placeholder="Enter your habit title..."
                 className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 required
                 maxLength={50}
               />
               <div className="text-xs text-text-secondary mt-1">
-                {habitName.length}/50 characters
+                {habitTitle.length}/50 characters
+              </div>
+            </div>
+
+            {/* Habit Description */}
+            <div>
+              <label className="block text-sm font-body-medium text-text-primary mb-2">
+                Description (Optional)
+              </label>
+              <textarea
+                value={habitDescription}
+                onChange={(e) => setHabitDescription(e.target.value)}
+                placeholder="Describe your habit..."
+                rows={3}
+                className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+                maxLength={200}
+              />
+              <div className="text-xs text-text-secondary mt-1">
+                {habitDescription.length}/200 characters
+              </div>
+            </div>
+
+            {/* Category Selection */}
+            <div>
+              <label className="block text-sm font-body-medium text-text-primary mb-2">
+                Category
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      selectedCategory === category.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-surface-600 hover:bg-surface-500'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-xl mb-1">{category.icon}</div>
+                      <div className="text-xs text-text-secondary">{category.name}</div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -154,36 +203,49 @@ const AddHabitModal = ({ isOpen, onClose, onAddHabit, isWeekly = false }) => {
               </button>
             </div>
 
-            {/* Day of Week (Weekly only) */}
-            {isWeekly && (
-              <div>
-                <label className="block text-sm font-body-medium text-text-primary mb-2">
-                  Specific Day (Optional)
-                </label>
-                <select
-                  value={selectedDay || ''}
-                  onChange={(e) => setSelectedDay(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                >
-                  {daysOfWeek.map((day) => (
-                    <option key={day.value || 'any'} value={day.value || ''}>
-                      {day.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="text-xs text-text-secondary mt-1">
-                  Leave as "Any day" for flexible weekly habits
-                </div>
+            {/* Target Checks */}
+            <div>
+              <label className="block text-sm font-body-medium text-text-primary mb-2">
+                Target Check-ins per Day
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={targetChecks}
+                onChange={(e) => setTargetChecks(parseInt(e.target.value) || 1)}
+                className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+              <div className="text-xs text-text-secondary mt-1">
+                How many times should you complete this habit each day?
               </div>
-            )}
+            </div>
+
+            {/* Allow Multiple Checks */}
+            <div>
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allowMultipleChecks}
+                  onChange={(e) => setAllowMultipleChecks(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-surface-600 border-border rounded focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm font-body-medium text-text-primary">
+                  Allow extra check-ins beyond target
+                </span>
+              </label>
+              <div className="text-xs text-text-secondary mt-1 ml-7">
+                Useful for habits like "drink water" where you might want to track more than the minimum
+              </div>
+            </div>
 
             {/* Suggestions */}
             <div>
               <label className="block text-sm font-body-medium text-text-primary mb-3">
-                Popular {isWeekly ? 'Weekly' : 'Daily'} Habits
+                Popular Habit Suggestions
               </label>
               <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                {suggestions.map((suggestion, index) => (
+                {habitSuggestions.map((suggestion, index) => (
                   <button
                     key={index}
                     type="button"
@@ -191,52 +253,52 @@ const AddHabitModal = ({ isOpen, onClose, onAddHabit, isWeekly = false }) => {
                     className="flex items-center gap-3 px-3 py-2 bg-surface-600 hover:bg-surface-500 rounded-lg transition-colors text-left"
                   >
                     <span className="text-xl">{suggestion.emoji}</span>
-                    <span className="text-sm text-text-primary">{suggestion.name}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-text-primary">{suggestion.title}</div>
+                      <div className="text-xs text-text-secondary">{suggestion.description}</div>
+                    </div>
+                    <div className="text-xs text-text-secondary">
+                      {suggestion.targetChecks} check{suggestion.targetChecks > 1 ? 's' : ''}
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex items-center justify-end space-x-3 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                className="flex-1"
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="flex-1"
-                disabled={!habitName.trim() || isSubmitting}
+                loading={isSubmitting}
+                disabled={!habitTitle.trim()}
+                iconName="Plus"
+                iconPosition="left"
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Adding...
-                  </div>
-                ) : (
-                  <>
-                    <Icon name="Plus" size={16} />
-                    Add Habit
-                  </>
-                )}
+                Create Habit
               </Button>
             </div>
           </form>
         </motion.div>
       </motion.div>
 
-      {/* Emoji Picker */}
+      {/* Emoji Picker Modal */}
       <AnimatePresence>
         {showEmojiPicker && (
           <EmojiPicker
-            selectedEmoji={selectedEmoji}
-            onEmojiSelect={setSelectedEmoji}
+            isOpen={showEmojiPicker}
             onClose={() => setShowEmojiPicker(false)}
+            onSelect={(emoji) => {
+              setSelectedEmoji(emoji);
+              setShowEmojiPicker(false);
+            }}
           />
         )}
       </AnimatePresence>

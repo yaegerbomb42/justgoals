@@ -18,8 +18,7 @@ import SignUpPage from "pages/auth/SignUpPage";
 import AnalyticsDashboard from "pages/analytics-dashboard";
 import Day from "pages/day";
 import AchievementsPage from "pages/achievements";
-import HabitTracking from "pages/analytics-dashboard/components/HabitTracking";
-import HabitsDemo from "pages/habits-demo";
+import HabitsPage from "pages/habits";
 import Oauth2Callback from './pages/oauth2callback';
 
 // ProtectedRoute component
@@ -66,6 +65,7 @@ const Routes = () => {
         <Route path="/habits" element={<ProtectedRoute><HabitTracking /></ProtectedRoute>} />
         <Route path="/day" element={<ProtectedRoute><Day /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
+        <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
 
         {/* Default route */}
         <Route

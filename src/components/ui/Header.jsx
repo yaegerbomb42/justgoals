@@ -51,6 +51,7 @@ const Header = () => {
     { path: '/day', label: 'Today', icon: 'Calendar' },
     { path: '/focus-mode', label: 'Focus', icon: 'Zap' },
     { path: '/daily-milestones', label: 'Milestones', icon: 'CheckSquare' },
+    { path: '/habits', label: 'Habits', icon: 'Repeat' },
     { path: '/journal', label: 'Journal', icon: 'BookOpen' },
     { path: '/analytics-dashboard', label: 'Analytics', icon: 'BarChart3' },
     { path: '/ai-assistant-chat-drift', label: 'Drift', icon: 'MessageCircle' },

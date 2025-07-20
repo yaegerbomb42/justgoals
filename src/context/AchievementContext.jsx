@@ -201,6 +201,8 @@ export const AchievementProvider = ({ children }) => {
     syncStatus,
     lastSync,
     errorLogs,
+    error,
+    unreadCount: newAchievements.length, // Add unreadCount for Header
   };
 
   return (

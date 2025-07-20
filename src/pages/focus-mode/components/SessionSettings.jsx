@@ -183,10 +183,10 @@ const SessionSettings = ({
                   {ambientSoundOptions.map((sound) => (
                     <button
                       key={sound.id}
-                      onClick={() => onAmbientSoundChange(sound.id)}
+                      onClick={() => updateSetting('selectedAmbientSound', sound.id)}
                       className={`
                         flex flex-col items-center space-y-2 p-3 rounded-lg border transition-all duration-normal
-                        ${settings.selectedAmbientSound === sound.id
+                        ${localSettings.selectedAmbientSound === sound.id
                           ? 'border-primary bg-primary/5' :'border-border hover:border-border-strong hover:bg-surface-700'
                         }
                       `}
@@ -194,10 +194,10 @@ const SessionSettings = ({
                       <Icon 
                         name={sound.icon} 
                         className="w-5 h-5" 
-                        color={settings.selectedAmbientSound === sound.id ? '#6366F1' : '#94A3B8'} 
+                        color={localSettings.selectedAmbientSound === sound.id ? '#6366F1' : '#94A3B8'} 
                       />
                       <span className="text-xs font-caption text-text-primary text-center">{sound.name}</span>
-                      {settings.selectedAmbientSound === sound.id && (
+                      {localSettings.selectedAmbientSound === sound.id && (
                         <Icon name="Check" className="w-3 h-3 text-primary" />
                       )}
                     </button>
@@ -211,50 +211,85 @@ const SessionSettings = ({
               <label className="block text-sm font-medium text-text-primary mb-2">
                 Completion Sound
               </label>
-              <div className="space-y-2">
-                {soundOptions.map((option) => (
+              <div className="grid grid-cols-1 gap-2">
+                {soundOptions.map((sound) => (
                   <button
-                    key={option.id}
-                    onClick={() => updateSetting('completionSound', option.id)}
+                    key={sound.id}
+                    onClick={() => updateSetting('completionSound', sound.id)}
                     className={`
-                      w-full p-3 rounded-lg border transition-all duration-normal text-left
-                      ${localSettings.completionSound === option.id
-                        ? 'border-primary bg-primary/10' :'border-border hover:border-border-strong'
+                      flex items-center space-x-3 p-3 rounded-lg border transition-all duration-normal
+                      ${localSettings.completionSound === sound.id
+                        ? 'border-primary bg-primary/5' :'border-border hover:border-border-strong hover:bg-surface-700'
                       }
                     `}
                   >
-                    <div className="flex items-center space-x-3">
-                      <Icon name={option.icon} className="w-4 h-4 text-text-secondary" />
-                      <span className="text-text-primary text-sm">{option.label}</span>
-                    </div>
+                    <Icon 
+                      name={sound.icon} 
+                      className="w-4 h-4" 
+                      color={localSettings.completionSound === sound.id ? '#6366F1' : '#94A3B8'} 
+                    />
+                    <span className="text-sm font-medium text-text-primary">{sound.label}</span>
+                    {localSettings.completionSound === sound.id && (
+                      <Icon name="Check" className="w-4 h-4 text-primary ml-auto" />
+                    )}
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Background Options */}
+          {/* Background Settings */}
           <div>
-            <h3 className="text-text-primary font-body-medium mb-3">Background</h3>
-            <div className="space-y-2">
-              {backgroundOptions.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => updateSetting('background', option.id)}
-                  className={`
-                    w-full p-3 rounded-lg border transition-all duration-normal text-left
-                    ${localSettings.background === option.id
-                      ? 'border-primary bg-primary/10' :'border-border hover:border-border-strong'
-                    }
-                  `}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded ${option.preview} border border-border`}></div>
-                    <span className="text-text-primary text-sm">{option.label}</span>
-                  </div>
-                </button>
-              ))}
+            <h3 className="text-text-primary font-body-medium mb-3">Background Effects</h3>
+            
+            {/* Enable/Disable Background Effects */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <label className="text-sm font-medium text-text-primary">Background Effects</label>
+                <p className="text-xs text-text-secondary">Show animated backgrounds during focus sessions</p>
+              </div>
+              <button
+                onClick={() => updateFocusSetting('backgroundEffects', !localFocusSettings.backgroundEffects)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                  localFocusSettings.backgroundEffects ? 'bg-primary' : 'bg-surface-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                    localFocusSettings.backgroundEffects ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
+
+            {/* Background Options */}
+            {localFocusSettings.backgroundEffects && (
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Background Style
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {backgroundOptions.map((bg) => (
+                    <button
+                      key={bg.id}
+                      onClick={() => updateSetting('background', bg.id)}
+                      className={`
+                        p-3 rounded-lg border transition-all duration-normal text-center
+                        ${localSettings.background === bg.id
+                          ? 'border-primary bg-primary/5' :'border-border hover:border-border-strong hover:bg-surface-700'
+                        }
+                      `}
+                    >
+                      <div className={`w-full h-8 rounded ${bg.preview} mb-2`}></div>
+                      <span className="text-xs font-caption text-text-primary">{bg.label}</span>
+                      {localSettings.background === bg.id && (
+                        <Icon name="Check" className="w-3 h-3 text-primary mx-auto mt-1" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Auto-start Settings */}
@@ -269,13 +304,13 @@ const SessionSettings = ({
                 </div>
                 <button
                   onClick={() => updateFocusSetting('autoStartBreaks', !localFocusSettings.autoStartBreaks)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
                     localFocusSettings.autoStartBreaks ? 'bg-primary' : 'bg-surface-600'
                   }`}
                 >
                   <span
-                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
-                      localFocusSettings.autoStartBreaks ? 'translate-x-5' : 'translate-x-1'
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                      localFocusSettings.autoStartBreaks ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -284,17 +319,17 @@ const SessionSettings = ({
               <div className="flex items-center justify-between">
                 <div>
                   <label className="text-sm font-medium text-text-primary">Auto-start Sessions</label>
-                  <p className="text-xs text-text-secondary">Automatically start focus session when goal is selected</p>
+                  <p className="text-xs text-text-secondary">Automatically start focus timer after breaks</p>
                 </div>
                 <button
                   onClick={() => updateFocusSetting('autoStartSessions', !localFocusSettings.autoStartSessions)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
                     localFocusSettings.autoStartSessions ? 'bg-primary' : 'bg-surface-600'
                   }`}
                 >
                   <span
-                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
-                      localFocusSettings.autoStartSessions ? 'translate-x-5' : 'translate-x-1'
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                      localFocusSettings.autoStartSessions ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -306,14 +341,15 @@ const SessionSettings = ({
         {/* Footer */}
         <div className="flex items-center justify-end space-x-3 p-6 border-t border-border">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={handleCancel}
           >
             Cancel
           </Button>
           <Button
-            variant="primary"
             onClick={handleSave}
+            iconName="Save"
+            iconPosition="left"
           >
             Save Settings
           </Button>
