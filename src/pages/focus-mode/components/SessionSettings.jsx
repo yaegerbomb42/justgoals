@@ -43,7 +43,8 @@ const SessionSettings = ({
     { id: 'forest', name: 'Forest', icon: 'Trees' },
     { id: 'ocean', name: 'Ocean Waves', icon: 'Waves' },
     { id: 'cafe', name: 'Coffee Shop', icon: 'Coffee' },
-    { id: 'whitenoise', name: 'White Noise', icon: 'Radio' }
+    { id: 'whitenoise', name: 'White Noise', icon: 'Radio' },
+    { id: 'chime', name: 'Gentle Chime', icon: 'Bell' }
   ];
 
   const updateSetting = (key, value) => {

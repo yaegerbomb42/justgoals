@@ -258,8 +258,22 @@ const DayPlanner = () => {
 
   // Handler to start OAuth flow
   const handleGoogleLink = () => {
-    const redirectUri = window.location.origin + '/oauth2callback';
-    window.location.href = calendarSyncService.getGoogleAuthUrl(redirectUri);
+    try {
+      const redirectUri = window.location.origin + '/oauth2callback';
+      const authUrl = calendarSyncService.getGoogleAuthUrl(redirectUri);
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Google OAuth setup error:', error);
+      setSyncStatus('Google Calendar integration not configured. The app works great without it!');
+      setTimeout(() => setSyncStatus(''), 5000);
+    }
+  };
+
+  // Alternative: Skip Google Calendar setup
+  const handleSkipGoogleCalendar = () => {
+    setGoogleLinked(true); // Pretend it's linked to avoid the setup screen
+    setSyncStatus('Google Calendar integration skipped. You can always enable it later in Settings.');
+    setTimeout(() => setSyncStatus(''), 3000);
   };
 
   // Handler for /oauth2callback route (should be in a dedicated component/page)
@@ -468,14 +482,23 @@ const DayPlanner = () => {
       <div className="container mx-auto px-2 pt-24 max-w-4xl">
         {/* Google Calendar Sync Button */}
         <div className="flex justify-end mb-2">
-          <Button
-            variant="outline"
-            iconName="Calendar"
-            onClick={handleGoogleLink}
-            className="ml-2"
-          >
-            Link Google Calendar
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              iconName="Calendar"
+              onClick={handleGoogleLink}
+            >
+              Link Google Calendar
+            </Button>
+            <Button
+              variant="ghost"
+              iconName="X"
+              onClick={handleSkipGoogleCalendar}
+              className="text-text-secondary hover:text-text-primary"
+            >
+              Skip
+            </Button>
+          </div>
         </div>
         {syncStatus && (
           <div className="text-center text-sm text-accent mb-2">{syncStatus}</div>

@@ -11,6 +11,7 @@ import SessionStats from './components/SessionStats';
 import ExitConfirmation from './components/ExitConfirmation';
 import QuickLinksPanel from './components/QuickLinksPanel';
 import FocusFloatingActions from './components/FocusFloatingActions';
+import FlowingParticlesBackground from '../../components/ui/FlowingParticlesBackground';
 import * as entityService from '../../services/entityManagementService';
 import notificationManager from '../../utils/notificationUtils';
 import firestoreService from '../../services/firestoreService';
@@ -482,11 +483,21 @@ const FocusMode = () => {
   };
 
   const getBackgroundClass = () => {
-    switch (localSessionSettings.background) { // Use localSessionSettings
+    switch (localSessionSettings.background) {
       case 'gradient':
         return 'bg-gradient-to-br from-background via-surface to-background';
       case 'pattern':
-        return 'bg-background relative';
+        return 'bg-background';
+      case 'flowing-particles':
+        return 'bg-background relative overflow-hidden';
+      case 'abstract-waves':
+        return 'bg-background relative overflow-hidden';
+      case 'energy':
+        return 'bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20';
+      case 'confetti':
+        return 'bg-background relative overflow-hidden';
+      case 'sunrise':
+        return 'bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600';
       default:
         return 'bg-background';
     }
@@ -496,16 +507,19 @@ const FocusMode = () => {
   const handleAmbientSoundChange = (soundId) => {
     setGlobalFocusSettings(prev => {
       const updated = { ...prev, selectedAmbientSound: soundId };
-      // Persist to user settings
-      const settingsKey = getStorageKey('app_settings');
-      if (settingsKey) {
-        const existing = localStorage.getItem(settingsKey);
-        let settings = {};
-        if (existing) {
-          try { settings = JSON.parse(existing); } catch {}
+      
+      // Save to localStorage
+      if (isAuthenticated && user) {
+        const settingsKey = getStorageKey('app_settings');
+        if (settingsKey) {
+          const existing = localStorage.getItem(settingsKey);
+          let settings = {};
+          if (existing) {
+            try { settings = JSON.parse(existing); } catch {}
+          }
+          settings.focusMode = { ...settings.focusMode, ...updated };
+          localStorage.setItem(settingsKey, JSON.stringify(settings));
         }
-        settings.focusMode = { ...settings.focusMode, ...updated };
-        localStorage.setItem(settingsKey, JSON.stringify(settings));
       }
       return updated;
     });
@@ -514,10 +528,43 @@ const FocusMode = () => {
   return (
     <div className={`min-h-screen ${getBackgroundClass()} relative overflow-hidden`}>
       <audio ref={audioRef} />
+      
+      {/* Background Effects */}
+      {localSessionSettings.background === 'flowing-particles' && (
+        <FlowingParticlesBackground />
+      )}
+      {localSessionSettings.background === 'abstract-waves' && (
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 animate-pulse"></div>
+          <div className="absolute inset-0 bg-gradient-to-l from-accent/20 via-primary/20 to-secondary/20 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+      )}
+      {localSessionSettings.background === 'confetti' && (
+        <div className="absolute inset-0 opacity-20">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-primary rounded-full animate-bounce"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${1 + Math.random() * 2}s`
+              }}
+            />
+          ))}
+        </div>
+      )}
+      
       {/* Background Pattern */}
-      {localSessionSettings.background === 'pattern' && ( // Use localSessionSettings
+      {localSessionSettings.background === 'pattern' && (
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10"></div>
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                             radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)`,
+            backgroundSize: '100px 100px'
+          }}></div>
         </div>
       )}
 
@@ -687,17 +734,17 @@ const FocusMode = () => {
 
       {/* Chat History Panel (replaces notes if open) */}
       {isChatHistoryOpen && (
-        <div className="fixed bottom-16 left-0 right-0 z-40 max-h-64 overflow-y-auto bg-surface border-t border-border px-4 py-2" style={{ maxWidth: '100vw' }}>
+        <div className="fixed bottom-20 left-0 right-0 z-30 max-h-48 overflow-y-auto bg-surface border-t border-border px-4 py-2 shadow-lg" style={{ maxWidth: '100vw' }}>
           <div className="space-y-2">
             {goalChatMessages.length === 0 ? (
-              <div className="text-text-secondary text-sm text-center">No chat history for this goal yet.</div>
+              <div className="text-text-secondary text-sm text-center py-4">No chat history for this goal yet.</div>
             ) : (
               goalChatMessages.map(msg => (
-                <div key={msg.id} className="flex items-start space-x-2">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</div>
-                  <div>
+                <div key={msg.id} className="flex items-start space-x-2 py-2">
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</div>
+                  <div className="flex-1 min-w-0">
                     <div className="text-xs text-text-secondary">{new Date(msg.timestamp).toLocaleString()}</div>
-                    <div className="text-sm text-text-primary bg-surface-700 rounded-lg px-3 py-2 mt-1">{msg.content}</div>
+                    <div className="text-sm text-text-primary bg-surface-700 rounded-lg px-3 py-2 mt-1 break-words">{msg.content}</div>
                   </div>
                 </div>
               ))

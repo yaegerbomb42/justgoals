@@ -107,7 +107,7 @@ const ApiKeySection = () => {
         </motion.div>
         <div>
           <h3 className="text-lg font-heading-semibold text-text-primary">Gemini API Configuration</h3>
-          <p className="text-sm text-text-secondary">Configure your Google Gemini API key for AI assistant functionality</p>
+          <p className="text-sm text-text-secondary">Configure your Google Gemini API key to enable AI-powered features like Drift assistant and intelligent daily planning</p>
         </div>
       </div>
 
@@ -151,6 +151,16 @@ const ApiKeySection = () => {
                 ✓ Key saved
               </span>
             )}
+          </div>
+          
+          {/* Why API Key is Needed */}
+          <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <h4 className="text-sm font-medium text-primary mb-2">Why is this API key needed?</h4>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              The Gemini API key powers all AI features in JustGoals, including the Drift assistant, 
+              intelligent daily planning, and personalized goal insights. Without it, you can still use 
+              basic goal tracking and focus mode, but AI-powered features won't work.
+            </p>
           </div>
         </div>
 

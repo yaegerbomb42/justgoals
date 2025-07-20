@@ -1,130 +1,194 @@
-# Yaeger's Goals
+# JustGoals - AI-Powered Goal Achievement Platform
 
-## 🚀 Download & Install (Desktop App)
+A comprehensive web application for setting, tracking, and achieving personal goals with AI assistance.
 
-### One-Click Installer (Unsigned - Free Option)
+## Features
 
-Since code signing requires paid certificates, here's how to distribute your app without them:
+- **AI-Powered Goal Management**: Create and track goals with intelligent insights
+- **Daily Planning**: Generate personalized daily plans using AI
+- **Focus Mode**: Distraction-free work sessions with timer
+- **Habit Tracking**: Build and maintain positive habits with streak tracking
+- **Journal & Reflection**: AI-assisted journaling and progress tracking
+- **Analytics Dashboard**: Comprehensive insights into your progress
+- **Achievement System**: Gamified progress tracking with badges
+- **Drift AI Assistant**: Intelligent chat assistant for goal guidance
 
-- **Mac:** [Download for Mac (.dmg)](https://github.com/yaeger/yaeger_s_goals/releases/latest/download/YaegerGoals-mac.dmg)
-- **Windows:** [Download for Windows (.exe)](https://github.com/yaeger/yaeger_s_goals/releases/latest/download/YaegerGoals-win.exe)
+## Quick Start
 
-**Installation Instructions (Unsigned Apps):**
-
-**Mac:**
-1. Download the `.dmg` file
-2. Double-click to mount the disk image
-3. Drag the app to Applications folder
-4. Right-click the app in Applications and select "Open"
-5. Click "Open" in the security dialog that appears
-6. The app will now open normally on future launches
-
-**Windows:**
-1. Download the `.exe` file
-2. Right-click the installer and select "Run as administrator"
-3. If Windows SmartScreen blocks it, click "More info" then "Run anyway"
-4. Follow the installation wizard
-
-**Note:** Unsigned apps will show security warnings, but they're safe to install. The warnings are just because the app isn't signed by a recognized developer.
-
-### Code-Signed Version (Optional)
-For a seamless experience without security warnings, see the "Code Signing & Notarization" section below.
-
-Just double-click the downloaded file to install. The app is code-signed and notarized for your security. It will auto-update to the latest version.
-
-![screenshot](public/assets/images/ChatGPT%20Image%20Jul%2015,%202025,%2003_31_29%20PM.png)
-
-### Troubleshooting
-- If you see a security warning, check that the publisher is "Yaeger" and click "Allow" or "Open Anyway".
-- On Mac, you may need to right-click and choose "Open" the first time.
-- The app will auto-update in the background.
-
-## 🖥️ Run Locally (Developers)
-
-1. Clone this repo:
-   ```sh
-   git clone https://github.com/yaeger/yaeger_s_goals.git
-   cd yaeger_s_goals
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd justgoals
    ```
-2. Install dependencies:
-   ```sh
+
+2. **Install dependencies**
+   ```bash
    npm install
    ```
-3. Start the app in Electron:
-   ```sh
-   npm run electron:start
+
+3. **Set up environment variables**
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
+   VITE_GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret_here
    ```
-4. Or run the web version:
-   ```sh
+
+4. **Start the development server**
+   ```bash
    npm run dev
    ```
 
-## Features
-- Cross-platform (Mac & Windows)
-- One-click installer, code-signed and notarized
-- Auto-updates
-- Full offline/local support
-- Modern, beautiful UI
+## Google OAuth Setup (Optional)
 
-## Support
-If you have issues, open an issue on GitHub or email support@yaeger.com.
+To enable Google Calendar integration:
 
-## 🔒 Code Signing & Notarization (For Developers)
+1. **Create a Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
 
-To prevent security warnings and ensure trust, you must code sign and notarize your Electron builds:
+2. **Enable Google Calendar API**
+   - Navigate to "APIs & Services" > "Library"
+   - Search for "Google Calendar API" and enable it
 
-### Mac (Apple Notarization)
-1. **Obtain an Apple Developer Account** ($99/year):
-   - https://developer.apple.com/account/
-2. **Create a Certificate:**
-   - In Xcode > Preferences > Accounts, add your Apple ID and create a "Developer ID Application" certificate.
-   - Download and install it in your Keychain.
-3. **Set Environment Variables:**
-   - `APPLE_ID`, `APPLE_ID_PASSWORD` (app-specific password), and `CSC_LINK` (path to .p12 certificate) in your CI or shell.
-4. **Configure Electron Forge:**
-   - Use `electron-osx-sign` and `electron-notarize` in your `forge.config.js`.
-   - Example:
-```js
-     packagerConfig: {
-       osxSign: {
-         identity: 'Developer ID Application: Your Name (TEAMID)',
-         hardenedRuntime: true,
-         entitlements: 'entitlements.plist',
-         'entitlements-inherit': 'entitlements.plist',
-       },
-       osxNotarize: {
-         appleId: process.env.APPLE_ID,
-         appleIdPassword: process.env.APPLE_ID_PASSWORD,
-       },
-     }
-     ```
-5. **Build & Notarize:**
-   - `npm run electron:make` (or via CI)
+3. **Create OAuth 2.0 Credentials**
+   - Go to "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "OAuth 2.0 Client IDs"
+   - Choose "Web application"
+   - Add authorized redirect URIs:
+     - `http://localhost:5173/oauth2callback` (for development)
+     - `https://yourdomain.com/oauth2callback` (for production)
 
-### Windows (EV Code Signing)
-1. **Obtain an EV Code Signing Certificate:**
-   - Purchase from a trusted Certificate Authority (CA) such as Sectigo, DigiCert, GlobalSign, or SSL.com.
-   - The CA will require identity verification (business or individual) and may ship a physical USB token for secure certificate storage.
-   - Follow the CA's instructions to activate and export your certificate (usually as a `.pfx` file).
-2. **Set Environment Variables:**
-   - `WIN_CERT_FILE` — Path to your `.pfx` certificate file (e.g., `C:/certs/yourcert.pfx`).
-   - `WIN_CERT_PASS` — Password for your certificate file.
-3. **Build & Sign:**
-   - Only the developer (you) needs to build and sign the app. End users just download and install the signed installer—no certificates or special steps needed for them.
-   - Run `npm run electron:make` to build, sign, and package the app for distribution.
+4. **Set Environment Variables**
+   - Copy the Client ID and Client Secret to your `.env` file
+   - The Client Secret is used in the Vercel serverless function
 
-### Onboarding Screen & Auto-Updater
-- The app includes a built-in onboarding screen with install and getting started instructions for new users.
-- The auto-updater checks for new releases and updates the app automatically, so users always have the latest version with no manual steps.
+5. **Deploy OAuth Handler**
+   - The OAuth token exchange is handled by `/api/googleOAuth.js`
+   - Deploy this to Vercel or your preferred serverless platform
 
-### Troubleshooting
-- **Mac:** If notarization fails, check your Apple ID, app-specific password, and certificate validity.
-- **Windows:** If signing fails, ensure the certificate is installed and the password is correct.
-- See Electron Forge docs for more: https://www.electronforge.io/advanced/code-signing
+## API Keys Required
 
-## Google Calendar OAuth Setup
+### Gemini API Key (Required for AI Features)
+- **Purpose**: Powers all AI features including Drift assistant, daily planning, goal suggestions, and intelligent insights
+- **Why it's needed**: The app uses Google's Gemini AI to provide personalized goal strategies, daily planning, and intelligent chat assistance
+- **Get your API key**: Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **Cost**: Free tier available with generous limits
 
-- Google Calendar sync uses Firebase Cloud Functions for secure OAuth token exchange.
-- The Google OAuth Client Secret is never exposed in frontend code.
-- The OAuth handler will be implemented in `functions/googleOAuth.js`.
-- See project documentation for setup and deployment instructions.
+### Google OAuth (Optional - for Calendar Integration)
+- **Purpose**: Enables two-way Google Calendar sync for the day planner
+- **Why it's optional**: The app works perfectly without calendar integration
+- **Setup**: See Google OAuth setup instructions above
+- **Cost**: Free with Google Cloud Platform
+
+## Why These APIs Are Needed
+
+### Gemini AI (Required)
+The app's core value comes from AI-powered features:
+- **Drift Assistant**: Intelligent chat that helps with goal planning and motivation
+- **Daily Planning**: AI generates personalized daily schedules based on your goals
+- **Goal Insights**: AI analyzes your progress and suggests improvements
+- **Smart Suggestions**: AI provides context-aware recommendations
+
+Without the Gemini API key, these AI features won't work, but you can still use basic goal tracking and focus mode.
+
+### Google Calendar (Optional)
+- **Syncs your day planner events** to Google Calendar
+- **Imports Google Calendar events** into your daily plan
+- **Adds reminders** for your planned activities
+- **Works with any Google account** - no special setup needed
+
+## For Developers: Making Google Calendar Auth General
+
+The Google Calendar integration is designed to work for any user:
+
+1. **Single OAuth Setup**: One Google Cloud project handles all users
+2. **User-Specific Tokens**: Each user gets their own access tokens
+3. **No User Limits**: Works with unlimited users
+4. **Automatic Setup**: Users just click "Link Google Calendar" and authorize
+
+### Environment Variables for Production
+```env
+# Required for AI features
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+
+# Optional for Google Calendar (one setup for all users)
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
+VITE_GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret_here
+```
+
+## Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run electron` - Run Electron app
+- `npm run package` - Package Electron app
+
+### Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── context/            # React context providers
+├── pages/              # Page components
+├── services/           # API and external service integrations
+├── styles/             # Global styles and Tailwind config
+└── utils/              # Utility functions
+```
+
+## Deployment
+
+### Web Deployment
+1. Build the project: `npm run build`
+2. Deploy the `dist` folder to your hosting provider
+3. Set up environment variables in your hosting platform
+
+### Vercel Deployment
+
+1. **Connect your repository to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Import your GitHub repository
+   - Vercel will automatically detect it's a Vite project
+
+2. **Set up Environment Variables in Vercel**
+   - In your Vercel project dashboard, go to "Settings" > "Environment Variables"
+   - Add the following variables:
+   
+   ```
+   VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
+   VITE_GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret_here
+   ```
+   
+   - Set the environment to "Production" (and optionally "Preview" for testing)
+   - Click "Save"
+
+3. **Deploy the OAuth Handler**
+   - The `/api/googleOAuth.js` file will be automatically deployed as a serverless function
+   - Make sure your Google OAuth redirect URI includes your Vercel domain:
+     - `https://your-project.vercel.app/oauth2callback`
+
+4. **Update Google OAuth Settings**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Navigate to "APIs & Services" > "Credentials"
+   - Edit your OAuth 2.0 Client ID
+   - Add your Vercel domain to "Authorized redirect URIs":
+     - `https://your-project.vercel.app/oauth2callback`
+
+### Electron App
+1. Run `npm run package` to create distributable
+2. Find the packaged app in the `out` directory
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.

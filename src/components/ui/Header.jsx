@@ -189,7 +189,7 @@ const Header = () => {
             {/* Profile Icon & Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-primary-200 text-primary-900 font-bold border-2 border-primary-400 hover:shadow-lg transition-colors"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary text-white font-bold border-2 border-primary-400 hover:shadow-lg transition-all duration-200 hover:scale-105"
                 onClick={() => setProfileMenuOpen((v) => !v)}
                 title="Profile"
               >
@@ -198,33 +198,46 @@ const Header = () => {
               <AnimatePresence>
                 {profileMenuOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg z-50 border border-border"
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="absolute right-0 mt-3 w-64 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden"
                   >
-                    <div className="px-4 py-3 border-b border-border">
-                      <div className="font-semibold">{user?.displayName ?? user?.email}</div>
-                      <div className="text-xs text-gray-500">{user?.email}</div>
+                    {/* User Info Section */}
+                    <div className="p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-border">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
+                          {user?.displayName?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-text-primary truncate">
+                            {user?.displayName ?? 'User'}
+                          </div>
+                          <div className="text-xs text-text-secondary truncate">
+                            {user?.email}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
-                      onClick={() => navigate('/achievements')}
-                    >
-                      <Icon name="Award" className="inline-block mr-2 text-yellow-500" /> View Achievements
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
-                      onClick={() => navigate('/settings-configuration')}
-                    >
-                      <Icon name="Settings" className="inline-block mr-2 text-primary-500" /> Settings
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors border-t border-border"
-                      onClick={handleLogout}
-                    >
-                      <Icon name="LogOut" className="inline-block mr-2 text-red-500" /> Sign Out
-                    </button>
+
+                    {/* Menu Items */}
+                    <div className="p-2">
+                      <button
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-left text-text-primary hover:bg-surface-700 rounded-lg transition-colors duration-200"
+                        onClick={() => navigate('/settings-configuration')}
+                      >
+                        <Icon name="Settings" className="w-4 h-4 text-primary" />
+                        <span className="text-sm">Settings</span>
+                      </button>
+                      
+                      <button
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-left text-red-500 hover:bg-red-500/10 rounded-lg transition-colors duration-200 mt-1"
+                        onClick={handleLogout}
+                      >
+                        <Icon name="LogOut" className="w-4 h-4" />
+                        <span className="text-sm font-medium">Sign Out</span>
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
