@@ -1,4 +1,4 @@
-# JustGoals - AI-Powered Goal Achievement Platform
+# JustGoals - AI Powered Goal Achievement Platform
 
 A comprehensive web application for setting, tracking, and achieving personal goals with AI assistance.
 
