@@ -2,6 +2,6 @@
   "rewrites": [
     { "source": "/__/auth/handler", "destination": "/index.html" },
     { "source": "/assets/:match*", "destination": "/assets/:match*" },
-    { "source": "/(?!assets/|favicon\\.ico|manifest\\.json|robots\\.txt|sw\\.js|.*\\.[a-zA-Z0-9]+$).+", "destination": "/index.html" }
+    { "source": "/:path((?!assets/|favicon\\.ico|manifest\\.json|robots\\.txt|sw\\.js|.*\\.[a-zA-Z0-9]+$).+)", "destination": "/index.html" }
   ]
 }
