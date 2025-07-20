@@ -43,6 +43,22 @@ export const SettingsProvider = ({ children }) => {
         start: '22:00',
         end: '08:00',
       },
+      // New notification channels
+      email: {
+        enabled: false,
+        address: '',
+        provider: 'gmail', // gmail, sendgrid, mailgun
+      },
+      sms: {
+        enabled: false,
+        phoneNumber: '',
+        carrier: '', // att, verizon, tmobile, sprint, etc.
+        provider: 'email-sms', // email-sms, telegram, discord
+      },
+      discord: {
+        enabled: false,
+        webhookUrl: '',
+      },
     },
     
     // Progress Tracking
@@ -95,7 +111,24 @@ export const SettingsProvider = ({ children }) => {
           mobile: {
             ...prev.mobile,
             ...parsed.mobile,
-          }
+          },
+          // Ensure new notification channels are initialized
+          notifications: {
+            ...prev.notifications,
+            ...parsed.notifications,
+            email: {
+              ...prev.notifications.email,
+              ...parsed.notifications?.email,
+            },
+            sms: {
+              ...prev.notifications.sms,
+              ...parsed.notifications?.sms,
+            },
+            discord: {
+              ...prev.notifications.discord,
+              ...parsed.notifications?.discord,
+            },
+          },
         }));
       } catch (error) {
         console.error('Error loading settings:', error);
