@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from '@/components/Icon';
+import Icon from '../../../components/ui/Icon';
 
 const ProductivityTrends = ({ data }) => {
   if (!data || !data.productivity || data.productivity.length === 0) {
