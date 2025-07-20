@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Header from '../../components/ui/Header';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
@@ -455,7 +454,6 @@ const DayPlanner = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header title="Day Planner" />
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -468,17 +466,6 @@ const DayPlanner = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header title="Day Planner" />
-      <AddEventModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={handleAddEvent} />
-      <PreferencesModal
-        isOpen={showPreferences}
-        onClose={() => setShowPreferences(false)}
-        eventCount={eventCount}
-        setEventCount={setEventCount}
-        novelty={novelty}
-        setNovelty={setNovelty}
-        onDriftPlan={handleDriftPlan}
-      />
       <div className="container mx-auto px-2 pt-24 max-w-4xl">
         {/* Google Calendar Sync Button */}
         <div className="flex justify-end mb-2">

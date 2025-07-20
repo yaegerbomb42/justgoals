@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
 import { useAuth } from '../../context/AuthContext';
 import { useAchievements } from '../../context/AchievementContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -209,7 +208,6 @@ const GoalsDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header showDownloadMenu={showDownloadMenu} setShowDownloadMenu={setShowDownloadMenu} />
       {showOnboarding && <OnboardingModal open={showOnboarding} onClose={handleDismissOnboarding} />}
       {onboardingError && (
         <div className="bg-error/10 border border-error/20 text-error text-center p-4 mb-4 rounded">

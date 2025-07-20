@@ -5,7 +5,6 @@ import * as entityService from '../../services/entityManagementService'; // Impo
 import { calculateUserStreak } from '../../utils/goalUtils'; // Import streak calculation
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
-import Header from '../../components/ui/Header';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 
 // Import all components
@@ -223,8 +222,6 @@ const DailyMilestones = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      
       <div className="pt-16 pb-20 md:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-6">

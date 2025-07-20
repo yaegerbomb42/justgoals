@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useAchievements } from '../../context/AchievementContext';
 import analyticsService from '../../services/analyticsService';
-import Header from '../../components/ui/Header';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 import AchievementBadge from '../../components/ui/AchievementBadge';
@@ -384,7 +383,6 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="pt-20 pb-24 md:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Demo Banner for unauthenticated users */}

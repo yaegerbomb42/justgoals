@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
 import { useAuth } from '../../context/AuthContext';
 import * as entityService from '../../services/entityManagementService'; // Import the service
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
@@ -108,7 +107,6 @@ const GoalCreationManagement = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       
       {/* Main Content */}
       <main className="pt-20 pb-24 md:pb-8">
