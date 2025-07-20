@@ -292,6 +292,34 @@ const NotificationSection = () => {
           <p className="text-xs text-text-secondary mt-2">
             Free via email-to-SMS gateways. Works with most US carriers.
           </p>
+          
+          {/* Free SMS Alternatives */}
+          <div className="mt-3 p-3 bg-surface-600 rounded-lg border border-border">
+            <h6 className="text-xs font-medium text-text-primary mb-2">💡 Free SMS Alternatives (if email-to-SMS doesn't work):</h6>
+            <div className="space-y-1">
+              <div className="text-xs text-text-secondary">
+                • <strong>Telegram Bot:</strong> Free & unlimited - Create bot, get chat ID
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>Discord Webhook:</strong> Free & unlimited - Send to Discord channel
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>WhatsApp Business:</strong> Free tier (1000/month) - Business API
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>Signal Bot:</strong> Free & unlimited - Signal REST API
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>Slack Webhook:</strong> Free & unlimited - Send to Slack channel
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>Email Fallback:</strong> Free & unlimited - Send as email instead
+              </div>
+            </div>
+            <p className="text-xs text-text-secondary mt-2">
+              Set environment variables to enable these services (see documentation).
+            </p>
+          </div>
         </div>
 
         {/* Discord Notifications */}

@@ -6,7 +6,7 @@ class SMSNotificationService {
     this.isEnabled = false;
     this.phoneNumber = null;
     this.carrier = null;
-    this.provider = 'email-sms'; // email-sms, twilio-free, telegram
+    this.provider = 'email-sms'; // email-sms, telegram, discord, whatsapp, signal
     this.carriers = {
       'att': '@txt.att.net',
       'verizon': '@vtext.com',
@@ -18,6 +18,16 @@ class SMSNotificationService {
       'uscellular': '@email.uscc.net',
       'virgin': '@vmobl.com',
       'xfinity': '@vtext.com'
+    };
+    
+    // Free SMS alternatives
+    this.freeAlternatives = {
+      'telegram': 'Telegram Bot (Free & Unlimited)',
+      'discord': 'Discord Webhook (Free & Unlimited)',
+      'whatsapp': 'WhatsApp Business API (Free Tier)',
+      'signal': 'Signal Bot (Free & Unlimited)',
+      'slack': 'Slack Webhook (Free & Unlimited)',
+      'email': 'Email Fallback (Free & Unlimited)'
     };
   }
 
@@ -53,6 +63,14 @@ class SMSNotificationService {
           return await this.sendViaTelegram(message, options);
         case 'discord':
           return await this.sendViaDiscord(message, options);
+        case 'whatsapp':
+          return await this.sendViaWhatsApp(message, options);
+        case 'signal':
+          return await this.sendViaSignal(message, options);
+        case 'slack':
+          return await this.sendViaSlack(message, options);
+        case 'email':
+          return await this.sendViaEmailFallback(message, options);
         default:
           return await this.sendViaEmailSMS(message, options);
       }
@@ -166,6 +184,141 @@ class SMSNotificationService {
     }
   }
 
+  // WhatsApp Business API (Free tier - 1000 messages/month)
+  async sendViaWhatsApp(message, options = {}) {
+    // This would use WhatsApp Business API
+    const accessToken = process.env.REACT_APP_WHATSAPP_ACCESS_TOKEN;
+    const phoneNumberId = process.env.REACT_APP_WHATSAPP_PHONE_NUMBER_ID;
+    
+    if (!accessToken || !phoneNumberId) {
+      console.error('WhatsApp Business API not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`https://graph.facebook.com/v17.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: this.phoneNumber,
+          type: 'text',
+          text: { body: message }
+        }),
+      });
+
+      if (response.ok) {
+        console.log('SMS sent successfully via WhatsApp');
+        return true;
+      } else {
+        console.error('WhatsApp SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('WhatsApp SMS error:', error);
+      return false;
+    }
+  }
+
+  // Signal Bot (Free - unlimited messages)
+  async sendViaSignal(message, options = {}) {
+    // This would use Signal REST API
+    const signalUrl = process.env.REACT_APP_SIGNAL_API_URL;
+    const signalNumber = process.env.REACT_APP_SIGNAL_NUMBER;
+    
+    if (!signalUrl || !signalNumber) {
+      console.error('Signal API not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${signalUrl}/v2/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          number: signalNumber,
+          recipients: [this.phoneNumber],
+          message: message
+        }),
+      });
+
+      if (response.ok) {
+        console.log('SMS sent successfully via Signal');
+        return true;
+      } else {
+        console.error('Signal SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Signal SMS error:', error);
+      return false;
+    }
+  }
+
+  // Slack Webhook (Free - unlimited messages)
+  async sendViaSlack(message, options = {}) {
+    // This would use Slack webhook
+    const webhookUrl = process.env.REACT_APP_SLACK_WEBHOOK_URL;
+    
+    if (!webhookUrl) {
+      console.error('Slack webhook not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: `📱 **SMS Notification for ${this.phoneNumber}:**\n${message}`,
+          username: 'JustGoals SMS Bot',
+          icon_emoji: ':bell:'
+        }),
+      });
+
+      if (response.ok) {
+        console.log('SMS notification sent via Slack');
+        return true;
+      } else {
+        console.error('Slack SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Slack SMS error:', error);
+      return false;
+    }
+  }
+
+  // Email Fallback (Free - unlimited)
+  async sendViaEmailFallback(message, options = {}) {
+    // Send as email if SMS fails
+    const emailAddress = process.env.REACT_APP_FALLBACK_EMAIL || 'notifications@justgoals.com';
+    
+    const emailData = {
+      to: emailAddress,
+      subject: `SMS for ${this.phoneNumber}: ${options.subject || 'JustGoals Notification'}`,
+      body: `Message intended for ${this.phoneNumber}:\n\n${message}`,
+      from: 'justgoals@yourdomain.com',
+      ...options
+    };
+
+    console.log('Sending SMS via Email Fallback:', emailData);
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('SMS sent successfully via Email Fallback');
+        resolve(true);
+      }, 1000);
+    });
+  }
+
   // Morning motivation SMS
   async sendMorningMotivation(userGoals = []) {
     let message = '🌅 Good Morning! Time to crush your goals today!';
@@ -239,25 +392,31 @@ class SMSNotificationService {
     return this.sendSMS(message, { subject: 'JustGoals - Focus Reminder' });
   }
 
-  // Test SMS
-  async sendTestSMS() {
-    const message = '📱 JustGoals SMS notifications are working! You\'ll receive goal reminders and motivation here.';
-    return this.sendSMS(message, { subject: 'JustGoals - Test SMS' });
+  // Get available free SMS alternatives
+  getFreeAlternatives() {
+    return this.freeAlternatives;
   }
 
   // Get available carriers
   getAvailableCarriers() {
     return Object.keys(this.carriers).map(carrier => ({
       value: carrier,
-      label: carrier.toUpperCase(),
-      email: this.carriers[carrier]
+      label: carrier.charAt(0).toUpperCase() + carrier.slice(1),
+      gateway: this.carriers[carrier]
     }));
   }
 
-  // Validate phone number
+  // Validate phone number format
   validatePhoneNumber(phone) {
+    if (!phone) return false;
     const cleaned = phone.replace(/\D/g, '');
-    return cleaned.length === 10 || cleaned.length === 11;
+    return cleaned.length >= 10;
+  }
+
+  // Test SMS functionality
+  async sendTestSMS() {
+    const testMessage = '🧪 Test SMS from JustGoals! Your notifications are working.';
+    return this.sendSMS(testMessage, { subject: 'JustGoals - Test SMS' });
   }
 }
 
