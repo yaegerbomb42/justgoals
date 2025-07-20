@@ -1,358 +1,383 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Header from '../../components/ui/Header';
-import FloatingActionButton from '../../components/ui/FloatingActionButton';
-import ConversationHeader from './components/ConversationHeader';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
+import { usePlanData } from '../../context/PlanDataContext';
+import { useAchievements } from '../../context/AchievementContext';
+import { geminiService } from '../../services/geminiService';
+import Icon from '../../components/ui/Icon';
 import MessageBubble from './components/MessageBubble';
 import MessageInput from './components/MessageInput';
 import QuickActionChips from './components/QuickActionChips';
 import WelcomeScreen from './components/WelcomeScreen';
-import Icon from '../../components/AppIcon';
-import geminiService from '../../services/geminiService';
-import firestoreService from '../../services/firestoreService';
-import { useAuth } from '../../context/AuthContext';
-import Button from '../../components/ui/Button';
-import { motion, AnimatePresence } from 'framer-motion';
 
-const AiAssistantChatDrift = () => {
-  const { user, isAuthenticated } = useAuth();
-  const [apiKey, setApiKey] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
+const DriftChat = () => {
+  const { user } = useAuth();
+  const { settings } = useSettings();
+  const { goals, addGoal, updateGoal, deleteGoal } = usePlanData();
+  const { addAchievement } = useAchievements();
+  const navigate = useNavigate();
+  
   const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [connectionError, setConnectionError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [currentContext, setCurrentContext] = useState({
+    userGoals: [],
+    recentActivity: [],
+    userPreferences: {},
+  });
+  
   const messagesEndRef = useRef(null);
-  const [profile, setProfile] = useState({});
+  const chatContainerRef = useRef(null);
 
-  // Load messages from localStorage
-  const getMessagesStorageKey = () => {
-    if (isAuthenticated && user?.id) {
-      return `drift_chat_messages_${user.id}`;
+  // Load conversation history from localStorage
+  useEffect(() => {
+    const savedHistory = localStorage.getItem(`drift-conversation-${user?.uid}`);
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setMessages(parsed.messages || []);
+        setConversationHistory(parsed.conversationHistory || []);
+      } catch (error) {
+        console.error('Error loading conversation history:', error);
+      }
     }
-    return 'drift_chat_messages_guest';
+  }, [user?.uid]);
+
+  // Save conversation history to localStorage
+  useEffect(() => {
+    if (user?.uid && messages.length > 0) {
+      const historyData = {
+        messages,
+        conversationHistory,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(`drift-conversation-${user?.uid}`, JSON.stringify(historyData));
+    }
+  }, [messages, conversationHistory, user?.uid]);
+
+  // Update context with current app state
+  useEffect(() => {
+    setCurrentContext({
+      userGoals: goals || [],
+      recentActivity: getRecentActivity(),
+      userPreferences: {
+        theme: settings?.theme,
+        notifications: settings?.notifications,
+        focusMode: settings?.focusMode,
+      },
+    });
+  }, [goals, settings]);
+
+  const getRecentActivity = () => {
+    // Get recent activity from localStorage or other sources
+    const recentGoals = goals?.slice(0, 5) || [];
+    const recentMilestones = JSON.parse(localStorage.getItem('recent-milestones') || '[]');
+    const recentJournalEntries = JSON.parse(localStorage.getItem('recent-journal-entries') || '[]');
+    
+    return {
+      recentGoals,
+      recentMilestones,
+      recentJournalEntries,
+    };
   };
 
-  // Load messages and profile from Firestore on mount
-  useEffect(() => {
-    const initializeChat = async () => {
-      setIsLoading(true);
-      setConnectionError('');
-      try {
-        // Load API key
-        const key = await geminiService.loadApiKey(user?.id);
-        setApiKey(key);
-        if (key) {
-          const result = await geminiService.testConnection(key);
-          setIsConnected(result.success);
-          setConnectionError(result.success ? '' : (result.error || 'Unable to connect to Gemini API.'));
-        } else {
-          setIsConnected(false);
-          setConnectionError('No API key found. Please configure your Gemini API key in Settings.');
-        }
-        // Load Drift memory from Firestore
-        let memory = null;
-        try {
-          memory = await firestoreService.getDriftMemory(user?.id);
-        } catch {}
-        if (memory && Array.isArray(memory.chats)) {
-          setMessages(memory.chats);
-          setProfile(memory.profile || {});
-        } else {
-          // Fallback to localStorage
-          try {
-            const saved = localStorage.getItem(getMessagesStorageKey());
-            if (saved) {
-              setMessages(JSON.parse(saved));
-            }
-          } catch (e) {
-            console.warn('Failed to load saved messages:', e);
-          }
-        }
-      } catch (error) {
-        setIsConnected(false);
-        setConnectionError('Failed to initialize chat: ' + (error?.message || error));
-        console.error('Failed to initialize chat:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    initializeChat();
-  }, [user?.id, isAuthenticated]);
-
-  // Listen for API key changes
-  useEffect(() => {
-    const handleApiKeyChange = async (event) => {
-      const newApiKey = event.detail.apiKey;
-      setApiKey(newApiKey);
-      setConnectionError('');
-      if (newApiKey) {
-        try {
-          const result = await geminiService.testConnection(newApiKey);
-          setIsConnected(result.success);
-          setConnectionError(result.success ? '' : (result.error || 'Unable to connect to Gemini API.'));
-        } catch (error) {
-          setIsConnected(false);
-          setConnectionError('Unable to connect to Gemini API.');
-        }
-      } else {
-        setIsConnected(false);
-        setConnectionError('No API key found. Please configure your Gemini API key in Settings.');
-      }
-    };
-
-    window.addEventListener('apiKeyChanged', handleApiKeyChange);
-    return () => window.removeEventListener('apiKeyChanged', handleApiKeyChange);
-  }, []);
-
-  // Save messages and profile to Firestore/localStorage when messages change
-  useEffect(() => {
-    if (!user?.id) return;
-    try {
-      localStorage.setItem(getMessagesStorageKey(), JSON.stringify(messages));
-    } catch (e) {
-      console.warn('Failed to save messages:', e);
-    }
-    // Save to Firestore
-    firestoreService.saveDriftMemory(user.id, { profile, chats: messages });
-  }, [messages, profile, user?.id]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
-  // Add intro message if messages.length === 0
-  useEffect(() => {
-    if (isConnected && messages.length === 0) {
-      setMessages([
-        {
-          id: 'intro',
-          sender: 'ai',
-          content: "Hi! I'm Drift, your AI assistant. I can help you plan your day, add goals, milestones, or habits, and track your progress. What would you like to do today?",
-          timestamp: new Date().toISOString()
-        },
-      ]);
-    }
-  }, [isConnected, messages.length]);
-
-  const handleSendMessage = async (messageContent) => {
-    if (!messageContent.trim() || isProcessing) return;
-    const userMessage = {
+  const addMessage = (content, type = 'user', metadata = {}) => {
+    const newMessage = {
       id: Date.now(),
-      content: messageContent,
-      sender: 'user',
-      timestamp: new Date().toISOString()
+      content,
+      type,
+      timestamp: new Date(),
+      metadata,
     };
-    setMessages(prev => [...prev, userMessage]);
-    setMessage('');
-    setIsProcessing(true);
+    setMessages(prev => [...prev, newMessage]);
+    return newMessage;
+  };
+
+  const processUserMessage = async (message) => {
+    setIsLoading(true);
+    
     try {
-      const aiResponse = await geminiService.generateChatResponse(messageContent, {
-        userId: user?.id,
-        isAuthenticated,
-        profile
+      // Add user message
+      addMessage(message, 'user');
+      
+      // Prepare context for AI
+      const context = {
+        user: {
+          name: user?.displayName || user?.email,
+          email: user?.email,
+        },
+        currentGoals: currentContext.userGoals,
+        recentActivity: currentContext.recentActivity,
+        userPreferences: currentContext.userPreferences,
+        conversationHistory: conversationHistory.slice(-10), // Last 10 messages for context
+      };
+
+      // Generate AI response with action capabilities
+      const response = await geminiService.generateResponse(message, context, {
+        canCreateGoals: true,
+        canUpdateGoals: true,
+        canCreateMilestones: true,
+        canAddJournalEntries: true,
+        canManageHabits: true,
+        canAnalyzeProgress: true,
       });
-      const aiMessage = {
-        id: Date.now() + 1,
-        content: aiResponse,
-        sender: 'ai',
-        timestamp: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      // Optionally update profile here based on AI response or user message
+
+      // Process any actions from the AI response
+      if (response.actions && response.actions.length > 0) {
+        await processActions(response.actions);
+      }
+
+      // Add AI response
+      addMessage(response.message, 'assistant', {
+        actions: response.actions,
+        suggestions: response.suggestions,
+      });
+
+      // Update conversation history
+      setConversationHistory(prev => [...prev, { role: 'user', content: message }, { role: 'assistant', content: response.message }]);
+
     } catch (error) {
-      console.error('Error generating AI response:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        content: "I encountered an error while processing your message. Please check your API key in Settings and try again.",
-        sender: 'ai',
-        timestamp: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      console.error('Error processing message:', error);
+      addMessage('I apologize, but I encountered an error processing your request. Please try again.', 'assistant');
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await handleSendMessage(message);
+  const processActions = async (actions) => {
+    for (const action of actions) {
+      try {
+        switch (action.type) {
+          case 'create_goal':
+            await handleCreateGoal(action.data);
+            break;
+          case 'update_goal':
+            await handleUpdateGoal(action.data);
+            break;
+          case 'create_milestone':
+            await handleCreateMilestone(action.data);
+            break;
+          case 'add_journal_entry':
+            await handleAddJournalEntry(action.data);
+            break;
+          case 'create_habit':
+            await handleCreateHabit(action.data);
+            break;
+          case 'analyze_progress':
+            await handleAnalyzeProgress(action.data);
+            break;
+          case 'navigate_to':
+            navigate(action.data.path);
+            break;
+        }
+      } catch (error) {
+        console.error(`Error processing action ${action.type}:`, error);
+      }
+    }
   };
 
-  const handleQuickAction = async (action) => {
-    const actionMessages = {
-      'create_goal': 'I can help you create a goal! Tell me what you want to achieve.',
-      'daily_plan': 'I can help you with your daily plan. What would you like to focus on today?',
-      'productivity_tips': 'Here are some productivity tips:\n\n1. **Time Blocking**: Schedule specific time slots for different tasks\n2. **Pomodoro Technique**: Work in 25-minute focused sessions\n3. **Priority Matrix**: Use the Eisenhower Matrix to prioritize tasks\n\nWould you like me to elaborate on any of these techniques?',
-      'motivation': 'Here\'s some motivation for you:\n\n🌟 Every expert was once a beginner. Your progress, no matter how small, is still progress.\n\n🎯 Focus on the process, not just the outcome. The journey is where growth happens.\n\nWhat specific goal or challenge would you like to tackle?'
+  const handleCreateGoal = async (goalData) => {
+    const newGoal = {
+      id: Date.now().toString(),
+      title: goalData.title,
+      description: goalData.description,
+      category: goalData.category || 'personal',
+      priority: goalData.priority || 'medium',
+      deadline: goalData.deadline,
+      milestones: goalData.milestones || [],
+      progress: 0,
+      completed: false,
+      createdAt: new Date().toISOString(),
     };
 
-    const message = actionMessages[action] || 'How can I help you today?';
-    await handleSendMessage(message);
+    await addGoal(newGoal);
+    addMessage(`✅ Created new goal: "${goalData.title}"`, 'system');
   };
 
-  const handleClearChat = () => {
+  const handleUpdateGoal = async (updateData) => {
+    const goal = goals.find(g => g.id === updateData.goalId);
+    if (goal) {
+      const updatedGoal = { ...goal, ...updateData.updates };
+      await updateGoal(updatedGoal);
+      addMessage(`✅ Updated goal: "${goal.title}"`, 'system');
+    }
+  };
+
+  const handleCreateMilestone = async (milestoneData) => {
+    const milestone = {
+      id: Date.now().toString(),
+      title: milestoneData.title,
+      description: milestoneData.description,
+      goalId: milestoneData.goalId,
+      dueDate: milestoneData.dueDate,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add to localStorage for now (in a real app, this would go to a proper database)
+    const existingMilestones = JSON.parse(localStorage.getItem('milestones') || '[]');
+    existingMilestones.push(milestone);
+    localStorage.setItem('milestones', JSON.stringify(existingMilestones));
+
+    addMessage(`✅ Created milestone: "${milestoneData.title}"`, 'system');
+  };
+
+  const handleAddJournalEntry = async (entryData) => {
+    const entry = {
+      id: Date.now().toString(),
+      title: entryData.title,
+      content: entryData.content,
+      mood: entryData.mood,
+      tags: entryData.tags || [],
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add to localStorage for now
+    const existingEntries = JSON.parse(localStorage.getItem('journal-entries') || '[]');
+    existingEntries.push(entry);
+    localStorage.setItem('journal-entries', JSON.stringify(existingEntries));
+
+    addMessage(`✅ Added journal entry: "${entryData.title}"`, 'system');
+  };
+
+  const handleCreateHabit = async (habitData) => {
+    const habit = {
+      id: Date.now().toString(),
+      title: habitData.title,
+      description: habitData.description,
+      frequency: habitData.frequency || 'daily',
+      streak: 0,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add to localStorage for now
+    const existingHabits = JSON.parse(localStorage.getItem('habits') || '[]');
+    existingHabits.push(habit);
+    localStorage.setItem('habits', JSON.stringify(existingHabits));
+
+    addMessage(`✅ Created habit: "${habitData.title}"`, 'system');
+  };
+
+  const handleAnalyzeProgress = async (analysisData) => {
+    // Analyze user progress and provide insights
+    const insights = await geminiService.analyzeProgress(currentContext.userGoals, currentContext.recentActivity);
+    addMessage(insights, 'assistant', { type: 'analysis' });
+  };
+
+  const handleQuickAction = (action) => {
+    const quickMessages = {
+      'create_goal': 'I\'d love to help you create a new goal! What would you like to achieve?',
+      'check_progress': 'Let me analyze your progress and provide some insights...',
+      'add_milestone': 'Great! Which goal would you like to add a milestone to?',
+      'journal_entry': 'I\'m here to help you reflect. What\'s on your mind today?',
+      'focus_session': 'Ready to focus! What would you like to work on?',
+      'habit_tracker': 'Let\'s check your habits and see how you\'re doing!',
+    };
+
+    const message = quickMessages[action] || 'How can I help you today?';
+    processUserMessage(message);
+  };
+
+  const clearConversation = () => {
     setMessages([]);
+    setConversationHistory([]);
+    localStorage.removeItem(`drift-conversation-${user?.uid}`);
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header title="Drift AI Assistant" />
-        <div className="flex items-center justify-center min-h-screen">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
-          >
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-              <div className="absolute inset-0 w-16 h-16 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto" style={{ animationDelay: '-0.5s' }}></div>
-            </div>
-            <h2 className="text-2xl font-bold text-text-primary mb-2">Loading Drift</h2>
-            <p className="text-text-secondary">Preparing your AI assistant...</p>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error if connection failed
-  if (!apiKey || !isConnected) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header title="Drift AI Assistant" />
-        <div className="flex items-center justify-center min-h-screen">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-md mx-auto p-8"
-          >
-            <div className="w-20 h-20 bg-error/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Icon name={!apiKey ? "MessageCircle" : "AlertCircle"} className="w-10 h-10 text-error" />
-            </div>
-            <h3 className="text-2xl font-bold text-text-primary mb-4">{!apiKey ? 'API Key Required' : 'Connection Failed'}</h3>
-            <p className="text-text-secondary mb-8 leading-relaxed">
-              {connectionError || (!apiKey ? 'Please configure your Gemini API key in Settings to chat with Drift.' : 'Unable to connect to Gemini API. Please check your API key in Settings.')}
-            </p>
-            <Button 
-              variant="outline" 
-              iconName="RefreshCw" 
-              onClick={() => window.location.reload()}
-            >
-              Retry Connection
-            </Button>
-          </motion.div>
-        </div>
-        <FloatingActionButton />
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header title="Drift AI Assistant" />
-      
-      <div className="flex flex-col h-screen pt-16">
-        {/* Chat Container */}
-        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-6">
-          {messages.length === 0 && isConnected ? (
-            <WelcomeScreen
-              isConnected={isConnected}
-              onQuickStart={async (prompt) => {
-                // Add a user message and trigger chat UI
-                const userMessage = {
-                  id: Date.now(),
-                  content: prompt,
-                  sender: 'user',
-                  timestamp: new Date().toISOString()
-                };
-                setMessages([userMessage]);
-                setMessage('');
-                setIsProcessing(true);
-                try {
-                  const aiResponse = await geminiService.generateChatResponse(prompt, {
-                    userId: user?.id,
-                    isAuthenticated,
-                    profile
-                  });
-                  const aiMessage = {
-                    id: Date.now() + 1,
-                    content: aiResponse,
-                    sender: 'ai',
-                    timestamp: new Date().toISOString()
-                  };
-                  setMessages([userMessage, aiMessage]);
-                } catch (error) {
-                  console.error('Error generating AI response:', error);
-                  const errorMessage = {
-                    id: Date.now() + 1,
-                    content: "I encountered an error while processing your message. Please check your API key in Settings and try again.",
-                    sender: 'ai',
-                    timestamp: new Date().toISOString()
-                  };
-                  setMessages([userMessage, errorMessage]);
-                } finally {
-                  setIsProcessing(false);
-                }
-              }}
-            />
-          ) : (
-            <>
-              {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto mb-6 space-y-4">
-                <AnimatePresence>
-                  {messages.map((msg, index) => (
-                    <motion.div
-                      key={msg.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                    >
-                      <MessageBubble
-                        message={msg}
-                        isProcessing={isProcessing && index === messages.length - 1}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Quick Actions */}
-              {messages.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6"
-                >
-                  <QuickActionChips onAction={handleQuickAction} />
-                </motion.div>
-              )}
-
-              {/* Input Area */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-surface rounded-2xl border border-border p-4 shadow-lg"
-              >
-                <MessageInput
-                  message={message}
-                  setMessage={setMessage}
-                  onSubmit={handleSubmit}
-                  isProcessing={isProcessing}
-                  placeholder="Message Drift..."
-                />
-              </motion.div>
-            </>
-          )}
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header */}
+      <div className="bg-surface border-b border-border p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+              <Icon name="MessageCircle" className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-heading-bold text-text-primary">Drift AI Assistant</h1>
+              <p className="text-sm text-text-secondary">Your personal goal achievement companion</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={clearConversation}
+              className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors"
+              title="Clear conversation"
+            >
+              <Icon name="Trash2" className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
-      <FloatingActionButton />
+
+      {/* Chat Container */}
+      <div className="flex-1 overflow-hidden">
+        <div ref={chatContainerRef} className="h-full overflow-y-auto p-4 space-y-4">
+          {messages.length === 0 ? (
+            <WelcomeScreen onQuickAction={handleQuickAction} />
+          ) : (
+            <AnimatePresence>
+              {messages.map((message) => (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <MessageBubble message={message} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
+          
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center space-x-2 text-text-secondary"
+            >
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+              <span className="text-sm">Drift is thinking...</span>
+            </motion.div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      {messages.length > 0 && (
+        <div className="p-4 border-t border-border">
+          <QuickActionChips onAction={handleQuickAction} />
+        </div>
+      )}
+
+      {/* Message Input */}
+      <div className="p-4 border-t border-border">
+        <MessageInput
+          onSendMessage={processUserMessage}
+          isLoading={isLoading}
+          placeholder="Ask Drift to help with goals, milestones, journaling, or anything else..."
+        />
+      </div>
     </div>
   );
 };
 
-export default AiAssistantChatDrift;
+export default DriftChat;

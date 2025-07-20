@@ -1,36 +1,47 @@
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { AchievementProvider } from './context/AchievementContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { PlanDataProvider } from './context/PlanDataContext';
+import { AchievementProvider } from './context/AchievementContext';
+import { GeminiProvider } from './context/GeminiContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Routes from './Routes';
-import ErrorBoundary from './components/ErrorBoundary';
-import ScrollToTop from './components/ScrollToTop';
-import FlowingParticlesBackground from './components/ui/FlowingParticlesBackground';
+import Header from './components/ui/Header';
+import { useNotifications } from './hooks/useNotifications';
 import './styles/index.css';
-import { getAuth } from 'firebase/auth';
 
-function App() {
+// Notification wrapper component
+const NotificationWrapper = ({ children }) => {
+  // Initialize notifications
+  useNotifications();
+  
+  return children;
+};
+
+const App = () => {
   return (
-    <ErrorBoundary>
-      <Router>
-        <AuthProvider>
-          <SettingsProvider>
-            <PlanDataProvider>
-              <AchievementProvider>
-                <div className="App">
-                  <FlowingParticlesBackground />
-                  <ScrollToTop />
-                  <Routes />
-                </div>
-              </AchievementProvider>
-            </PlanDataProvider>
-          </SettingsProvider>
-        </AuthProvider>
-      </Router>
-    </ErrorBoundary>
+    <Router>
+      <AuthProvider>
+        <SettingsProvider>
+          <PlanDataProvider>
+            <AchievementProvider>
+              <GeminiProvider>
+                <NotificationProvider>
+                  <NotificationWrapper>
+                    <div className="min-h-screen bg-background text-text-primary">
+                      <Header />
+                      <Routes />
+                    </div>
+                  </NotificationWrapper>
+                </NotificationProvider>
+              </GeminiProvider>
+            </AchievementProvider>
+          </PlanDataProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    </Router>
   );
-}
+};
 
 export default App;

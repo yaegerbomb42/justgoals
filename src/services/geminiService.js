@@ -1,334 +1,326 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
 /**
  * Simplified Gemini AI Service using exact curl format from requirements
  * Supports both Gemini 2.0 Flash and 2.5 Flash models
  */
 class GeminiService {
   constructor() {
+    this.genAI = null;
+    this.model = null;
     this.apiKey = null;
-    this.isInitialized = false;
-    // Use Gemini 2.0 Flash as primary model per requirements
-    this.model = 'gemini-2.0-flash';
-    this.baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
   }
 
-  /**
-   * Initialize the service with an API key
-   * @param {string} apiKey - The Gemini API key
-   * @returns {boolean} Success status
-   */
-  initialize(apiKey = null) {
+  async initialize(apiKey) {
     if (!apiKey) {
-      apiKey = this.getApiKey();
+      throw new Error('API key is required');
     }
 
-    if (apiKey && apiKey.trim()) {
-      this.apiKey = apiKey.trim();
-      this.isInitialized = true;
-      return true;
-    } else {
-      this.isInitialized = false;
-      return false;
-    }
+    this.apiKey = apiKey;
+    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
   }
 
-  /**
-   * Get current user ID from localStorage
-   * @returns {string|null} User ID or null
-   */
+  async generateResponse(userMessage, context, capabilities = {}) {
+    if (!this.model) {
+      throw new Error('Gemini service not initialized. Please set your API key.');
+    }
 
-  getCurrentUserId() {
+    const systemPrompt = this.buildSystemPrompt(context, capabilities);
+    const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nDrift:`;
+
     try {
-      const authUser = localStorage.getItem('authUser');
-      if (authUser) {
-        const user = JSON.parse(authUser);
-        return user.id;
-      }
-    } catch (e) {
-      console.error('Error getting current user ID:', e);
-    }
-    return null;
-  }
+      const result = await this.model.generateContent(fullPrompt);
+      const response = await result.response;
+      const text = response.text();
 
-  /**
-   * Get API key with fallback logic
-   * @param {string} userId - Optional user ID
-   * @returns {string} API key or empty string
-   */
-  getApiKey(userId = null) {
-    const targetUserId = userId || this.getCurrentUserId();
-    
-    // Try user-specific key first
-    if (targetUserId) {
-      const userKey = localStorage.getItem(`gemini_api_key_${targetUserId}`);
-      if (userKey && userKey.trim()) {
-        return userKey.trim();
-      }
-    }
-    
-    // Fallback to global key
-    const globalKey = localStorage.getItem('gemini_api_key_global');
-    if (globalKey && globalKey.trim()) {
-      return globalKey.trim();
-    }
-    
-    return '';
-  }
-
-  /**
-   * Set API key and sync to Firebase
-   * @param {string} apiKey - The API key to store
-   * @param {string} userId - Optional user ID
-   */
-  async setApiKey(apiKey, userId = null) {
-    const targetUserId = userId || this.getCurrentUserId();
-    
-    // Store in localStorage
-    if (targetUserId) {
-      if (apiKey && apiKey.trim()) {
-        localStorage.setItem(`gemini_api_key_${targetUserId}`, apiKey.trim());
-      } else {
-        localStorage.removeItem(`gemini_api_key_${targetUserId}`);
-      }
-    }
-    
-    // Store global key
-    if (apiKey && apiKey.trim()) {
-      localStorage.setItem('gemini_api_key_global', apiKey.trim());
-    } else {
-      localStorage.removeItem('gemini_api_key_global');
-    }
-    
-    // Sync to Firebase if possible
-    if (targetUserId && apiKey && apiKey.trim()) {
-      try {
-        const { default: firestoreService } = await import('./firestoreService');
-        await firestoreService.saveApiKey(targetUserId, apiKey.trim());
-      } catch (error) {
-        console.warn('Failed to sync API key to Firebase:', error);
-      }
-    }
-    
-    // Initialize with the new key
-    if (apiKey && apiKey.trim()) {
-      this.initialize(apiKey);
-    }
-  }
-
-  /**
-   * Load API key from Firebase and localStorage
-   * @param {string} userId - User ID
-   * @returns {Promise<string>} API key or empty string
-   */
-  async loadApiKey(userId = null) {
-    const targetUserId = userId || this.getCurrentUserId();
-    
-    if (targetUserId) {
-      try {
-        const { default: firestoreService } = await import('./firestoreService');
-        const cloudKey = await firestoreService.loadApiKey(targetUserId);
-        if (cloudKey && cloudKey.trim()) {
-          // Update localStorage with cloud key
-          localStorage.setItem(`gemini_api_key_${targetUserId}`, cloudKey.trim());
-          localStorage.setItem('gemini_api_key_global', cloudKey.trim());
-          this.initialize(cloudKey);
-          return cloudKey.trim();
-        }
-      } catch (error) {
-        console.warn('Failed to load API key from Firebase:', error);
-      }
-    }
-    
-    // Fallback to localStorage
-    const localKey = this.getApiKey(targetUserId);
-    if (localKey) {
-      this.initialize(localKey);
-    }
-    return localKey;
-  }
-
-  /**
-   * Test connection to Gemini API using exact curl format from requirements
-   * @param {string} apiKey - API key to test
-   * @returns {Promise<object>} Test result
-   */
-  async testConnection(apiKey = null) {
-    const testKey = apiKey || this.apiKey;
-    if (!testKey) {
-      return { 
-        success: false, 
-        message: 'No API key provided' 
+      // Parse the response for actions and suggestions
+      const parsedResponse = this.parseResponse(text);
+      
+      return {
+        message: parsedResponse.message,
+        actions: parsedResponse.actions || [],
+        suggestions: parsedResponse.suggestions || [],
       };
-    }
-    
-    try {
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': testKey
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: "Hello"
-                }
-              ]
-            }
-          ]
-        })
-      });
-      
-      if (!response.ok) {
-        let errorMsg = `HTTP ${response.status}`;
-        try {
-          const errData = await response.json();
-          if (errData?.error?.message) {
-            errorMsg = errData.error.message;
-          }
-        } catch {}
-        return { success: false, message: errorMsg };
-      }
-      
-      const data = await response.json();
-      if (data?.candidates && Array.isArray(data.candidates) && data.candidates.length > 0) {
-        return { success: true, message: 'Connection successful!' };
-      } else {
-        return { success: false, message: 'Invalid response format' };
-      }
     } catch (error) {
-      return { success: false, message: error.message || 'Connection failed' };
+      console.error('Error generating response:', error);
+      throw new Error('Failed to generate response. Please try again.');
     }
   }
 
-  /**
-   * Generate text response using exact curl format from requirements
-   * @param {string} prompt - The input prompt
-   * @returns {Promise<string>} AI response
-   */
-  async generateText(prompt) {
-    if (!this.isInitialized || !this.apiKey) {
+  buildSystemPrompt(context, capabilities) {
+    const basePrompt = `You are Drift, an intelligent AI assistant for the JustGoals app. You help users achieve their goals, manage their time, and improve their productivity.
+
+Your personality:
+- Friendly, encouraging, and motivational
+- Practical and actionable in your advice
+- Understanding of human psychology and behavior change
+- Always supportive and non-judgmental
+
+Current user context:
+- User: ${context.user?.name || 'User'} (${context.user?.email || 'No email'})
+- Active goals: ${context.currentGoals?.length || 0} goals
+- Recent activity: ${JSON.stringify(context.recentActivity)}
+- User preferences: ${JSON.stringify(context.userPreferences)}
+
+Conversation history (last 10 messages):
+${context.conversationHistory?.map(msg => `${msg.role}: ${msg.content}`).join('\n') || 'No previous conversation'}
+
+Your capabilities:`;
+
+    let capabilitiesPrompt = '';
+    if (capabilities.canCreateGoals) {
+      capabilitiesPrompt += `
+- CREATE_GOAL: You can create new goals for users. When a user wants to create a goal, respond with the goal details and include an action.
+- UPDATE_GOAL: You can update existing goals (progress, status, details, etc.)
+- CREATE_MILESTONE: You can create milestones for existing goals
+- ADD_JOURNAL_ENTRY: You can help users add journal entries for reflection
+- CREATE_HABIT: You can help users create new habits
+- ANALYZE_PROGRESS: You can analyze user progress and provide insights
+- NAVIGATE_TO: You can suggest navigation to different app sections`;
+    }
+
+    const actionFormatPrompt = `
+When you need to perform an action, format your response like this:
+===ACTION===
+{
+  "type": "action_type",
+  "data": {
+    // action-specific data
+  }
+}
+===END_ACTION===
+
+Available actions:
+1. create_goal: Create a new goal
+   Data: { title, description, category, priority, deadline, milestones }
+
+2. update_goal: Update an existing goal
+   Data: { goalId, updates: { field: value } }
+
+3. create_milestone: Create a milestone for a goal
+   Data: { title, description, goalId, dueDate }
+
+4. add_journal_entry: Add a journal entry
+   Data: { title, content, mood, tags }
+
+5. create_habit: Create a new habit
+   Data: { title, description, frequency }
+
+6. analyze_progress: Analyze user progress
+   Data: { goals, timeframe }
+
+7. navigate_to: Navigate to app section
+   Data: { path }
+
+Always provide a helpful, conversational response first, then include any actions if needed.`;
+
+    return basePrompt + capabilitiesPrompt + actionFormatPrompt;
+  }
+
+  parseResponse(responseText) {
+    const message = responseText.replace(/===ACTION===\s*\{[\s\S]*?\}\s*===END_ACTION===/g, '').trim();
+    
+    const actionMatch = responseText.match(/===ACTION===\s*(\{[\s\S]*?\})\s*===END_ACTION===/);
+    let actions = [];
+    
+    if (actionMatch) {
+      try {
+        const actionData = JSON.parse(actionMatch[1]);
+        actions = Array.isArray(actionData) ? actionData : [actionData];
+      } catch (error) {
+        console.error('Error parsing action:', error);
+      }
+    }
+
+    // Extract suggestions from the message
+    const suggestions = this.extractSuggestions(message);
+
+    return {
+      message,
+      actions,
+      suggestions,
+    };
+  }
+
+  extractSuggestions(message) {
+    const suggestions = [];
+    
+    // Look for common suggestion patterns
+    if (message.includes('Would you like me to')) {
+      const suggestionMatch = message.match(/Would you like me to ([^?]+)\?/);
+      if (suggestionMatch) {
+        suggestions.push(suggestionMatch[1].trim());
+      }
+    }
+
+    if (message.includes('I can help you')) {
+      const suggestionMatch = message.match(/I can help you ([^.]+)/);
+      if (suggestionMatch) {
+        suggestions.push(suggestionMatch[1].trim());
+      }
+    }
+
+    return suggestions;
+  }
+
+  async analyzeProgress(goals, recentActivity) {
+    if (!this.model) {
       throw new Error('Gemini service not initialized');
     }
 
+    const prompt = `Analyze the user's progress and provide insights:
+
+Current Goals:
+${goals.map(goal => `- ${goal.title}: ${goal.progress}% complete, ${goal.completed ? 'COMPLETED' : 'IN PROGRESS'}`).join('\n')}
+
+Recent Activity:
+${JSON.stringify(recentActivity)}
+
+Please provide:
+1. Overall progress assessment
+2. Areas of strength
+3. Areas for improvement
+4. Specific recommendations
+5. Motivation and encouragement
+
+Keep it concise but comprehensive.`;
+
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': this.apiKey
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        let errorMsg = `API request failed: ${response.status}`;
-        try {
-          const errData = await response.json();
-          if (errData?.error?.message) {
-            errorMsg = errData.error.message;
-          }
-        } catch {}
-        throw new Error(errorMsg);
-      }
-
-      const data = await response.json();
-      if (!data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        throw new Error('Invalid response format from API');
-      }
-      
-      return data.candidates[0].content.parts[0].text;
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
     } catch (error) {
-      console.error('Error generating text:', error);
-      throw error;
+      console.error('Error analyzing progress:', error);
+      return 'I encountered an error while analyzing your progress. Please try again.';
     }
   }
 
-  /**
-   * Generate daily plan using AI
-   * @param {object} userInfo - User information and preferences
-   * @returns {Promise<Array>} Daily plan items
-   */
-  async generateDailyPlan(userInfo) {
-    let noveltyPrompt = '';
-    if (userInfo.novelty === 'high') {
-      noveltyPrompt = 'Be highly novel, include unique, surprising, and varied activities, and provide detailed descriptions for each event.';
-    } else if (userInfo.novelty === 'low') {
-      noveltyPrompt = 'Be practical and keep events simple and to the point.';
-    } else {
-      noveltyPrompt = 'Balance novelty and practicality, and provide some variety.';
+  async generateGoalSuggestions(userPreferences, currentGoals) {
+    if (!this.model) {
+      throw new Error('Gemini service not initialized');
     }
-    const prompt = `Create a daily plan for the user based on their information:
 
-Goals: ${userInfo.goals?.map(g => `${g.title} (${g.category}, priority: ${g.priority})`).join(', ') || 'None'}
-Preferences: ${JSON.stringify(userInfo.preferences || {})}
-Current date: ${new Date().toLocaleDateString()}
+    const prompt = `Based on the user's preferences and current goals, suggest 3-5 new goals that would be beneficial:
 
-Create a realistic daily schedule with exactly ${userInfo.eventCount || 7} activities. Return as a JSON array of objects with properties:
-- time: "HH:MM" format
-- title: Brief activity title
-- description: Optional details (be more descriptive if novelty is high)
-- category: One of "work", "health", "personal", "learning", "goal", "journal"
+User Preferences:
+${JSON.stringify(userPreferences)}
 
-Highlight any events that are related to the user's goals or journaling by setting category to "goal" or "journal". ${noveltyPrompt}
+Current Goals:
+${currentGoals.map(goal => `- ${goal.title} (${goal.category})`).join('\n')}
 
-Focus on balanced productivity, well-being, and novelty.`;
+Suggest goals that:
+1. Complement existing goals
+2. Address different areas of life
+3. Are realistic and achievable
+4. Align with user preferences
 
-    const response = await this.generateText(prompt);
-    
-    // Simple JSON extraction - look for array in response
+Format each suggestion as: "Title: Brief description"`;
+
     try {
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
-      }
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
     } catch (error) {
-      console.warn('Failed to parse AI response, using fallback plan');
+      console.error('Error generating goal suggestions:', error);
+      return 'I encountered an error while generating goal suggestions. Please try again.';
     }
-    
-    // Fallback plan if parsing fails
-    return [
-      { time: "08:00", title: "Morning routine", category: "personal" },
-      { time: "09:00", title: "Focus work session", category: "work" },
-      { time: "12:00", title: "Lunch break", category: "personal" },
-      { time: "14:00", title: "Goal progress review", category: "work" },
-      { time: "17:00", title: "Exercise", category: "health" },
-      { time: "19:00", title: "Evening reflection", category: "personal" }
-    ];
   }
 
-  /**
-   * Generate chat response
-   * @param {string} message - User message
-   * @param {object} context - Chat context
-   * @returns {Promise<string>} AI response
-   */
-  async generateChatResponse(message, context = {}) {
-    const prompt = `You are Drift, an AI productivity assistant. The user said: "${message}"
+  async generateDailyPlan(goals, preferences) {
+    if (!this.model) {
+      throw new Error('Gemini service not initialized');
+    }
 
-Context: ${JSON.stringify(context)}
+    const prompt = `Create a daily plan for the user based on their goals and preferences:
 
-Respond helpfully and concisely in a conversational tone.`;
-    
-    return this.generateText(prompt);
+Active Goals:
+${goals.filter(g => !g.completed).map(goal => `- ${goal.title}: ${goal.description}`).join('\n')}
+
+User Preferences:
+${JSON.stringify(preferences)}
+
+Create a structured daily plan that:
+1. Prioritizes the most important goals
+2. Includes specific tasks and time blocks
+3. Accounts for user preferences and energy levels
+4. Provides motivation and context for each task
+
+Format as a clear, actionable daily schedule.`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error('Error generating daily plan:', error);
+      return 'I encountered an error while generating your daily plan. Please try again.';
+    }
+  }
+
+  async generateMotivationalMessage(goals, recentActivity) {
+    if (!this.model) {
+      throw new Error('Gemini service not initialized');
+    }
+
+    const prompt = `Generate a motivational message for the user based on their goals and recent activity:
+
+Goals:
+${goals.map(goal => `- ${goal.title}: ${goal.progress}% complete`).join('\n')}
+
+Recent Activity:
+${JSON.stringify(recentActivity)}
+
+Create a motivational message that:
+1. Acknowledges their progress
+2. Provides encouragement
+3. Offers specific, actionable advice
+4. Maintains a positive, supportive tone
+5. Is personalized to their situation
+
+Keep it concise but impactful.`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error('Error generating motivational message:', error);
+      return 'Keep pushing forward! Every step you take brings you closer to your goals.';
+    }
+  }
+
+  // Legacy methods for backward compatibility
+  async generateChatResponse(message, context) {
+    return this.generateResponse(message, context);
+  }
+
+  async testConnection(apiKey) {
+    try {
+      await this.initialize(apiKey);
+      const result = await this.model.generateContent('Hello');
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async loadApiKey(userId) {
+    try {
+      const key = localStorage.getItem(`gemini_api_key_${userId}`);
+      if (key) {
+        await this.initialize(key);
+        return key;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading API key:', error);
+      return null;
+    }
   }
 }
 
-// Create and export singleton instance
+// Create singleton instance
 const geminiService = new GeminiService();
 
-export default geminiService;
+export { geminiService };

@@ -1,195 +1,139 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import { useAchievements } from '../../context/AchievementContext';
-import Icon from '../AppIcon';
-import Button from './Button';
-import AchievementBadge from './AchievementBadge';
-import { AnimatePresence, motion } from 'framer-motion';
+import Icon from './Icon';
 
 const Header = () => {
-  // Defensive: always provide safe defaults
-  let auth = {};
-  try {
-    auth = useAuth() || {};
-  } catch (e) {
-    auth = {};
-  }
-  const { user = {}, isAuthenticated = false, logout = () => {} } = auth;
-
-  let achievements = {};
-  try {
-    achievements = useAchievements() || {};
-  } catch (e) {
-    achievements = {};
-  }
-  const {
-    userPoints = 0,
-    showAllAchievementsModal = () => {},
-    syncStatus = '',
-    lastSync = null
-  } = achievements;
-
+  const { user, logout } = useAuth();
+  const { settings } = useSettings();
+  const { achievements, unreadCount } = useAchievements();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const downloadMenuRef = useRef(null);
-  const userMenuRef = useRef(null);
+  
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
+
+  const isMobile = settings?.mobile?.detected;
+  const compactHeader = settings?.mobile?.compactHeader;
 
   // Close menus when clicking outside
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        downloadMenuRef.current &&
-        !downloadMenuRef.current.contains(event.target) &&
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target) &&
-        profileMenuRef.current &&
-        !profileMenuRef.current.contains(event.target)
-      ) {
-        setShowDownloadMenu(false);
-        setIsMenuOpen(false);
-        setProfileMenuOpen(false);
-      } else if (
-        downloadMenuRef.current &&
-        !downloadMenuRef.current.contains(event.target)
-      ) {
-        setShowDownloadMenu(false);
-      } else if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target)
-      ) {
-        setIsMenuOpen(false);
-      } else if (
-        profileMenuRef.current &&
-        !profileMenuRef.current.contains(event.target)
-      ) {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
         setProfileMenuOpen(false);
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
     };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
-  const isActive = (path) => location.pathname === path;
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/auth/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   const navigationItems = [
     { path: '/goals-dashboard', label: 'Goals', icon: 'Target' },
+    { path: '/day', label: 'Today', icon: 'Calendar' },
+    { path: '/focus-mode', label: 'Focus', icon: 'Zap' },
     { path: '/daily-milestones', label: 'Milestones', icon: 'CheckSquare' },
-    { path: '/day', label: 'Day', icon: 'Calendar' },
-    { path: '/focus-mode', label: 'Focus', icon: 'Timer' },
     { path: '/journal', label: 'Journal', icon: 'BookOpen' },
-    { path: '/habits', label: 'Habits', icon: 'Repeat' },
-    { path: '/ai-assistant-chat-drift', label: 'Drift AI', icon: 'MessageSquare' },
     { path: '/analytics-dashboard', label: 'Analytics', icon: 'BarChart3' },
-    { path: '/achievements', label: 'Achievements', icon: 'Award' },
-    { path: '/settings-configuration', label: 'Settings', icon: 'Settings' }
+    { path: '/ai-assistant-chat-drift', label: 'Drift', icon: 'MessageCircle' },
   ];
 
-  if (!isAuthenticated) {
-    return (
-      <div className="w-full bg-warning/10 border-b border-warning/20 text-warning text-center py-2">
-        You are not logged in. <a href="/login" className="underline">Log in</a> to access all features.
-      </div>
-    );
-  }
+  const getCurrentPage = () => {
+    return navigationItems.find(item => location.pathname.startsWith(item.path))?.label || 'JustGoals';
+  };
 
-  // Move navigation items left, and group profile/achievement on the right
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Logo and Navigation */}
-          <div className="flex items-center space-x-1 md:space-x-2 lg:space-x-3">
-            {/* Download Dropdown */}
-            <div className="relative" ref={downloadMenuRef}>
-              <button
-                className="flex items-center px-1 py-1 rounded hover:bg-surface-700 transition-colors"
-                onClick={() => setShowDownloadMenu(v => !v)}
-                aria-label="Download App"
-              >
-                <Icon name="Download" size={16} className="mr-1" />
-                <span className="font-body-medium text-xs">Download</span>
-                <svg className="ml-1 w-2 h-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-              </button>
-              {showDownloadMenu && (
-                <div className="absolute left-0 mt-2 w-48 bg-surface-800 border border-border rounded shadow-lg z-50">
-                  <a
-                    href="/YaegerGoals-0.1.0-x64.dmg"
-                    download
-                    className="block px-4 py-2 text-sm text-text-primary hover:bg-surface-700 rounded-t"
-                  >
-                    Mac (DMG)
-                  </a>
-                  <a
-                    href="/YaegerGoals-darwin-x64-0.1.0.zip"
-                    download
-                    className="block px-4 py-2 text-sm text-text-primary hover:bg-surface-700"
-                  >
-                    Mac (ZIP)
-                  </a>
-                  <span className="block px-4 py-2 text-sm text-text-secondary cursor-not-allowed bg-surface-700 rounded-b opacity-60">
-                    Windows (coming soon)
-                  </span>
-                </div>
-              )}
-            </div>
-            {/* App Logo/Title */}
-            <Link to="/goals-dashboard" className="flex items-center space-x-1">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'}}>
-                <Icon name="Target" size={16} color="#FFFFFF" />
+    <header className={`bg-surface border-b border-border sticky top-0 z-40 transition-all duration-200 ${
+      compactHeader && isMobile ? 'py-2' : 'py-3'
+    }`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between">
+          {/* Logo and Title */}
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                <Icon name="Target" className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-heading-bold text-text-primary whitespace-nowrap">JustGoals</span>
-            </Link>
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`
-                    flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-body-medium transition-colors
-                    ${isActive(item.path)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                    }
-                  `}
-                  style={item.label === 'Drift AI' ? { whiteSpace: 'nowrap', minWidth: 0 } : {}}
-                >
-                  <Icon name={item.icon} size={14} />
-                  <span className={item.label === 'Drift AI' ? 'whitespace-nowrap' : ''}>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
+            </div>
+            <h1 className={`font-heading-bold text-text-primary transition-all duration-200 ${
+              compactHeader && isMobile ? 'text-lg' : 'text-xl'
+            }`}>
+              JustGoals
+            </h1>
           </div>
 
-          {/* Right: Profile, Achievements, Settings */}
-          <div className="flex items-center space-x-2 ml-auto">
+          {/* Desktop Navigation */}
+          {!isMobile && (
+            <nav className="hidden md:flex items-center space-x-1">
+              {navigationItems.map((item) => {
+                const isActive = location.pathname.startsWith(item.path);
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-primary text-white shadow-lg'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
+                    }`}
+                  >
+                    <Icon name={item.icon} className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* Right Side Items */}
+          <div className="flex items-center space-x-2">
             {/* Achievement Badge */}
-            <div className="relative flex items-center">
+            <button
+              onClick={() => navigate('/achievements')}
+              className="relative p-2 text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-all duration-200"
+              title="Achievements"
+            >
+              <Icon name="Award" className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Menu Button */}
+            {isMobile && (
               <button
-                className="flex items-center px-2 py-1 rounded-full bg-yellow-100 hover:bg-yellow-200 transition-colors"
-                onClick={() => navigate('/achievements')}
-                title="Achievements"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-all duration-200 md:hidden"
+                title="Menu"
               >
-                <Icon name="Award" className="text-yellow-600 mr-1" size={14} />
-                <span className="font-bold text-yellow-700 text-xs">{userPoints || 0}</span>
+                <Icon name={mobileMenuOpen ? "X" : "Menu"} className="w-5 h-5" />
               </button>
-            </div>
+            )}
+
             {/* Profile Icon & Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary text-white font-bold border-2 border-primary-400 hover:shadow-lg transition-all duration-200 hover:scale-105"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white font-bold border-2 border-primary-400 hover:shadow-lg transition-all duration-200 hover:scale-105"
                 onClick={() => setProfileMenuOpen((v) => !v)}
                 title="Profile"
               >
@@ -242,56 +186,40 @@ const Header = () => {
                 )}
               </AnimatePresence>
             </div>
-            {/* Settings Tab (icon) */}
-            <button
-              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-              onClick={() => navigate('/settings-configuration')}
-              title="Settings"
-            >
-              <Icon name="Settings" className="text-primary-500" size={16} />
-            </button>
           </div>
         </div>
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden border-t border-border py-4">
-            <nav className="space-y-1">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`
-                    flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-body-medium transition-colors
-                    ${isActive(item.path)
-                      ? 'bg-primary text-white'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                    }
-                  `}
-                >
-                  <Icon name={item.icon} size={16} />
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
-            
-            <div className="mt-4 pt-4 border-t border-border">
-              <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-sm text-text-secondary">Points:</span>
-                <button
-                  onClick={() => {
-                    navigate('/achievements');
-                    setIsMenuOpen(false);
-                  }}
-                  className="flex items-center space-x-2 text-sm font-body-medium text-text-primary hover:text-primary"
-                >
-                  <Icon name="Trophy" size={16} />
-                  <span>{userPoints}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
+        {/* Mobile Navigation Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && isMobile && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden mt-3 border-t border-border pt-3"
+            >
+              <nav className="grid grid-cols-2 gap-2">
+                {navigationItems.map((item) => {
+                  const isActive = location.pathname.startsWith(item.path);
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      className={`flex items-center space-x-2 px-3 py-3 rounded-lg font-medium transition-all duration-200 ${
+                        isActive
+                          ? 'bg-primary text-white shadow-lg'
+                          : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
+                      }`}
+                    >
+                      <Icon name={item.icon} className="w-4 h-4" />
+                      <span className="text-sm">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   );

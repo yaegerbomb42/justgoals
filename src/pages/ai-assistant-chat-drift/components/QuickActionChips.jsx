@@ -1,6 +1,6 @@
 import React from 'react';
-import Icon from '../../../components/AppIcon';
 import { motion } from 'framer-motion';
+import Icon from '../../../components/ui/Icon';
 
 const QuickActionChips = ({ onAction }) => {
   const actions = [
@@ -8,61 +8,53 @@ const QuickActionChips = ({ onAction }) => {
       id: 'create_goal',
       label: 'Create Goal',
       icon: 'Target',
-      color: 'bg-primary hover:bg-primary-dark',
-      textColor: 'text-primary-foreground'
+      color: 'bg-blue-500 hover:bg-blue-600',
     },
     {
-      id: 'daily_plan',
-      label: 'Daily Plan',
-      icon: 'Calendar',
-      color: 'bg-secondary hover:bg-secondary-dark',
-      textColor: 'text-secondary-foreground'
+      id: 'check_progress',
+      label: 'Check Progress',
+      icon: 'BarChart3',
+      color: 'bg-green-500 hover:bg-green-600',
     },
     {
-      id: 'productivity_tips',
-      label: 'Productivity Tips',
+      id: 'add_milestone',
+      label: 'Add Milestone',
+      icon: 'CheckSquare',
+      color: 'bg-purple-500 hover:bg-purple-600',
+    },
+    {
+      id: 'journal_entry',
+      label: 'Journal Entry',
+      icon: 'BookOpen',
+      color: 'bg-orange-500 hover:bg-orange-600',
+    },
+    {
+      id: 'focus_session',
+      label: 'Focus Session',
       icon: 'Zap',
-      color: 'bg-accent hover:bg-accent-dark',
-      textColor: 'text-accent-foreground'
+      color: 'bg-yellow-500 hover:bg-yellow-600',
     },
     {
-      id: 'motivation',
-      label: 'Get Motivated',
-      icon: 'Heart',
-      color: 'bg-success hover:bg-success-dark',
-      textColor: 'text-success-foreground'
-    }
+      id: 'habit_tracker',
+      label: 'Track Habits',
+      icon: 'Repeat',
+      color: 'bg-red-500 hover:bg-red-600',
+    },
   ];
 
   return (
-    <div className="flex flex-wrap gap-3 justify-center">
+    <div className="flex flex-wrap gap-2">
       {actions.map((action, index) => (
         <motion.button
           key={action.id}
-          onClick={() => onAction(action.id)}
-          className={`
-            group relative overflow-hidden px-4 py-2 rounded-full
-            ${action.color} ${action.textColor}
-            font-medium text-sm shadow-lg
-            transition-all duration-300 transform hover:scale-105
-            border border-border backdrop-blur-sm
-          `}
-          whileHover={{ 
-            scale: 1.05,
-            boxShadow: "0 10px 25px rgba(0,0,0,0.2)"
-          }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: index * 0.1 }}
+          onClick={() => onAction(action.id)}
+          className={`flex items-center space-x-2 px-3 py-2 rounded-full text-white text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 ${action.color}`}
         >
-          <div className="flex items-center space-x-2">
-            <Icon name={action.icon} className="w-4 h-4" />
-            <span>{action.label}</span>
-          </div>
-          
-          {/* Shimmer effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+          <Icon name={action.icon} className="w-4 h-4" />
+          <span>{action.label}</span>
         </motion.button>
       ))}
     </div>
