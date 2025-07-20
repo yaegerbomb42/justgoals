@@ -19,6 +19,7 @@ import AnalyticsDashboard from "pages/analytics-dashboard";
 import Day from "pages/day";
 import AchievementsPage from "pages/achievements";
 import HabitTracking from "pages/analytics-dashboard/components/HabitTracking";
+import HabitsDemo from "pages/habits-demo";
 import Oauth2Callback from './pages/oauth2callback';
 
 // ProtectedRoute component
@@ -49,6 +50,9 @@ const Routes = () => {
 
         {/* OAuth2 callback route */}
         <Route path="/oauth2callback" element={<Oauth2Callback />} />
+
+        {/* Demo route for testing habits */}
+        <Route path="/habits-demo" element={<HabitsDemo />} />
 
         {/* Protected routes */}
         <Route path="/goals-dashboard" element={<ProtectedRoute><GoalsDashboard /></ProtectedRoute>} />
