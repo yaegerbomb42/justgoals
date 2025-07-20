@@ -27,7 +27,11 @@ class SMSNotificationService {
       'whatsapp': 'WhatsApp Business API (Free Tier)',
       'signal': 'Signal Bot (Free & Unlimited)',
       'slack': 'Slack Webhook (Free & Unlimited)',
-      'email': 'Email Fallback (Free & Unlimited)'
+      'email': 'Email Fallback (Free & Unlimited)',
+      'signal-cli': 'Signal CLI (Self-hosted, Free)',
+      'matrix': 'Matrix Bot (Self-hosted, Free)',
+      'custom-sms': 'Custom SMS Gateway (Self-hosted)',
+      'twilio-free': 'Twilio Free Tier (250 SMS/month)'
     };
   }
 
@@ -71,6 +75,14 @@ class SMSNotificationService {
           return await this.sendViaSlack(message, options);
         case 'email':
           return await this.sendViaEmailFallback(message, options);
+        case 'signal-cli':
+          return await this.sendViaSignalCLI(message, options);
+        case 'matrix':
+          return await this.sendViaMatrix(message, options);
+        case 'custom-sms':
+          return await this.sendViaCustomSMS(message, options);
+        case 'twilio-free':
+          return await this.sendViaTwilioFree(message, options);
         default:
           return await this.sendViaEmailSMS(message, options);
       }
@@ -317,6 +329,158 @@ class SMSNotificationService {
         resolve(true);
       }, 1000);
     });
+  }
+
+  // Signal CLI (Self-hosted - Free & Unlimited)
+  async sendViaSignalCLI(message, options = {}) {
+    // This would use Signal CLI running on your server
+    const signalCliUrl = process.env.REACT_APP_SIGNAL_CLI_URL;
+    const signalNumber = process.env.REACT_APP_SIGNAL_CLI_NUMBER;
+    
+    if (!signalCliUrl || !signalNumber) {
+      console.error('Signal CLI not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${signalCliUrl}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          number: signalNumber,
+          recipients: [this.phoneNumber],
+          message: message
+        }),
+      });
+
+      if (response.ok) {
+        console.log('SMS sent successfully via Signal CLI');
+        return true;
+      } else {
+        console.error('Signal CLI SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Signal CLI SMS error:', error);
+      return false;
+    }
+  }
+
+  // Matrix Bot (Self-hosted - Free & Unlimited)
+  async sendViaMatrix(message, options = {}) {
+    // This would use Matrix bot running on your server
+    const matrixUrl = process.env.REACT_APP_MATRIX_URL;
+    const matrixToken = process.env.REACT_APP_MATRIX_TOKEN;
+    const matrixRoom = process.env.REACT_APP_MATRIX_ROOM;
+    
+    if (!matrixUrl || !matrixToken || !matrixRoom) {
+      console.error('Matrix bot not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${matrixUrl}/_matrix/client/r0/rooms/${matrixRoom}/send/m.room.message`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${matrixToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          msgtype: 'm.text',
+          body: `📱 SMS for ${this.phoneNumber}: ${message}`
+        }),
+      });
+
+      if (response.ok) {
+        console.log('SMS sent successfully via Matrix');
+        return true;
+      } else {
+        console.error('Matrix SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Matrix SMS error:', error);
+      return false;
+    }
+  }
+
+  // Custom SMS Gateway (Self-hosted)
+  async sendViaCustomSMS(message, options = {}) {
+    // This would use your own SMS gateway
+    const customSmsUrl = process.env.REACT_APP_CUSTOM_SMS_URL;
+    const customSmsKey = process.env.REACT_APP_CUSTOM_SMS_KEY;
+    
+    if (!customSmsUrl || !customSmsKey) {
+      console.error('Custom SMS gateway not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(customSmsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${customSmsKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: this.phoneNumber,
+          message: message,
+          from: 'JustGoals'
+        }),
+      });
+
+      if (response.ok) {
+        console.log('SMS sent successfully via Custom Gateway');
+        return true;
+      } else {
+        console.error('Custom SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Custom SMS error:', error);
+      return false;
+    }
+  }
+
+  // Twilio Free Tier (250 SMS/month)
+  async sendViaTwilioFree(message, options = {}) {
+    // This would use Twilio's free tier
+    const twilioAccountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID;
+    const twilioAuthToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN;
+    const twilioNumber = process.env.REACT_APP_TWILIO_NUMBER;
+    
+    if (!twilioAccountSid || !twilioAuthToken || !twilioNumber) {
+      console.error('Twilio not configured');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: this.phoneNumber,
+          From: twilioNumber,
+          Body: message
+        }),
+      });
+
+      if (response.ok) {
+        console.log('SMS sent successfully via Twilio');
+        return true;
+      } else {
+        console.error('Twilio SMS failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Twilio SMS error:', error);
+      return false;
+    }
   }
 
   // Morning motivation SMS

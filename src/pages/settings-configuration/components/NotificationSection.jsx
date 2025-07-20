@@ -316,6 +316,23 @@ const NotificationSection = () => {
                 • <strong>Email Fallback:</strong> Free & unlimited - Send as email instead
               </div>
             </div>
+            
+            <h6 className="text-xs font-medium text-text-primary mt-3 mb-2">🏠 Self-Hosted Options:</h6>
+            <div className="space-y-1">
+              <div className="text-xs text-text-secondary">
+                • <strong>Signal CLI:</strong> Easy (2/10) - Install Signal CLI on server
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>Matrix Bot:</strong> Medium (4/10) - Set up Matrix server + bot
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>Custom SMS Gateway:</strong> Hard (7/10) - Build your own gateway
+              </div>
+              <div className="text-xs text-text-secondary">
+                • <strong>Twilio Free Tier:</strong> Easy (1/10) - 250 SMS/month free
+              </div>
+            </div>
+            
             <p className="text-xs text-text-secondary mt-2">
               Set environment variables to enable these services (see documentation).
             </p>
