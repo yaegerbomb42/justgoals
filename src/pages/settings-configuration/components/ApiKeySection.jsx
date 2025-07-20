@@ -9,6 +9,7 @@ import { geminiService } from '../../../services/geminiService';
 const ApiKeySection = () => {
   const { user } = useAuth();
   const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('gemini-pro');
   const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -78,6 +79,19 @@ const ApiKeySection = () => {
         console.error('Failed to save API key:', error);
       }
     }
+  };
+
+  const handleModelChange = (e) => {
+    setModel(e.target.value);
+    geminiService.setModel(e.target.value);
+  };
+
+  const handleSave = async () => {
+    await geminiService.initialize(apiKey, model);
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
+      detail: { apiKey: apiKey } 
+    }));
   };
 
   const handleTestConnection = () => {

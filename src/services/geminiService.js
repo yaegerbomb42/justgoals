@@ -6,37 +6,52 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  */
 class GeminiService {
   constructor() {
-    this.genAI = null;
-    this.model = null;
     this.apiKey = null;
+    this.modelName = 'gemini-2.0-flash';
+    this.endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent`;
   }
 
   async initialize(apiKey) {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-
     this.apiKey = apiKey;
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+  }
+
+  async generateContent(prompt) {
+    if (!this.apiKey) {
+      throw new Error('Gemini service not initialized. Please set your API key.');
+    }
+    const body = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: prompt }
+          ]
+        }
+      ]
+    });
+    const response = await fetch(this.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': this.apiKey
+      },
+      body
+    });
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
   async generateResponse(userMessage, context, capabilities = {}) {
-    if (!this.model) {
-      throw new Error('Gemini service not initialized. Please set your API key.');
-    }
-
     const systemPrompt = this.buildSystemPrompt(context, capabilities);
     const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nDrift:`;
-
     try {
-      const result = await this.model.generateContent(fullPrompt);
-      const response = await result.response;
-      const text = response.text();
-
-      // Parse the response for actions and suggestions
+      const text = await this.generateContent(fullPrompt);
       const parsedResponse = this.parseResponse(text);
-      
       return {
         message: parsedResponse.message,
         actions: parsedResponse.actions || [],
@@ -165,7 +180,7 @@ Always provide a helpful, conversational response first, then include any action
   }
 
   async analyzeProgress(goals, recentActivity) {
-    if (!this.model) {
+    if (!this.apiKey) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -187,9 +202,8 @@ Please provide:
 Keep it concise but comprehensive.`;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      const text = await this.generateContent(prompt);
+      return text;
     } catch (error) {
       console.error('Error analyzing progress:', error);
       return 'I encountered an error while analyzing your progress. Please try again.';
@@ -197,7 +211,7 @@ Keep it concise but comprehensive.`;
   }
 
   async generateGoalSuggestions(userPreferences, currentGoals) {
-    if (!this.model) {
+    if (!this.apiKey) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -218,9 +232,8 @@ Suggest goals that:
 Format each suggestion as: "Title: Brief description"`;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      const text = await this.generateContent(prompt);
+      return text;
     } catch (error) {
       console.error('Error generating goal suggestions:', error);
       return 'I encountered an error while generating goal suggestions. Please try again.';
@@ -228,7 +241,7 @@ Format each suggestion as: "Title: Brief description"`;
   }
 
   async generateDailyPlan(goals, preferences) {
-    if (!this.model) {
+    if (!this.apiKey) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -249,9 +262,8 @@ Create a structured daily plan that:
 Format as a clear, actionable daily schedule.`;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      const text = await this.generateContent(prompt);
+      return text;
     } catch (error) {
       console.error('Error generating daily plan:', error);
       return 'I encountered an error while generating your daily plan. Please try again.';
@@ -259,7 +271,7 @@ Format as a clear, actionable daily schedule.`;
   }
 
   async generateMotivationalMessage(goals, recentActivity) {
-    if (!this.model) {
+    if (!this.apiKey) {
       throw new Error('Gemini service not initialized');
     }
 
@@ -281,9 +293,8 @@ Create a motivational message that:
 Keep it concise but impactful.`;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      const text = await this.generateContent(prompt);
+      return text;
     } catch (error) {
       console.error('Error generating motivational message:', error);
       return 'Keep pushing forward! Every step you take brings you closer to your goals.';
@@ -298,7 +309,7 @@ Keep it concise but impactful.`;
   async testConnection(apiKey) {
     try {
       await this.initialize(apiKey);
-      const result = await this.model.generateContent('Hello');
+      const text = await this.generateContent('Hello');
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
