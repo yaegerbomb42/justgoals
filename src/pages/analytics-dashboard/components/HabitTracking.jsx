@@ -61,11 +61,32 @@ const HabitTracking = () => {
 
   const [showCelebration, setShowCelebration] = useState({ daily: false, weekly: false });
   const [newChainLink, setNewChainLink] = useState({ daily: false, weekly: false });
+  const [showSettings, setShowSettings] = useState(false);
 
   // Save to localStorage whenever data changes
   useEffect(() => {
     localStorage.setItem('enhanced_habits_data', JSON.stringify(habitData));
   }, [habitData]);
+
+  // Reset all habits for testing
+  const resetAllHabits = () => {
+    setHabitData(prev => ({
+      ...prev,
+      dailyHabits: defaultDailyHabits,
+      weeklyHabits: defaultWeeklyHabits,
+    }));
+  };
+
+  // Reset chains for testing
+  const resetChains = () => {
+    setHabitData(prev => ({
+      ...prev,
+      dailyChain: 0,
+      weeklyChain: 0,
+      dailyCompletions: {},
+      weeklyCompletions: {},
+    }));
+  };
 
   // Check for day/week reset
   useEffect(() => {
@@ -125,6 +146,10 @@ const HabitTracking = () => {
           setNewChainLink(prev => ({ ...prev, weekly: true }));
           setTimeout(() => setShowCelebration(prev => ({ ...prev, weekly: false })), 3000);
           setTimeout(() => setNewChainLink(prev => ({ ...prev, weekly: false })), 1000);
+        } else if (!updated.weeklyHabits.every(habit => habit.completed) && prev.weeklyCompletions[getCurrentWeek()]) {
+          // If we uncomplete a habit after already completing the week, remove the completion
+          updated.weeklyChain = Math.max(0, prev.weeklyChain - 1);
+          delete updated.weeklyCompletions[getCurrentWeek()];
         }
       } else {
         updated.dailyHabits = prev.dailyHabits.map(habit =>
@@ -140,6 +165,10 @@ const HabitTracking = () => {
           setNewChainLink(prev => ({ ...prev, daily: true }));
           setTimeout(() => setShowCelebration(prev => ({ ...prev, daily: false })), 3000);
           setTimeout(() => setNewChainLink(prev => ({ ...prev, daily: false })), 1000);
+        } else if (!updated.dailyHabits.every(habit => habit.completed) && prev.dailyCompletions[getToday()]) {
+          // If we uncomplete a habit after already completing the day, remove the completion
+          updated.dailyChain = Math.max(0, prev.dailyChain - 1);
+          delete updated.dailyCompletions[getToday()];
         }
       }
       
@@ -435,7 +464,7 @@ const HabitTracking = () => {
             {/* Daily Chain */}
             <div className="text-center">
               <h4 className="text-lg font-heading-medium text-emerald-700 dark:text-emerald-300 mb-4">Daily Chain</h4>
-              <div className="flex justify-center items-center mb-4">
+              <div className="flex justify-center items-center mb-4 flex-wrap">
                 {[...Array(Math.min(habitData.dailyChain, 10))].map((_, i) => (
                   <motion.span
                     key={i}
@@ -452,19 +481,27 @@ const HabitTracking = () => {
                 ))}
                 {habitData.dailyChain > 10 && (
                   <span className="text-xl text-emerald-600 dark:text-emerald-400 ml-2">
-                    +{habitData.dailyChain - 10}
+                    +{habitData.dailyChain - 10} more
                   </span>
+                )}
+                {habitData.dailyChain === 0 && (
+                  <span className="text-2xl text-text-secondary">No chain yet</span>
                 )}
               </div>
               <div className="text-2xl font-heading-bold text-emerald-600 dark:text-emerald-400">
-                🔥 {habitData.dailyChain} days
+                🔥 {habitData.dailyChain} day{habitData.dailyChain !== 1 ? 's' : ''}
               </div>
+              {habitData.dailyChain > 0 && (
+                <div className="text-sm text-emerald-600 dark:text-emerald-400 mt-2">
+                  Keep it up! Complete today's habits to extend your chain.
+                </div>
+              )}
             </div>
 
             {/* Weekly Chain */}
             <div className="text-center">
               <h4 className="text-lg font-heading-medium text-violet-700 dark:text-violet-300 mb-4">Weekly Chain</h4>
-              <div className="flex justify-center items-center mb-4">
+              <div className="flex justify-center items-center mb-4 flex-wrap">
                 {[...Array(Math.min(habitData.weeklyChain, 10))].map((_, i) => (
                   <motion.span
                     key={i}
@@ -481,13 +518,21 @@ const HabitTracking = () => {
                 ))}
                 {habitData.weeklyChain > 10 && (
                   <span className="text-xl text-violet-600 dark:text-violet-400 ml-2">
-                    +{habitData.weeklyChain - 10}
+                    +{habitData.weeklyChain - 10} more
                   </span>
+                )}
+                {habitData.weeklyChain === 0 && (
+                  <span className="text-2xl text-text-secondary">No chain yet</span>
                 )}
               </div>
               <div className="text-2xl font-heading-bold text-violet-600 dark:text-violet-400">
-                🔥 {habitData.weeklyChain} weeks
+                🔥 {habitData.weeklyChain} week{habitData.weeklyChain !== 1 ? 's' : ''}
               </div>
+              {habitData.weeklyChain > 0 && (
+                <div className="text-sm text-violet-600 dark:text-violet-400 mt-2">
+                  Excellent consistency! Complete this week's habits to continue.
+                </div>
+              )}
             </div>
           </div>
 
@@ -508,6 +553,58 @@ const HabitTracking = () => {
               </p>
             )}
           </motion.div>
+        </motion.div>
+
+        {/* Settings Panel */}
+        <motion.div
+          className="bg-surface-700 rounded-2xl p-6 border border-border"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.9 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-heading-bold text-text-primary">Settings</h3>
+            <Button 
+              onClick={() => setShowSettings(!showSettings)} 
+              variant="outline"
+              size="sm"
+            >
+              {showSettings ? 'Hide' : 'Show'} Controls
+            </Button>
+          </div>
+          
+          <AnimatePresence>
+            {showSettings && (
+              <motion.div
+                className="space-y-4"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Button 
+                    onClick={resetAllHabits} 
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Reset Today's Habits
+                  </Button>
+                  <Button 
+                    onClick={resetChains} 
+                    variant="outline"
+                    className="w-full text-warning border-warning hover:bg-warning/10"
+                  >
+                    Reset All Chains
+                  </Button>
+                </div>
+                <div className="text-sm text-text-secondary bg-surface-600 rounded-lg p-3">
+                  <strong>Note:</strong> Habits automatically reset daily/weekly. Chains break if you miss a day/week.
+                  Use these controls for testing or if you need to manually reset your progress.
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </div>
