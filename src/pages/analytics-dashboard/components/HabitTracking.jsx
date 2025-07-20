@@ -1,183 +1,158 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
-
-// Predefined habit categories
-const defaultDailyHabits = [
-  { id: 'brush-teeth', name: 'Brush Teeth', emoji: '🦷', completed: false },
-  { id: 'shower', name: 'Shower', emoji: '🚿', completed: false },
-  { id: 'breakfast', name: 'Eat Breakfast', emoji: '🥞', completed: false },
-  { id: 'lunch', name: 'Eat Lunch', emoji: '🥗', completed: false },
-  { id: 'dinner', name: 'Eat Dinner', emoji: '🍽️', completed: false },
-];
-
-const defaultWeeklyHabits = [
-  { id: 'laundry', name: 'Do Laundry', emoji: '👕', completed: false, dayOfWeek: null },
-  { id: 'volleyball', name: 'Volleyball on Thursday', emoji: '🏐', completed: false, dayOfWeek: 4 },
-];
-
-const getToday = () => new Date().toISOString().split('T')[0];
-const getCurrentWeek = () => {
-  const today = new Date();
-  const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
-  return startOfWeek.toISOString().split('T')[0];
-};
-const isToday = (dateStr) => dateStr === getToday();
-const isThisWeek = (weekStr) => weekStr === getCurrentWeek();
+import AddHabitModal from '../../../components/AddHabitModal';
+import ChainVisualization from '../../../components/ChainLink';
+import habitService from '../../../services/habitService';
+import { useAuth } from '../../../context/AuthContext';
 
 const HabitTracking = () => {
-  // Load saved data or use defaults
-  const [habitData, setHabitData] = useState(() => {
-    try {
-      const saved = localStorage.getItem('enhanced_habits_data');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          dailyHabits: parsed.dailyHabits || defaultDailyHabits,
-          weeklyHabits: parsed.weeklyHabits || defaultWeeklyHabits,
-          dailyChain: parsed.dailyChain || 0,
-          weeklyChain: parsed.weeklyChain || 0,
-          dailyCompletions: parsed.dailyCompletions || {},
-          weeklyCompletions: parsed.weeklyCompletions || {},
-          lastDailyReset: parsed.lastDailyReset || getToday(),
-          lastWeeklyReset: parsed.lastWeeklyReset || getCurrentWeek(),
-        };
-      }
-    } catch (error) {
-      console.error('Error loading habit data:', error);
-    }
-    return {
-      dailyHabits: defaultDailyHabits,
-      weeklyHabits: defaultWeeklyHabits,
-      dailyChain: 0,
-      weeklyChain: 0,
-      dailyCompletions: {},
-      weeklyCompletions: {},
-      lastDailyReset: getToday(),
-      lastWeeklyReset: getCurrentWeek(),
-    };
+  const { user } = useAuth() || { user: null };
+  const userId = user?.id || null;
+
+  // State management
+  const [habitData, setHabitData] = useState({
+    dailyHabits: [],
+    weeklyHabits: [],
+    customDailyHabits: [],
+    customWeeklyHabits: [],
+    dailyChain: 0,
+    weeklyChain: 0,
+    dailyCompletions: {},
+    weeklyCompletions: {},
+    lastDailyReset: habitService.getToday(),
+    lastWeeklyReset: habitService.getCurrentWeek(),
   });
 
   const [showCelebration, setShowCelebration] = useState({ daily: false, weekly: false });
   const [newChainLink, setNewChainLink] = useState({ daily: false, weekly: false });
   const [showSettings, setShowSettings] = useState(false);
+  const [showAddModal, setShowAddModal] = useState({ daily: false, weekly: false });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Save to localStorage whenever data changes
+  // Load habit data on component mount
   useEffect(() => {
-    localStorage.setItem('enhanced_habits_data', JSON.stringify(habitData));
-  }, [habitData]);
+    loadHabitsData();
+  }, [userId]);
 
-  // Reset all habits for testing
-  const resetAllHabits = () => {
-    setHabitData(prev => ({
-      ...prev,
-      dailyHabits: defaultDailyHabits,
-      weeklyHabits: defaultWeeklyHabits,
-    }));
+  const loadHabitsData = async () => {
+    try {
+      setIsLoading(true);
+      const data = await habitService.loadHabitsData(userId);
+      setHabitData(data);
+      
+      // Check for automatic resets
+      await habitService.checkAndResetHabits(userId);
+      const updatedData = await habitService.loadHabitsData(userId);
+      setHabitData(updatedData);
+    } catch (error) {
+      console.error('Error loading habits data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Reset chains for testing
-  const resetChains = () => {
-    setHabitData(prev => ({
-      ...prev,
-      dailyChain: 0,
-      weeklyChain: 0,
-      dailyCompletions: {},
-      weeklyCompletions: {},
-    }));
+  // Add a new custom habit
+  const handleAddHabit = async (habitData, isWeekly) => {
+    try {
+      await habitService.addCustomHabit(userId, habitData, isWeekly);
+      await loadHabitsData(); // Reload data to get the updated habits
+    } catch (error) {
+      console.error('Error adding habit:', error);
+    }
   };
 
-  // Check for day/week reset
-  useEffect(() => {
-    const today = getToday();
-    const thisWeek = getCurrentWeek();
+  // Remove a custom habit
+  const handleRemoveHabit = async (habitId, isWeekly, isCustom) => {
+    if (!isCustom) return; // Only allow removing custom habits
     
-    setHabitData(prev => {
-      let updated = { ...prev };
-      
-      // Reset daily habits if new day
-      if (prev.lastDailyReset !== today) {
-        updated.dailyHabits = defaultDailyHabits;
-        updated.lastDailyReset = today;
-        // Check if we need to break daily chain
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-        const yesterdayCompleted = prev.dailyCompletions[yesterdayStr];
-        if (!yesterdayCompleted) {
-          updated.dailyChain = 0; // Break chain if yesterday wasn't completed
-        }
-      }
-      
-      // Reset weekly habits if new week
-      if (prev.lastWeeklyReset !== thisWeek) {
-        updated.weeklyHabits = defaultWeeklyHabits;
-        updated.lastWeeklyReset = thisWeek;
-        // Check if we need to break weekly chain
-        const lastWeek = new Date();
-        lastWeek.setDate(lastWeek.getDate() - 7);
-        const lastWeekStr = new Date(lastWeek.getFullYear(), lastWeek.getMonth(), lastWeek.getDate() - lastWeek.getDay()).toISOString().split('T')[0];
-        const lastWeekCompleted = prev.weeklyCompletions[lastWeekStr];
-        if (!lastWeekCompleted) {
-          updated.weeklyChain = 0; // Break chain if last week wasn't completed
-        }
-      }
-      
-      return updated;
-    });
-  }, []);
+    try {
+      await habitService.removeCustomHabit(userId, habitId, isWeekly);
+      await loadHabitsData();
+    } catch (error) {
+      console.error('Error removing habit:', error);
+    }
+  };
 
-  const toggleHabit = (habitId, isWeekly = false) => {
-    setHabitData(prev => {
-      const updated = { ...prev };
+  // Toggle habit completion
+  const toggleHabit = async (habitId, isWeekly = false, isCustom = false) => {
+    try {
+      const updatedData = await habitService.toggleHabitCompletion(userId, habitId, isWeekly, isCustom);
+      setHabitData(updatedData);
+
+      // Check for celebrations
+      const allDailyHabits = [...updatedData.dailyHabits, ...(updatedData.customDailyHabits || [])];
+      const allWeeklyHabits = [...updatedData.weeklyHabits, ...(updatedData.customWeeklyHabits || [])];
       
-      if (isWeekly) {
-        updated.weeklyHabits = prev.weeklyHabits.map(habit =>
-          habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
-        );
-        
-        // Check if all weekly habits are completed
-        const allWeeklyCompleted = updated.weeklyHabits.every(habit => habit.completed);
-        if (allWeeklyCompleted && !prev.weeklyCompletions[getCurrentWeek()]) {
-          updated.weeklyChain = prev.weeklyChain + 1;
-          updated.weeklyCompletions[getCurrentWeek()] = true;
-          setShowCelebration(prev => ({ ...prev, weekly: true }));
-          setNewChainLink(prev => ({ ...prev, weekly: true }));
-          setTimeout(() => setShowCelebration(prev => ({ ...prev, weekly: false })), 3000);
-          setTimeout(() => setNewChainLink(prev => ({ ...prev, weekly: false })), 1000);
-        } else if (!updated.weeklyHabits.every(habit => habit.completed) && prev.weeklyCompletions[getCurrentWeek()]) {
-          // If we uncomplete a habit after already completing the week, remove the completion
-          updated.weeklyChain = Math.max(0, prev.weeklyChain - 1);
-          delete updated.weeklyCompletions[getCurrentWeek()];
-        }
-      } else {
-        updated.dailyHabits = prev.dailyHabits.map(habit =>
-          habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
-        );
-        
-        // Check if all daily habits are completed
-        const allDailyCompleted = updated.dailyHabits.every(habit => habit.completed);
-        if (allDailyCompleted && !prev.dailyCompletions[getToday()]) {
-          updated.dailyChain = prev.dailyChain + 1;
-          updated.dailyCompletions[getToday()] = true;
+      if (!isWeekly) {
+        const allDailyCompleted = allDailyHabits.every(habit => habit.completed);
+        const today = habitService.getToday();
+        if (allDailyCompleted && !habitData.dailyCompletions[today]) {
           setShowCelebration(prev => ({ ...prev, daily: true }));
           setNewChainLink(prev => ({ ...prev, daily: true }));
           setTimeout(() => setShowCelebration(prev => ({ ...prev, daily: false })), 3000);
           setTimeout(() => setNewChainLink(prev => ({ ...prev, daily: false })), 1000);
-        } else if (!updated.dailyHabits.every(habit => habit.completed) && prev.dailyCompletions[getToday()]) {
-          // If we uncomplete a habit after already completing the day, remove the completion
-          updated.dailyChain = Math.max(0, prev.dailyChain - 1);
-          delete updated.dailyCompletions[getToday()];
+        }
+      } else {
+        const allWeeklyCompleted = allWeeklyHabits.every(habit => habit.completed);
+        const currentWeek = habitService.getCurrentWeek();
+        if (allWeeklyCompleted && !habitData.weeklyCompletions[currentWeek]) {
+          setShowCelebration(prev => ({ ...prev, weekly: true }));
+          setNewChainLink(prev => ({ ...prev, weekly: true }));
+          setTimeout(() => setShowCelebration(prev => ({ ...prev, weekly: false })), 3000);
+          setTimeout(() => setNewChainLink(prev => ({ ...prev, weekly: false })), 1000);
         }
       }
-      
-      return updated;
-    });
+    } catch (error) {
+      console.error('Error toggling habit:', error);
+    }
   };
 
-  const allDailyCompleted = habitData.dailyHabits.every(habit => habit.completed);
-  const allWeeklyCompleted = habitData.weeklyHabits.every(habit => habit.completed);
+  // Reset all habits for testing
+  const resetAllHabits = async () => {
+    try {
+      const resetData = await habitService.resetAllProgress(userId);
+      setHabitData(resetData);
+    } catch (error) {
+      console.error('Error resetting habits:', error);
+    }
+  };
+
+  // Reset chains for testing
+  const resetChains = async () => {
+    try {
+      const currentData = await habitService.loadHabitsData(userId);
+      const resetData = {
+        ...currentData,
+        dailyChain: 0,
+        weeklyChain: 0,
+        dailyCompletions: {},
+        weeklyCompletions: {},
+      };
+      await habitService.saveHabitsData(userId, resetData);
+      setHabitData(resetData);
+    } catch (error) {
+      console.error('Error resetting chains:', error);
+    }
+  };
+
+  // Get all habits combined
+  const allDailyHabits = [...habitData.dailyHabits, ...(habitData.customDailyHabits || [])];
+  const allWeeklyHabits = [...habitData.weeklyHabits, ...(habitData.customWeeklyHabits || [])];
+  const allDailyCompleted = allDailyHabits.every(habit => habit.completed);
+  const allWeeklyCompleted = allWeeklyHabits.every(habit => habit.completed);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading your habits...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -240,23 +215,34 @@ const HabitTracking = () => {
                 <span className="bg-primary/10 p-2 rounded-lg">📅</span>
                 Daily Habits
               </h2>
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🔥</span>
-                <span className="text-2xl font-heading-bold text-warning">{habitData.dailyChain}</span>
-                <span className="text-text-secondary">day streak</span>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => setShowAddModal({ daily: true, weekly: false })}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Icon name="Plus" size={16} />
+                  Add Habit
+                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🔥</span>
+                  <span className="text-2xl font-heading-bold text-warning">{habitData.dailyChain}</span>
+                  <span className="text-text-secondary">day streak</span>
+                </div>
               </div>
             </div>
 
             <div className="grid gap-4">
-              {habitData.dailyHabits.map((habit, index) => (
+              {allDailyHabits.map((habit, index) => (
                 <motion.div
                   key={habit.id}
-                  className={`bg-surface-600 rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer ${
+                  className={`bg-surface-600 rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer relative group ${
                     habit.completed 
                       ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' 
                       : 'border-border hover:border-primary/50'
                   }`}
-                  onClick={() => toggleHabit(habit.id)}
+                  onClick={() => toggleHabit(habit.id, false, !habit.isDefault)}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -284,20 +270,32 @@ const HabitTracking = () => {
                       )}
                     </motion.div>
                     <span className="text-3xl">{habit.emoji}</span>
-                    <span className={`text-lg font-body-medium ${
+                    <span className={`text-lg font-body-medium flex-1 ${
                       habit.completed ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'
                     }`}>
                       {habit.name}
                     </span>
                     {habit.completed && (
                       <motion.span
-                        className="ml-auto text-emerald-500 font-heading-bold"
+                        className="text-emerald-500 font-heading-bold"
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
                       >
                         ✓ Done!
                       </motion.span>
+                    )}
+                    {!habit.isDefault && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveHabit(habit.id, false, true);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all"
+                        title="Remove custom habit"
+                      >
+                        <Icon name="X" size={16} />
+                      </button>
                     )}
                   </div>
                 </motion.div>
@@ -309,7 +307,7 @@ const HabitTracking = () => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-text-secondary">Daily Progress</span>
                 <span className="text-primary font-heading-medium">
-                  {habitData.dailyHabits.filter(h => h.completed).length} / {habitData.dailyHabits.length}
+                  {allDailyHabits.filter(h => h.completed).length} / {allDailyHabits.length}
                 </span>
               </div>
               <div className="h-3 bg-surface-800 rounded-full overflow-hidden">
@@ -317,7 +315,7 @@ const HabitTracking = () => {
                   className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ 
-                    width: `${(habitData.dailyHabits.filter(h => h.completed).length / habitData.dailyHabits.length) * 100}%` 
+                    width: `${allDailyHabits.length > 0 ? (allDailyHabits.filter(h => h.completed).length / allDailyHabits.length) * 100 : 0}%` 
                   }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
@@ -361,23 +359,34 @@ const HabitTracking = () => {
                 <span className="bg-secondary/10 p-2 rounded-lg">📆</span>
                 Weekly Habits
               </h2>
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🔥</span>
-                <span className="text-2xl font-heading-bold text-warning">{habitData.weeklyChain}</span>
-                <span className="text-text-secondary">week streak</span>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => setShowAddModal({ daily: false, weekly: true })}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Icon name="Plus" size={16} />
+                  Add Habit
+                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🔥</span>
+                  <span className="text-2xl font-heading-bold text-warning">{habitData.weeklyChain}</span>
+                  <span className="text-text-secondary">week streak</span>
+                </div>
               </div>
             </div>
 
             <div className="grid gap-4">
-              {habitData.weeklyHabits.map((habit, index) => (
+              {allWeeklyHabits.map((habit, index) => (
                 <motion.div
                   key={habit.id}
-                  className={`bg-surface-600 rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer ${
+                  className={`bg-surface-600 rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer relative group ${
                     habit.completed 
                       ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/20' 
                       : 'border-border hover:border-secondary/50'
                   }`}
-                  onClick={() => toggleHabit(habit.id, true)}
+                  onClick={() => toggleHabit(habit.id, true, !habit.isDefault)}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -405,20 +414,32 @@ const HabitTracking = () => {
                       )}
                     </motion.div>
                     <span className="text-3xl">{habit.emoji}</span>
-                    <span className={`text-lg font-body-medium ${
+                    <span className={`text-lg font-body-medium flex-1 ${
                       habit.completed ? 'text-violet-600 dark:text-violet-400' : 'text-text-primary'
                     }`}>
                       {habit.name}
                     </span>
                     {habit.completed && (
                       <motion.span
-                        className="ml-auto text-violet-500 font-heading-bold"
+                        className="text-violet-500 font-heading-bold"
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
                       >
                         ✓ Done!
                       </motion.span>
+                    )}
+                    {!habit.isDefault && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveHabit(habit.id, true, true);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-danger transition-all"
+                        title="Remove custom habit"
+                      >
+                        <Icon name="X" size={16} />
+                      </button>
                     )}
                   </div>
                 </motion.div>
@@ -430,7 +451,7 @@ const HabitTracking = () => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-text-secondary">Weekly Progress</span>
                 <span className="text-secondary font-heading-medium">
-                  {habitData.weeklyHabits.filter(h => h.completed).length} / {habitData.weeklyHabits.length}
+                  {allWeeklyHabits.filter(h => h.completed).length} / {allWeeklyHabits.length}
                 </span>
               </div>
               <div className="h-3 bg-surface-800 rounded-full overflow-hidden">
@@ -438,7 +459,7 @@ const HabitTracking = () => {
                   className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ 
-                    width: `${(habitData.weeklyHabits.filter(h => h.completed).length / habitData.weeklyHabits.length) * 100}%` 
+                    width: `${allWeeklyHabits.length > 0 ? (allWeeklyHabits.filter(h => h.completed).length / allWeeklyHabits.length) * 100 : 0}%` 
                   }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
@@ -464,75 +485,37 @@ const HabitTracking = () => {
             {/* Daily Chain */}
             <div className="text-center">
               <h4 className="text-lg font-heading-medium text-emerald-700 dark:text-emerald-300 mb-4">Daily Chain</h4>
-              <div className="flex justify-center items-center mb-4 flex-wrap">
-                {[...Array(Math.min(habitData.dailyChain, 10))].map((_, i) => (
-                  <motion.span
-                    key={i}
-                    className="text-3xl"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.5 }}
-                    style={{ 
-                      filter: newChainLink.daily && i === habitData.dailyChain - 1 ? 'drop-shadow(0 0 10px #10b981)' : 'none'
-                    }}
-                  >
-                    🔗
-                  </motion.span>
-                ))}
-                {habitData.dailyChain > 10 && (
-                  <span className="text-xl text-emerald-600 dark:text-emerald-400 ml-2">
-                    +{habitData.dailyChain - 10} more
-                  </span>
-                )}
-                {habitData.dailyChain === 0 && (
-                  <span className="text-2xl text-text-secondary">No chain yet</span>
-                )}
-              </div>
-              <div className="text-2xl font-heading-bold text-emerald-600 dark:text-emerald-400">
+              <ChainVisualization
+                chainLength={habitData.dailyChain}
+                hasNewLink={newChainLink.daily}
+                color="emerald"
+                size="normal"
+                label={habitData.dailyChain > 0 
+                  ? "Keep it up! Complete today's habits to extend your chain."
+                  : "Start your daily chain by completing all habits today!"
+                }
+              />
+              <div className="text-2xl font-heading-bold text-emerald-600 dark:text-emerald-400 mt-4">
                 🔥 {habitData.dailyChain} day{habitData.dailyChain !== 1 ? 's' : ''}
               </div>
-              {habitData.dailyChain > 0 && (
-                <div className="text-sm text-emerald-600 dark:text-emerald-400 mt-2">
-                  Keep it up! Complete today's habits to extend your chain.
-                </div>
-              )}
             </div>
 
             {/* Weekly Chain */}
             <div className="text-center">
               <h4 className="text-lg font-heading-medium text-violet-700 dark:text-violet-300 mb-4">Weekly Chain</h4>
-              <div className="flex justify-center items-center mb-4 flex-wrap">
-                {[...Array(Math.min(habitData.weeklyChain, 10))].map((_, i) => (
-                  <motion.span
-                    key={i}
-                    className="text-3xl"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.5 }}
-                    style={{ 
-                      filter: newChainLink.weekly && i === habitData.weeklyChain - 1 ? 'drop-shadow(0 0 10px #8b5cf6)' : 'none'
-                    }}
-                  >
-                    🔗
-                  </motion.span>
-                ))}
-                {habitData.weeklyChain > 10 && (
-                  <span className="text-xl text-violet-600 dark:text-violet-400 ml-2">
-                    +{habitData.weeklyChain - 10} more
-                  </span>
-                )}
-                {habitData.weeklyChain === 0 && (
-                  <span className="text-2xl text-text-secondary">No chain yet</span>
-                )}
-              </div>
-              <div className="text-2xl font-heading-bold text-violet-600 dark:text-violet-400">
+              <ChainVisualization
+                chainLength={habitData.weeklyChain}
+                hasNewLink={newChainLink.weekly}
+                color="violet"
+                size="normal"
+                label={habitData.weeklyChain > 0 
+                  ? "Excellent consistency! Complete this week's habits to continue."
+                  : "Start your weekly chain by completing all habits this week!"
+                }
+              />
+              <div className="text-2xl font-heading-bold text-violet-600 dark:text-violet-400 mt-4">
                 🔥 {habitData.weeklyChain} week{habitData.weeklyChain !== 1 ? 's' : ''}
               </div>
-              {habitData.weeklyChain > 0 && (
-                <div className="text-sm text-violet-600 dark:text-violet-400 mt-2">
-                  Excellent consistency! Complete this week's habits to continue.
-                </div>
-              )}
             </div>
           </div>
 
@@ -607,6 +590,29 @@ const HabitTracking = () => {
           </AnimatePresence>
         </motion.div>
       </div>
+
+      {/* Add Habit Modals */}
+      <AnimatePresence>
+        {showAddModal.daily && (
+          <AddHabitModal
+            isOpen={showAddModal.daily}
+            onClose={() => setShowAddModal({ daily: false, weekly: false })}
+            onAddHabit={handleAddHabit}
+            isWeekly={false}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAddModal.weekly && (
+          <AddHabitModal
+            isOpen={showAddModal.weekly}
+            onClose={() => setShowAddModal({ daily: false, weekly: false })}
+            onAddHabit={handleAddHabit}
+            isWeekly={true}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
