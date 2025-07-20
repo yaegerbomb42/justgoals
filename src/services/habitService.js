@@ -27,12 +27,14 @@ export const defaultWeeklyHabits = [
 ];
 
 // Helper functions for date management
-export const getToday = () => new Date().toISOString().split('T')[0];
-export const getCurrentWeek = () => {
+const getToday = () => new Date().toISOString().split('T')[0];
+const getCurrentWeek = () => {
   const today = new Date();
   const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
   return startOfWeek.toISOString().split('T')[0];
 };
+
+export { getToday, getCurrentWeek };
 
 class HabitService {
   constructor() {

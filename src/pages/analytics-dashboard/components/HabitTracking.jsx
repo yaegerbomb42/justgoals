@@ -4,7 +4,7 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import AddHabitModal from '../../../components/AddHabitModal';
 import ChainVisualization from '../../../components/ChainLink';
-import habitService from '../../../services/habitService';
+import habitService, { getToday, getCurrentWeek } from '../../../services/habitService';
 import { useAuth } from '../../../context/AuthContext';
 
 const HabitTracking = () => {
@@ -21,8 +21,8 @@ const HabitTracking = () => {
     weeklyChain: 0,
     dailyCompletions: {},
     weeklyCompletions: {},
-    lastDailyReset: habitService.getToday(),
-    lastWeeklyReset: habitService.getCurrentWeek(),
+    lastDailyReset: getToday(),
+    lastWeeklyReset: getCurrentWeek(),
   });
 
   const [showCelebration, setShowCelebration] = useState({ daily: false, weekly: false });
@@ -87,7 +87,7 @@ const HabitTracking = () => {
       
       if (!isWeekly) {
         const allDailyCompleted = allDailyHabits.every(habit => habit.completed);
-        const today = habitService.getToday();
+        const today = getToday();
         if (allDailyCompleted && !habitData.dailyCompletions[today]) {
           setShowCelebration(prev => ({ ...prev, daily: true }));
           setNewChainLink(prev => ({ ...prev, daily: true }));
@@ -96,7 +96,7 @@ const HabitTracking = () => {
         }
       } else {
         const allWeeklyCompleted = allWeeklyHabits.every(habit => habit.completed);
-        const currentWeek = habitService.getCurrentWeek();
+        const currentWeek = getCurrentWeek();
         if (allWeeklyCompleted && !habitData.weeklyCompletions[currentWeek]) {
           setShowCelebration(prev => ({ ...prev, weekly: true }));
           setNewChainLink(prev => ({ ...prev, weekly: true }));
