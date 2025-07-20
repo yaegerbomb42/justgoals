@@ -1,9 +1,7 @@
 {
   "rewrites": [
-    { "source": "/__/auth/handler", "destination": "/index.html" }
-  ],
-  "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "source": "/__/auth/handler", "destination": "/index.html" },
+    { "source": "/assets/:match*", "destination": "/assets/:match*" },
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }
