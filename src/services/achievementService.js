@@ -210,6 +210,80 @@ class AchievementService {
         category: 'engagement',
         condition: (userData) => userData.consecutiveDays >= 100,
         points: 150
+      },
+
+      // Meal-related achievements
+      firstMeal: {
+        id: 'firstMeal',
+        title: 'First Bite',
+        description: 'Plan your first meal',
+        icon: '🍽️',
+        category: 'meals',
+        condition: (userData) => userData.totalMeals >= 1,
+        points: 10
+      },
+      mealPlanner: {
+        id: 'mealPlanner',
+        title: 'Meal Planner',
+        description: 'Create your first weekly meal plan',
+        icon: '📅',
+        category: 'meals',
+        condition: (userData) => userData.totalMealPlans >= 1,
+        points: 25
+      },
+      nutritionNinja: {
+        id: 'nutritionNinja',
+        title: 'Nutrition Ninja',
+        description: 'Complete all meals for a day',
+        icon: '🥋',
+        category: 'meals',
+        condition: (userData) => userData.perfectMealDays >= 1,
+        points: 30
+      },
+      macroMaster: {
+        id: 'macroMaster',
+        title: 'Macro Master',
+        description: 'Hit your macro targets for 7 consecutive days',
+        icon: '🎯',
+        category: 'meals',
+        condition: (userData) => userData.macroStreak >= 7,
+        points: 50
+      },
+      aiChef: {
+        id: 'aiChef',
+        title: 'AI Chef',
+        description: 'Generate your first AI meal plan',
+        icon: '🤖',
+        category: 'meals',
+        condition: (userData) => userData.aiGeneratedMealPlans >= 1,
+        points: 40
+      },
+      consistentEater: {
+        id: 'consistentEater',
+        title: 'Consistent Eater',
+        description: 'Complete meals for 30 consecutive days',
+        icon: '🏆',
+        category: 'meals',
+        condition: (userData) => userData.mealCompletionStreak >= 30,
+        points: 75
+      },
+      proteinPro: {
+        id: 'proteinPro',
+        title: 'Protein Pro',
+        description: 'Hit your protein target for 14 consecutive days',
+        icon: '💪',
+        category: 'meals',
+        condition: (userData) => userData.proteinStreak >= 14,
+        points: 60
+      },
+      mealPrepMaster: {
+        id: 'mealPrepMaster',
+        title: 'Meal Prep Master',
+        description: 'Plan and complete 50 meals',
+        icon: '📦',
+        category: 'meals',
+        condition: (userData) => userData.completedMeals >= 50,
+        points: 100
       }
     };
 
@@ -218,7 +292,8 @@ class AchievementService {
       streaks: { name: 'Streaks', icon: '🔥', color: '#EF4444' },
       focus: { name: 'Focus', icon: '🧠', color: '#10B981' },
       milestones: { name: 'Milestones', icon: '📋', color: '#F59E0B' },
-      special: { name: 'Special', icon: '⭐', color: '#8B5CF6' }
+      special: { name: 'Special', icon: '⭐', color: '#8B5CF6' },
+      meals: { name: 'Meals', icon: '🍽️', color: '#06B6D4' }
     };
   }
 
@@ -237,7 +312,16 @@ class AchievementService {
       weekendStreak: 0,
       consecutiveDays: 0,
       totalJournalEntries: 0,
-      completedTasks: 0
+      completedTasks: 0,
+      // Meal-related data
+      totalMeals: 0,
+      completedMeals: 0,
+      totalMealPlans: 0,
+      perfectMealDays: 0,
+      macroStreak: 0,
+      aiGeneratedMealPlans: 0,
+      mealCompletionStreak: 0,
+      proteinStreak: 0
     };
     try {
       // Get goals data
@@ -260,10 +344,25 @@ class AchievementService {
       const journalKey = `journal_entries_${userId}`;
       let journalEntries = [];
       try { journalEntries = JSON.parse(localStorage.getItem(journalKey) || '[]'); } catch (e) { journalEntries = []; }
+
+      // Get meal-related data
+      const mealsKey = `meals_data_${userId}`;
+      let mealsData = [];
+      try { mealsData = JSON.parse(localStorage.getItem(mealsKey) || '[]'); } catch (e) { mealsData = []; }
+      
+      const mealPlansKey = `meal_plans_data_${userId}`;
+      let mealPlansData = [];
+      try { mealPlansData = JSON.parse(localStorage.getItem(mealPlansKey) || '[]'); } catch (e) { mealPlansData = []; }
+      
+      const mealCompletionsKey = `meal_completions_data_${userId}`;
+      let mealCompletionsData = [];
+      try { mealCompletionsData = JSON.parse(localStorage.getItem(mealCompletionsKey) || '[]'); } catch (e) { mealCompletionsData = []; }
       // Calculate streak data
       const streakData = this.calculateStreakData(milestonesData);
       // Calculate special achievements data
       const specialData = this.calculateSpecialData(milestonesData, focusHistory);
+      // Calculate meal statistics
+      const mealStats = this.calculateMealStats(mealsData, mealPlansData, mealCompletionsData);
       // Calculate completed tasks (goals + milestones)
       const completedTasks = (Array.isArray(goalsData) ? goalsData.filter(goal => goal.progress >= 100).length : 0) + (Array.isArray(milestonesData) ? milestonesData.filter(m => m.completed).length : 0);
       return {
@@ -279,7 +378,16 @@ class AchievementService {
         weekendStreak: specialData.weekendStreak || 0,
         consecutiveDays: specialData.consecutiveDays || 0,
         totalJournalEntries: Array.isArray(journalEntries) ? journalEntries.length : 0,
-        completedTasks
+        completedTasks,
+        // Meal-related data
+        totalMeals: mealStats.totalMeals || 0,
+        completedMeals: mealStats.completedMeals || 0,
+        totalMealPlans: mealStats.totalMealPlans || 0,
+        perfectMealDays: mealStats.perfectMealDays || 0,
+        macroStreak: mealStats.macroStreak || 0,
+        aiGeneratedMealPlans: mealStats.aiGeneratedMealPlans || 0,
+        mealCompletionStreak: mealStats.mealCompletionStreak || 0,
+        proteinStreak: mealStats.proteinStreak || 0
       };
     } catch (error) {
       console.error('Error getting user data for achievements:', error);
@@ -296,7 +404,16 @@ class AchievementService {
         weekendStreak: 0,
         consecutiveDays: 0,
         totalJournalEntries: 0,
-        completedTasks: 0
+        completedTasks: 0,
+        // Meal-related data
+        totalMeals: 0,
+        completedMeals: 0,
+        totalMealPlans: 0,
+        perfectMealDays: 0,
+        macroStreak: 0,
+        aiGeneratedMealPlans: 0,
+        mealCompletionStreak: 0,
+        proteinStreak: 0
       };
     }
   }
@@ -395,6 +512,75 @@ class AchievementService {
       nightOwl,
       weekendStreak,
       consecutiveDays
+    };
+  }
+
+  // Calculate meal-related statistics
+  calculateMealStats(mealsData, mealPlansData, mealCompletionsData) {
+    const totalMeals = Array.isArray(mealsData) ? mealsData.length : 0;
+    const totalMealPlans = Array.isArray(mealPlansData) ? mealPlansData.length : 0;
+    const aiGeneratedMealPlans = Array.isArray(mealPlansData) ? mealPlansData.filter(plan => plan.generatedBy === 'ai').length : 0;
+    
+    const completedMeals = Array.isArray(mealCompletionsData) ? mealCompletionsData.filter(completion => completion.completed).length : 0;
+    
+    // Calculate perfect meal days (days where all planned meals were completed)
+    let perfectMealDays = 0;
+    let mealCompletionStreak = 0;
+    let macroStreak = 0; // This would need meal preference and actual macro data
+    let proteinStreak = 0; // This would need actual meal nutrition data
+    
+    // Group completions by date
+    const completionsByDate = {};
+    if (Array.isArray(mealCompletionsData)) {
+      mealCompletionsData.forEach(completion => {
+        if (completion.completed && completion.date) {
+          if (!completionsByDate[completion.date]) {
+            completionsByDate[completion.date] = [];
+          }
+          completionsByDate[completion.date].push(completion);
+        }
+      });
+    }
+
+    // Count perfect days (simplified - assumes 3 meals per day target)
+    const targetMealsPerDay = 3;
+    Object.keys(completionsByDate).forEach(date => {
+      if (completionsByDate[date].length >= targetMealsPerDay) {
+        perfectMealDays++;
+      }
+    });
+
+    // Calculate streaks (simplified calculation)
+    const sortedDates = Object.keys(completionsByDate).sort();
+    let currentStreak = 0;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Calculate meal completion streak (consecutive days with any completed meals)
+    for (let i = sortedDates.length - 1; i >= 0; i--) {
+      const date = sortedDates[i];
+      if (completionsByDate[date].length > 0) {
+        currentStreak++;
+        // Check if there's a gap
+        if (i > 0) {
+          const prevDate = sortedDates[i - 1];
+          const daysDiff = (new Date(date) - new Date(prevDate)) / (1000 * 60 * 60 * 24);
+          if (daysDiff > 1) break;
+        }
+      } else {
+        break;
+      }
+    }
+    mealCompletionStreak = currentStreak;
+
+    return {
+      totalMeals,
+      completedMeals,
+      totalMealPlans,
+      perfectMealDays,
+      macroStreak: macroStreak, // Placeholder - would need actual macro tracking
+      aiGeneratedMealPlans,
+      mealCompletionStreak,
+      proteinStreak: proteinStreak // Placeholder - would need actual nutrition tracking
     };
   }
 

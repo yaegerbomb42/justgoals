@@ -5,6 +5,7 @@ import { SettingsProvider } from './context/SettingsContext';
 import { PlanDataProvider } from './context/PlanDataContext';
 import { AchievementProvider } from './context/AchievementContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { MealsProvider } from './context/MealsContext';
 import Routes from './Routes';
 import Header from './components/ui/Header';
 import { useNotifications } from './hooks/useNotifications';
@@ -26,12 +27,14 @@ const App = () => {
           <PlanDataProvider>
             <AchievementProvider>
               <NotificationProvider>
-                <NotificationWrapper>
-                  <div className="min-h-screen bg-background text-text-primary">
-                    <Header />
-                    <Routes />
-                  </div>
-                </NotificationWrapper>
+                <MealsProvider>
+                  <NotificationWrapper>
+                    <div className="min-h-screen bg-background text-text-primary">
+                      <Header />
+                      <Routes />
+                    </div>
+                  </NotificationWrapper>
+                </MealsProvider>
               </NotificationProvider>
             </AchievementProvider>
           </PlanDataProvider>

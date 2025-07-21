@@ -762,6 +762,176 @@ class FirestoreService {
       return null;
     }
   }
+
+  // Meals CRUD operations
+  async saveMeal(userId, mealData) {
+    if (!userId || !mealData) {
+      throw new Error('User ID and meal data are required');
+    }
+
+    try {
+      const mealId = mealData.id || `meal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const mealDoc = this.getUserDoc(userId, 'meals', mealId);
+      
+      const mealToSave = {
+        ...mealData,
+        id: mealId,
+        userId,
+        updatedAt: serverTimestamp(),
+        createdAt: mealData.createdAt || serverTimestamp()
+      };
+
+      await setDoc(mealDoc, mealToSave);
+      return { ...mealToSave, id: mealId };
+    } catch (error) {
+      console.error('Error saving meal to Firestore:', error);
+      throw error;
+    }
+  }
+
+  async getMeals(userId) {
+    try {
+      const mealsRef = collection(this.db, `users/${userId}/meals`);
+      const querySnapshot = await getDocs(mealsRef);
+      return querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting meals from Firestore:', error);
+      return [];
+    }
+  }
+
+  async deleteMeal(userId, mealId) {
+    if (!userId || !mealId) {
+      throw new Error('User ID and meal ID are required');
+    }
+
+    try {
+      const mealDoc = this.getUserDoc(userId, 'meals', mealId);
+      await deleteDoc(mealDoc);
+    } catch (error) {
+      console.error('Error deleting meal from Firestore:', error);
+      throw error;
+    }
+  }
+
+  // Meal Plans CRUD operations
+  async saveMealPlan(userId, mealPlanData) {
+    if (!userId || !mealPlanData) {
+      throw new Error('User ID and meal plan data are required');
+    }
+
+    try {
+      const planId = mealPlanData.id || `plan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const planDoc = this.getUserDoc(userId, 'mealPlans', planId);
+      
+      const planToSave = {
+        ...mealPlanData,
+        id: planId,
+        userId,
+        updatedAt: serverTimestamp(),
+        createdAt: mealPlanData.createdAt || serverTimestamp()
+      };
+
+      await setDoc(planDoc, planToSave);
+      return { ...planToSave, id: planId };
+    } catch (error) {
+      console.error('Error saving meal plan to Firestore:', error);
+      throw error;
+    }
+  }
+
+  async getMealPlans(userId) {
+    try {
+      const plansRef = collection(this.db, `users/${userId}/mealPlans`);
+      const querySnapshot = await getDocs(query(plansRef, orderBy('startDate', 'desc')));
+      return querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting meal plans from Firestore:', error);
+      return [];
+    }
+  }
+
+  // Meal Preferences
+  async saveMealPreferences(userId, preferencesData) {
+    if (!userId || !preferencesData) {
+      throw new Error('User ID and preferences data are required');
+    }
+
+    try {
+      const prefsDoc = this.getUserDoc(userId, 'mealPreferences', 'current');
+      await setDoc(prefsDoc, {
+        ...preferencesData,
+        userId,
+        updatedAt: serverTimestamp()
+      });
+      return preferencesData;
+    } catch (error) {
+      console.error('Error saving meal preferences to Firestore:', error);
+      throw error;
+    }
+  }
+
+  async getMealPreferences(userId) {
+    try {
+      const prefsDoc = this.getUserDoc(userId, 'mealPreferences', 'current');
+      const docSnapshot = await getDoc(prefsDoc);
+      
+      if (docSnapshot.exists()) {
+        return docSnapshot.data();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting meal preferences from Firestore:', error);
+      return null;
+    }
+  }
+
+  // Meal Completion Tracking
+  async markMealCompleted(userId, mealId, date, completed = true) {
+    if (!userId || !mealId || !date) {
+      throw new Error('User ID, meal ID, and date are required');
+    }
+
+    try {
+      const completionId = `${mealId}_${date}`;
+      const completionDoc = this.getUserDoc(userId, 'mealCompletions', completionId);
+      
+      const completionData = {
+        mealId,
+        date,
+        completed,
+        completedAt: completed ? serverTimestamp() : null,
+        updatedAt: serverTimestamp()
+      };
+
+      await setDoc(completionDoc, completionData);
+      return completionData;
+    } catch (error) {
+      console.error('Error marking meal completion in Firestore:', error);
+      throw error;
+    }
+  }
+
+  async getMealCompletions(userId, startDate, endDate) {
+    try {
+      const completionsRef = collection(this.db, `users/${userId}/mealCompletions`);
+      let queryRef = completionsRef;
+      
+      if (startDate && endDate) {
+        queryRef = query(
+          completionsRef,
+          where('date', '>=', startDate),
+          where('date', '<=', endDate)
+        );
+      }
+      
+      const querySnapshot = await getDocs(queryRef);
+      return querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting meal completions from Firestore:', error);
+      return [];
+    }
+  }
 }
 
 // Create singleton instance

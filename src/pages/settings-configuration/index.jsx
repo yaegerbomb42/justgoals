@@ -7,6 +7,7 @@ import AppearanceSection from './components/AppearanceSection';
 import FocusModeSection from './components/FocusModeSection';
 import ProgressMeterSection from './components/ProgressMeterSection';
 import DataManagementSection from './components/DataManagementSection';
+import MealPreferencesSection from './components/MealPreferencesSection';
 
 const SettingsPage = () => {
   const { settings } = useSettings();
@@ -19,6 +20,7 @@ const SettingsPage = () => {
     { id: 'appearance', label: 'Appearance', icon: 'Palette' },
     { id: 'focus', label: 'Focus Mode', icon: 'Zap' },
     { id: 'progress', label: 'Progress', icon: 'BarChart3' },
+    { id: 'meals', label: 'Meal Preferences', icon: 'UtensilsCrossed' },
     { id: 'data', label: 'Data', icon: 'Database' },
   ];
 
@@ -34,6 +36,8 @@ const SettingsPage = () => {
         return <FocusModeSection />;
       case 'progress':
         return <ProgressMeterSection />;
+      case 'meals':
+        return <MealPreferencesSection />;
       case 'data':
         return <DataManagementSection />;
       default:

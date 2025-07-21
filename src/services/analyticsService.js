@@ -107,6 +107,7 @@ class AnalyticsService {
         goalDependencies: typeof data.goalDependencies === 'object' && data.goalDependencies !== null ? data.goalDependencies : {},
         habits: typeof data.habits === 'object' && data.habits !== null ? data.habits : {},
         insights: Array.isArray(data.insights) ? data.insights : [],
+        meals: typeof data.meals === 'object' && data.meals !== null ? data.meals : {},
         permissionError: false
       };
     } catch (error) {
@@ -118,6 +119,7 @@ class AnalyticsService {
         goalDependencies: {},
         habits: {},
         insights: [],
+        meals: {},
         permissionError: false
       };
     }
@@ -164,6 +166,133 @@ class AnalyticsService {
       const analytics = await this.getUserAnalytics(userId);
       return analytics.insights;
     });
+  }
+
+  // Get meal analytics data
+  async getMealAnalytics(userId, timeRange = 'month') {
+    if (!userId) return {};
+
+    try {
+      // Get meal data from localStorage (would be Firestore in production)
+      const mealsKey = `meals_data_${userId}`;
+      const mealPlansKey = `meal_plans_data_${userId}`;
+      const mealCompletionsKey = `meal_completions_data_${userId}`;
+      const mealPreferencesKey = `meal_preferences_data_${userId}`;
+
+      let mealsData = [];
+      let mealPlansData = [];
+      let mealCompletionsData = [];
+      let mealPreferences = {};
+
+      try {
+        mealsData = JSON.parse(localStorage.getItem(mealsKey) || '[]');
+        mealPlansData = JSON.parse(localStorage.getItem(mealPlansKey) || '[]');
+        mealCompletionsData = JSON.parse(localStorage.getItem(mealCompletionsKey) || '[]');
+        mealPreferences = JSON.parse(localStorage.getItem(mealPreferencesKey) || '{}');
+      } catch (e) {
+        console.error('Error parsing meal data:', e);
+      }
+
+      // Calculate analytics
+      const totalMeals = mealsData.length;
+      const totalMealPlans = mealPlansData.length;
+      const completedMeals = mealCompletionsData.filter(c => c.completed).length;
+      const completionRate = totalMeals > 0 ? Math.round((completedMeals / totalMeals) * 100) : 0;
+
+      // Calculate daily averages
+      const dailyCaloriesAvg = this.calculateDailyAverage(mealCompletionsData, mealsData, 'calories');
+      const dailyProteinAvg = this.calculateDailyMacroAverage(mealCompletionsData, mealsData, 'protein');
+      const dailyCarbsAvg = this.calculateDailyMacroAverage(mealCompletionsData, mealsData, 'carbs');
+      const dailyFatAvg = this.calculateDailyMacroAverage(mealCompletionsData, mealsData, 'fat');
+
+      // Calculate weekly trends
+      const weeklyTrends = this.calculateWeeklyMealTrends(mealCompletionsData, mealsData);
+
+      return {
+        summary: {
+          totalMeals,
+          totalMealPlans,
+          completedMeals,
+          completionRate,
+          dailyCaloriesAvg,
+          dailyProteinAvg,
+          dailyCarbsAvg,
+          dailyFatAvg
+        },
+        trends: weeklyTrends,
+        targets: {
+          dailyCalories: mealPreferences.dailyCalories || 2000,
+          proteinTarget: mealPreferences.macroTargets?.protein || 25,
+          carbsTarget: mealPreferences.macroTargets?.carbs || 45,
+          fatTarget: mealPreferences.macroTargets?.fat || 30
+        }
+      };
+    } catch (error) {
+      console.error('Error generating meal analytics:', error);
+      return {};
+    }
+  }
+
+  calculateDailyAverage(completions, meals, field) {
+    const mealMap = new Map(meals.map(m => [m.id, m]));
+    const dailyTotals = {};
+
+    completions.filter(c => c.completed).forEach(completion => {
+      const meal = mealMap.get(completion.mealId);
+      if (meal && meal[field]) {
+        if (!dailyTotals[completion.date]) {
+          dailyTotals[completion.date] = 0;
+        }
+        dailyTotals[completion.date] += meal[field];
+      }
+    });
+
+    const totals = Object.values(dailyTotals);
+    return totals.length > 0 ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : 0;
+  }
+
+  calculateDailyMacroAverage(completions, meals, macro) {
+    const mealMap = new Map(meals.map(m => [m.id, m]));
+    const dailyTotals = {};
+
+    completions.filter(c => c.completed).forEach(completion => {
+      const meal = mealMap.get(completion.mealId);
+      if (meal && meal.macros && meal.macros[macro]) {
+        if (!dailyTotals[completion.date]) {
+          dailyTotals[completion.date] = 0;
+        }
+        dailyTotals[completion.date] += meal.macros[macro];
+      }
+    });
+
+    const totals = Object.values(dailyTotals);
+    return totals.length > 0 ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : 0;
+  }
+
+  calculateWeeklyMealTrends(completions, meals) {
+    const mealMap = new Map(meals.map(m => [m.id, m]));
+    const weeklyData = {};
+
+    completions.filter(c => c.completed).forEach(completion => {
+      const date = new Date(completion.date);
+      const weekStart = new Date(date.setDate(date.getDate() - date.getDay()));
+      const weekKey = weekStart.toISOString().split('T')[0];
+
+      if (!weeklyData[weekKey]) {
+        weeklyData[weekKey] = { meals: 0, calories: 0, protein: 0 };
+      }
+
+      const meal = mealMap.get(completion.mealId);
+      if (meal) {
+        weeklyData[weekKey].meals++;
+        weeklyData[weekKey].calories += meal.calories || 0;
+        weeklyData[weekKey].protein += meal.macros?.protein || 0;
+      }
+    });
+
+    return Object.entries(weeklyData)
+      .map(([week, data]) => ({ week, ...data }))
+      .sort((a, b) => new Date(a.week) - new Date(b.week));
   }
 
   // Clear cache
