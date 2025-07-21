@@ -119,9 +119,8 @@ const AnalyticsDashboard = () => {
             <div>
               <p className="text-sm text-text-secondary">Achievements</p>
               <p className="text-2xl font-heading-bold text-success">
-                {achievementSummary.completed}/{achievementSummary.total}
+                {safeAchievements.filter(a => a.earned).length}/{safeAchievements.length}
               </p>
-              <p className="text-xs text-text-secondary">{achievementSummary.completionRate}% complete</p>
             </div>
             <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
               <Icon name="Award" size={20} className="text-success" />

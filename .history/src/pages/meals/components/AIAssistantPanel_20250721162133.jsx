@@ -265,49 +265,22 @@ Be helpful and practical.`;
   };
 
   const handleCreateMeal = async (mealData) => {
-    try {
-      const meal = {
-        id: `meal_${Date.now()}`,
-        title: mealData.title || mealData.name || 'AI Generated Meal',
-        type: mealData.type || 'meal',
-        calories: mealData.calories || 0,
-        macros: mealData.macros || { protein: 0, carbs: 0, fat: 0 },
-        ingredients: mealData.ingredients || [],
-        instructions: mealData.instructions || mealData.steps || '',
-        prepTime: mealData.prepTime || 30,
-        cookTime: mealData.cookTime || 0,
-        servings: mealData.servings || 1,
-        difficulty: mealData.difficulty || 'easy',
-        tags: mealData.tags || [],
-        notes: mealData.notes || '',
-        generatedBy: 'ai',
-        createdAt: new Date().toISOString(),
-      };
+    const meal = {
+      id: `meal_${Date.now()}`,
+      title: mealData.title,
+      type: mealData.type || 'meal',
+      calories: mealData.calories || 0,
+      macros: mealData.macros || { protein: 0, carbs: 0, fat: 0 },
+      ingredients: mealData.ingredients || [],
+      instructions: mealData.instructions || '',
+      prepTime: mealData.prepTime || 30,
+      notes: mealData.notes || '',
+      generatedBy: 'ai',
+      createdAt: new Date().toISOString(),
+    };
 
-      await saveMeal(meal);
-      
-      // Enhanced success message
-      addMessage(
-        `🍴 **Meal Recipe Created!**\n\n` +
-        `**"${meal.title}"**\n` +
-        `📊 **Calories:** ${meal.calories}\n` +
-        `⏱️ **Prep Time:** ${meal.prepTime} minutes\n` +
-        `🥗 **Servings:** ${meal.servings}\n` +
-        `📝 **Ingredients:** ${meal.ingredients.length} items\n\n` +
-        `Your meal recipe has been saved to your collection!`,
-        'system',
-        { type: 'meal_created', mealId: meal.id }
-      );
-      
-      return meal;
-    } catch (error) {
-      console.error('Error creating meal:', error);
-      addMessage(
-        `❌ **Error creating meal:** ${error.message}\n\nPlease try again.`,
-        'system',
-        { type: 'error' }
-      );
-    }
+    await saveMeal(meal);
+    addMessage(`✅ Created meal: "${mealData.title}"`, 'system');
   };
 
   const handleUpdatePreferences = async (preferencesData) => {

@@ -138,107 +138,59 @@ const ProductivityHeatmap = ({ data = [] }) => {
           </button>
         ))}
       </div>
-      {/* Heatmap Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-max">
           {/* Day labels */}
           <div className="flex mb-2">
-            <div className="w-12"></div>
+            <div className="w-8"></div>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="w-10 text-center text-xs text-text-secondary">
+              <div key={day} className="w-8 text-center text-xs text-text-secondary">
                 {day}
               </div>
             ))}
           </div>
-          
-          {/* Heatmap weeks */}
+          {/* Heatmap */}
           <div className="space-y-1">
             {processedData.weeks.map((week, weekIdx) => (
               <div key={weekIdx} className="flex">
-                <div className="w-12 text-xs text-text-secondary flex items-center justify-end pr-2">
+                <div className="w-8 text-xs text-text-secondary flex items-center justify-end pr-2">
                   {week.find(d => d)?.date?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) || ''}
                 </div>
-                {week.map((day, dayIdx) => {
-                  const value = getValue(day);
-                  const intensity = getColorIntensity(value, processedData.maxValues[viewMode] || 1);
-                  const isSelected = selectedDay?.date?.toDateString() === day?.date?.toDateString();
-                  
-                  return (
-                    <div
-                      key={dayIdx}
-                      className={`w-10 h-10 rounded-sm border border-surface-600 cursor-pointer transition-all hover:scale-110 hover:border-primary/50 ${
-                        isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
-                      }`}
-                      style={{
-                        backgroundColor: day ? getCellColor(day, intensity) : 'rgb(30, 41, 59)'
-                      }}
-                      onClick={() => day ? setSelectedDay(day) : null}
-                      title={getTooltip(day)}
-                    >
-                      {day && value > 0 && (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xs text-white font-medium opacity-80">
-                            {value}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {week.map((day, dayIdx) => (
+                  <div
+                    key={dayIdx}
+                    className={`w-8 h-8 rounded-sm border border-surface-600 cursor-pointer transition-all hover:scale-110 relative ${
+                      day ? '' : 'bg-surface-600'
+                    } ${selectedDay?.date?.toDateString() === day?.date?.toDateString() ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                    onClick={() => day ? setSelectedDay(day) : null}
+                    title={day ? `${day.date.toLocaleDateString()}: Goals: ${day.goals}, Focus: ${day.focus}` : ''}
+                  >
+                    {day && (
+                      <>
+                        {/* Left: goals, Right: focus */}
+                        <div style={{position:'absolute',left:0,top:0,bottom:0,width:'50%',background:getGoalColor(day.goals,maxGoals),borderTopLeftRadius:4,borderBottomLeftRadius:4}}></div>
+                        <div style={{position:'absolute',right:0,top:0,bottom:0,width:'50%',background:getFocusColor(day.focus,maxFocus),borderTopRightRadius:4,borderBottomRightRadius:4}}></div>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
         </div>
       </div>
-
-      {/* Legend */}
-      <div className="mt-4 flex items-center justify-between text-xs text-text-secondary">
-        <span>Less active</span>
-        <div className="flex space-x-1">
-          {[0, 0.2, 0.4, 0.6, 0.8, 1].map((intensity, idx) => (
-            <div
-              key={idx}
-              className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: getCellColor({ totalActivity: 1 }, intensity) }}
-            />
-          ))}
-        </div>
-        <span>More active</span>
-      </div>
-
       {/* Selected Day Details */}
       {selectedDay && (
-        <div className="mt-4 p-4 bg-surface-700 rounded-lg border border-border">
-          <h4 className="font-semibold text-text-primary mb-2">
-            {selectedDay.date.toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <Icon name="Target" size={16} className="text-green-500" />
-              <span className="text-text-secondary">Goals:</span>
-              <span className="font-medium text-text-primary">{selectedDay.goals || 0}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="Clock" size={16} className="text-blue-500" />
-              <span className="text-text-secondary">Focus:</span>
-              <span className="font-medium text-text-primary">{selectedDay.focus || 0}h</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="Repeat" size={16} className="text-purple-500" />
-              <span className="text-text-secondary">Habits:</span>
-              <span className="font-medium text-text-primary">{selectedDay.habits || 0}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="CheckSquare" size={16} className="text-yellow-500" />
-              <span className="text-text-secondary">Milestones:</span>
-              <span className="font-medium text-text-primary">{selectedDay.milestones || 0}</span>
+        <div className="mt-4 p-4 bg-surface-700 rounded-lg border border-border flex items-center space-x-4">
+          <Icon name="Calendar" size={20} className="text-primary" />
+          <div>
+            <div className="text-sm text-text-primary font-body-medium">
+              {selectedDay.date.toLocaleDateString()} - Goals: {selectedDay.goals}, Focus: {selectedDay.focus}
             </div>
           </div>
+          <button className="ml-auto text-xs text-text-secondary hover:text-error" onClick={() => setSelectedDay(null)}>
+            Clear
+          </button>
         </div>
       )}
     </div>

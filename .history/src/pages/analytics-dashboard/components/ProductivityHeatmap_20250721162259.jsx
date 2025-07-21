@@ -244,5 +244,26 @@ const ProductivityHeatmap = ({ data = [] }) => {
     </div>
   );
 };
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Selected Day Details */}
+      {selectedDay && (
+        <div className="mt-4 p-4 bg-surface-700 rounded-lg border border-border flex items-center space-x-4">
+          <Icon name="Calendar" size={20} className="text-primary" />
+          <div>
+            <div className="text-sm text-text-primary font-body-medium">
+              {selectedDay.date.toLocaleDateString()} - Goals: {selectedDay.goals}, Focus: {selectedDay.focus}
+            </div>
+          </div>
+          <button className="ml-auto text-xs text-text-secondary hover:text-error" onClick={() => setSelectedDay(null)}>
+            Clear
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default ProductivityHeatmap; 
