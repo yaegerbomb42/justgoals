@@ -61,7 +61,7 @@ class NotificationService {
 
   async requestPushPermission() {
     if (!this.serviceWorkerRegistration) {
-      console.warn('Cannot request push permission: Service Worker is not registered. This is normal in development.');
+      console.error('Cannot request push permission: Service Worker is not registered.');
       return false;
     }
     try {
