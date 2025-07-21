@@ -21,6 +21,7 @@ import AchievementsPage from "pages/achievements";
 import HabitsPage from "pages/habits";
 import MealsPage from "pages/meals";
 import Oauth2Callback from './pages/oauth2callback';
+import ThemeDemo from 'components/ThemeDemo';
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -47,6 +48,9 @@ const Routes = () => {
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+
+        {/* Theme demo route - public access for testing */}
+        <Route path="/theme-demo" element={<ThemeDemo />} />
 
         {/* OAuth2 callback route */}
         <Route path="/oauth2callback" element={<Oauth2Callback />} />

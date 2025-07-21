@@ -12,14 +12,38 @@
   --chosen-accent-dark: #818cf8;
   --chosen-accent-foreground: #ffffff;
 
-  /* Light Theme Defaults */
+  /* Core theme colors - will be dynamically updated by theme utility */
   --color-primary: var(--chosen-accent-light);
   --color-primary-foreground: var(--chosen-accent-foreground);
-  --color-secondary: #8b5cf6; /* Violet-500 - Can also be made dynamic if needed */
+  --color-secondary: #8b5cf6;
   --color-secondary-foreground: #ffffff;
-  --color-accent: #10b981; /* Emerald-500 - Can also be made dynamic if needed */
+  --color-accent: #10b981;
   --color-accent-foreground: #ffffff;
   
+  /* Extended color system for comprehensive theming */
+  --color-muted: #6366f1;
+  --color-muted-foreground: #ffffff;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-ring: #6366f1;
+  --color-input: #e2e8f0;
+  
+  /* Component-specific colors for automatic theming */
+  --color-button-ghost-hover: #6366f1;
+  --color-button-outline-border: #6366f1;
+  --color-nav-active: #6366f1;
+  --color-nav-hover: #eef2ff;
+  --color-sidebar-accent: #6366f1;
+  --color-form-focus: #6366f1;
+  --color-chart-primary: #6366f1;
+  --color-chart-secondary: #8b5cf6;
+  --color-chart-tertiary: #10b981;
+  
+  /* Base surface and text colors */
   --color-background: #f8fafc;    /* slate-50 */
   --color-surface: #ffffff;       /* white */
   --color-surface-50: #f8fafc;    /* slate-50 */

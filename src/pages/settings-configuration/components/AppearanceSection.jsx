@@ -1,6 +1,7 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
 import { useSettings } from '../../../context/SettingsContext';
+import { getAvailableThemes } from '../../../utils/themeUtils';
 
 const AppearanceSection = () => {
   const { settings, updateAppearanceSettings } = useSettings();
@@ -44,30 +45,8 @@ const AppearanceSection = () => {
     }
   ];
 
-  // Grouped theme palettes
-  const palettes = [
-    {
-      id: 'blue-teal',
-      name: 'Blue Teal',
-      colors: ['#3E54D3', '#4F80E2', '#15CDCA', '#4FE086']
-    },
-    {
-      id: 'dopamine',
-      name: 'Dopamine',
-      colors: ['#FEF400', '#FF05D0', '#00DF60']
-    },
-    {
-      id: 'indigo',
-      name: 'Indigo',
-      colors: ['#6366F1', '#818CF8', '#8B5CF6']
-    },
-    {
-      id: 'emerald',
-      name: 'Emerald',
-      colors: ['#10B981', '#34D399', '#A7F3D0']
-    },
-    // Add more palettes as desired
-  ];
+  // Grouped theme palettes - use the comprehensive theme utility
+  const palettes = getAvailableThemes();
 
   const handlePaletteChange = (paletteId) => {
     updateAppearanceSettings({ accentColor: paletteId });

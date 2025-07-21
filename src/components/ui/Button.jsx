@@ -41,18 +41,20 @@ const Button = React.forwardRef(({
         circle: 'rounded-full aspect-square',
     };
 
-    // Variant classes
+    // Variant classes - enhanced with comprehensive theming
     const variantClasses = {
-        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        success: 'bg-success text-success-foreground hover:bg-success/90',
-        danger: 'bg-error text-error-foreground hover:bg-error/90',
-        warning: 'bg-warning text-warning-foreground hover:bg-warning/90',
-        info: 'bg-accent text-accent-foreground hover:bg-accent/90',
-        ghost: 'hover:bg-primary hover:text-primary-foreground',
-        link: 'bg-transparent text-primary-foreground underline hover:text-primary/80 p-0',
-        outline: 'border border-border bg-background hover:bg-primary hover:text-primary-foreground',
-        text: 'bg-transparent text-primary-foreground hover:bg-surface hover:bg-opacity-50 active:bg-surface active:bg-opacity-70',
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary/50',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary/50',
+        success: 'bg-success text-success-foreground hover:bg-success/90 focus:ring-success/50',
+        danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive/50',
+        warning: 'bg-warning text-warning-foreground hover:bg-warning/90 focus:ring-warning/50',
+        info: 'bg-accent text-accent-foreground hover:bg-accent/90 focus:ring-accent/50',
+        ghost: 'hover:bg-button-ghost-hover hover:text-primary-foreground focus:ring-ring/50',
+        link: 'bg-transparent text-primary underline hover:text-primary/80 p-0 focus:ring-ring/50',
+        outline: 'border border-button-outline-border bg-background hover:bg-primary hover:text-primary-foreground focus:ring-ring/50',
+        text: 'bg-transparent text-primary hover:bg-muted/10 active:bg-muted/20 focus:ring-ring/50',
+        muted: 'bg-muted text-muted-foreground hover:bg-muted/80 focus:ring-muted/50',
+        card: 'bg-card text-card-foreground hover:bg-card/80 border border-border focus:ring-ring/50',
     };
 
 

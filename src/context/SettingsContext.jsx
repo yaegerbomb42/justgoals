@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import firestoreService from '../services/firestoreService';
+import { applyThemeColors, initializeTheme } from '../utils/themeUtils';
 
 const SettingsContext = createContext();
 
@@ -101,20 +102,21 @@ export const SettingsProvider = ({ children }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMusicMuted, setMusicMuted] = useState(false);
 
-  // Apply theme to document body
+  // Apply theme to document body and CSS variables
   useEffect(() => {
     const theme = settings.appearance?.theme || settings.theme || 'system';
-    document.body.classList.remove('dark', 'light');
-    if (theme === 'dark') {
-      document.body.classList.add('dark');
-    } else if (theme === 'light') {
-      document.body.classList.add('light');
-    } else {
-      // System theme
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.body.classList.add(prefersDark ? 'dark' : 'light');
+    const accentColor = settings.appearance?.accentColor || 'indigo';
+    
+    // Apply comprehensive theme colors using the new utility
+    applyThemeColors(accentColor, theme);
+  }, [settings.appearance?.theme, settings.theme, settings.appearance?.accentColor]);
+
+  // Initialize theme on mount
+  useEffect(() => {
+    if (isLoaded) {
+      initializeTheme(settings);
     }
-  }, [settings.appearance?.theme, settings.theme]);
+  }, [isLoaded, settings]);
 
   // Mobile detection
   useEffect(() => {

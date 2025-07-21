@@ -39,6 +39,37 @@ module.exports = {
         accent: 'var(--color-accent)',
         'accent-foreground': 'var(--color-accent-foreground)',
 
+        // Extended theming colors for comprehensive UI coverage
+        muted: 'var(--color-muted)',
+        'muted-foreground': 'var(--color-muted-foreground)',
+        card: 'var(--color-card)',
+        'card-foreground': 'var(--color-card-foreground)',
+        popover: 'var(--color-popover)',
+        'popover-foreground': 'var(--color-popover-foreground)',
+        destructive: 'var(--color-destructive)',
+        'destructive-foreground': 'var(--color-destructive-foreground)',
+        ring: 'var(--color-ring)',
+        input: 'var(--color-input)',
+
+        // Component-specific theme colors that auto-adapt
+        'button-ghost-hover': 'var(--color-button-ghost-hover)',
+        'button-outline-border': 'var(--color-button-outline-border)',
+        'nav-active': 'var(--color-nav-active)',
+        'nav-hover': 'var(--color-nav-hover)',
+        'sidebar-accent': 'var(--color-sidebar-accent)',
+        'form-focus': 'var(--color-form-focus)',
+        'chart-primary': 'var(--color-chart-primary)',
+        'chart-secondary': 'var(--color-chart-secondary)',
+        'chart-tertiary': 'var(--color-chart-tertiary)',
+
+        // Status Colors (using CSS vars for consistency)
+        success: 'var(--color-success)',
+        'success-foreground': '#FFFFFF',
+        warning: 'var(--color-warning)',
+        'warning-foreground': '#FFFFFF',
+        error: 'var(--color-error)',
+        'error-foreground': '#FFFFFF',
+
         // Specific color palettes (can be kept for direct use if needed)
         // These allow using e.g. bg-indigo-500 directly if a specific shade is required
         // and not the user's current primary color.
@@ -48,14 +79,6 @@ module.exports = {
         'blue-50': '#EFF6FF', 'blue-100': '#DBEAFE', 'blue-200': '#BFDBFE', 'blue-300': '#93C5FD', 'blue-400': '#60A5FA', 'blue-500': '#3B82F6', 'blue-600': '#2563EB', 'blue-700': '#1D4ED8', 'blue-800': '#1E40AF', 'blue-900': '#1E3A8A',
         'rose-50': '#FFF1F2', 'rose-100': '#FFE4E6', 'rose-200': '#FECDD3', 'rose-300': '#FDA4AF', 'rose-400': '#FB7185', 'rose-500': '#F43F5E', 'rose-600': '#E11D48', 'rose-700': '#BE123C', 'rose-800': '#9F1239', 'rose-900': '#881337',
         'amber-50': '#FFFBEB', 'amber-100': '#FEF3C7', 'amber-200': '#FDE68A', 'amber-300': '#FCD34D', 'amber-400': '#FBBF24', 'amber-500': '#F59E0B', 'amber-600': '#D97706', 'amber-700': '#B45309', 'amber-800': '#92400E', 'amber-900': '#78350F',
-
-        // Status Colors (can also use CSS vars or be fixed)
-        success: 'var(--color-success)', // Using CSS var for consistency
-        'success-foreground': '#FFFFFF', // Or var(--color-success-foreground)
-        warning: 'var(--color-warning)',
-        'warning-foreground': '#FFFFFF',
-        error: 'var(--color-error)',
-        'error-foreground': '#FFFFFF',
 
         // Retain specific shades for status colors if needed for backgrounds etc.
         'green-500': '#22C55E', // Example
