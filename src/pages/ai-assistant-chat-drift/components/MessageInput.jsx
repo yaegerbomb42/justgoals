@@ -23,7 +23,7 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
     <form onSubmit={handleSubmit} className="relative">
       <div className="relative">
         <textarea
-          value={message}
+          value={typeof message === 'string' ? message : ''}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           onFocus={() => setIsFocused(true)}
@@ -68,7 +68,7 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
       {/* Character count and status */}
       <div className="flex justify-between items-center mt-2 px-1">
         <span className="text-xs text-text-secondary">
-          {message.length}/2000
+          {(typeof message === 'string' ? message.length : 0)}/2000
         </span>
         <div className="flex items-center space-x-2">
           {isProcessing && (

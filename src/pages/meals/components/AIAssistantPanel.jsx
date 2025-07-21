@@ -7,7 +7,7 @@ import { useAchievements } from '../../../context/AchievementContext';
 import { geminiService } from '../../../services/geminiService';
 import Icon from '../../../components/ui/Icon';
 
-const AIAssistantPanel = ({ mealData }) => {
+const AIAssistantPanel = ({ mealData, apiKey: propApiKey }) => {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { saveMeal, saveMealPlan, updateMealPreferences } = useMeals();
@@ -17,6 +17,8 @@ const AIAssistantPanel = ({ mealData }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const apiKey = propApiKey || settings?.geminiApiKey;
 
   useEffect(() => {
     // Load conversation history from localStorage
@@ -162,7 +164,8 @@ Be encouraging, knowledgeable, and focus on practical, achievable meal planning.
 
     try {
       const fullPrompt = `${systemPrompt}\n\nUser: ${message}\n\nAssistant:`;
-      const text = await geminiService.generateContent(fullPrompt);
+      // Use apiKey for Gemini API call
+      const text = await geminiService.generateContent(fullPrompt, apiKey);
       
       // Parse response for actions
       const actionMatch = text.match(/\{[\s\S]*"type"[\s\S]*\}/);
@@ -270,8 +273,8 @@ Be encouraging, knowledgeable, and focus on practical, achievable meal planning.
     setInputMessage(text);
   };
 
-  // In the UI, check for settings.geminiApiKey
-  if (!settings?.geminiApiKey) {
+  // In the UI, check for apiKey
+  if (!apiKey) {
     return (
       <div className="bg-surface border border-border rounded-xl p-8 text-center">
         <Icon name="Key" className="w-16 h-16 mx-auto text-warning mb-4" />

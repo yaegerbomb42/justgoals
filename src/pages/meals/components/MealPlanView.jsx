@@ -4,7 +4,7 @@ import { useMeals } from '../../../context/MealsContext';
 import Icon from '../../../components/ui/Icon';
 import DayMealCard from './DayMealCard';
 
-const MealPlanView = ({ currentWeekPlan, mealPreferences }) => {
+const MealPlanView = ({ currentWeekPlan, mealPreferences, setActiveTab }) => {
   const { markMealCompleted } = useMeals();
   const [selectedDay, setSelectedDay] = useState(new Date().getDay());
   const [weekDays, setWeekDays] = useState([]);
@@ -60,7 +60,7 @@ const MealPlanView = ({ currentWeekPlan, mealPreferences }) => {
           You don't have a meal plan for this week yet. Let our AI assistant create one for you!
         </p>
         <button
-          onClick={() => setActiveTab?.('ai')}
+          onClick={() => setActiveTab && setActiveTab('ai')}
           className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-600 transition-colors"
         >
           Create Meal Plan

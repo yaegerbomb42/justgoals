@@ -159,10 +159,7 @@ const MealsPage = () => {
             transition={{ duration: 0.3 }}
           >
             {activeTab === 'plan' && (
-              <MealPlanView 
-                currentWeekPlan={currentWeekPlan}
-                mealPreferences={mealPreferences}
-              />
+              <MealPlanView currentWeekPlan={currentWeekPlan} mealPreferences={mealPreferences} setActiveTab={setActiveTab} />
             )}
             
             {activeTab === 'preferences' && (
@@ -172,9 +169,7 @@ const MealsPage = () => {
             )}
             
             {activeTab === 'ai' && (
-              <AIAssistantPanel 
-                mealData={{ meals, mealPlans, mealPreferences }}
-              />
+              <AIAssistantPanel mealData={{ meals, mealPlans, mealPreferences }} apiKey={settings.geminiApiKey} />
             )}
           </motion.div>
         </AnimatePresence>
