@@ -141,6 +141,24 @@ const NotificationSection = () => {
     return 'bg-primary hover:bg-primary/90';
   };
 
+  // Add channel preferences state and handler
+  const channelOptions = [
+    { id: 'browser', label: 'Browser', icon: 'Globe', color: 'blue' },
+    { id: 'sms', label: 'SMS', icon: 'MessageCircle', color: 'pink' },
+    { id: 'discord', label: 'Discord', icon: 'MessageCircle', color: 'indigo' },
+    { id: 'ntfy', label: 'ntfy', icon: 'Bell', color: 'orange' },
+  ];
+  const selectedChannels = settings.notifications.channelPreferences || [];
+  const handleChannelToggle = (id) => {
+    let updated;
+    if (selectedChannels.includes(id)) {
+      updated = selectedChannels.filter(c => c !== id);
+    } else {
+      updated = [...selectedChannels, id];
+    }
+    updateNotificationSettings({ channelPreferences: updated });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -183,6 +201,25 @@ const NotificationSection = () => {
       {/* Notification Channels */}
       <div className="space-y-4" role="group" aria-label="Notification Channels">
         <h4 className="font-medium text-text-primary">Notification Channels</h4>
+        {/* Channel Selection UI */}
+        <div className="flex space-x-2 mb-2">
+          {channelOptions.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => handleChannelToggle(opt.id)}
+              className={`flex items-center space-x-2 px-3 py-1 rounded-lg border transition-colors duration-150 text-sm font-medium
+                ${selectedChannels.includes(opt.id)
+                  ? `bg-${opt.color}-500/20 border-${opt.color}-500 text-${opt.color}-500`
+                  : 'bg-surface-800 border-border text-text-secondary hover:bg-surface-700'}
+              `}
+              aria-pressed={selectedChannels.includes(opt.id)}
+              type="button"
+            >
+              <Icon name={opt.icon} className={`w-4 h-4 ${selectedChannels.includes(opt.id) ? `text-${opt.color}-500` : 'text-text-secondary'}`} />
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
         
         {/* Browser Notifications */}
         <div className="bg-surface-700 rounded-lg p-4 border border-border">

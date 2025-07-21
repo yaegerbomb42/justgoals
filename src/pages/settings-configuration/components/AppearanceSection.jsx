@@ -8,6 +8,8 @@ const AppearanceSection = () => {
   const theme = appearance?.theme || 'dark';
   const accentColor = appearance?.accentColor || 'indigo';
   const backgroundEffect = appearance?.backgroundEffect || 'none';
+  const backgroundMusic = appearance?.backgroundMusic || 'none';
+  const backgroundMusicVolume = appearance?.backgroundMusicVolume ?? 0.5;
   // animationIntensity is being removed
 
   const handleThemeChange = (newTheme) => {
@@ -72,6 +74,16 @@ const AppearanceSection = () => {
   };
 
   // animationLevels removed
+
+  const musicOptions = [
+    { id: 'none', name: 'None', icon: 'VolumeX' },
+    { id: 'rain', name: 'Rain', icon: 'CloudRain' },
+    { id: 'forest', name: 'Forest', icon: 'Trees' },
+    { id: 'ocean', name: 'Ocean Waves', icon: 'Waves' },
+    { id: 'cafe', name: 'Coffee Shop', icon: 'Coffee' },
+    { id: 'whitenoise', name: 'White Noise', icon: 'Radio' },
+    { id: 'chime', name: 'Gentle Chime', icon: 'Bell' }
+  ];
 
   return (
     <div className="bg-surface rounded-lg p-6 border border-border">
@@ -259,6 +271,46 @@ const AppearanceSection = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Background Music Selection */}
+        <div className="mt-6">
+          <label className="block text-sm font-body-medium text-text-primary mb-3">
+            Background Music
+          </label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+            {musicOptions.map((music) => (
+              <button
+                key={music.id}
+                onClick={() => updateAppearanceSettings({ backgroundMusic: music.id })}
+                className={`flex flex-col items-center space-y-2 p-3 rounded-lg border transition-all duration-normal
+                  ${backgroundMusic === music.id ? 'border-primary bg-primary/5' : 'border-border hover:border-border-strong hover:bg-surface-700'}
+                `}
+              >
+                <Icon name={music.icon} className="w-5 h-5" color={backgroundMusic === music.id ? '#6366F1' : '#94A3B8'} />
+                <span className="text-xs font-caption text-text-primary text-center">{music.name}</span>
+                {backgroundMusic === music.id && (
+                  <Icon name="Check" className="w-3 h-3 text-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+          {backgroundMusic !== 'none' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-text-primary mb-2">
+                Music Volume: {Math.round(backgroundMusicVolume * 100)}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={backgroundMusicVolume}
+                onChange={e => updateAppearanceSettings({ backgroundMusicVolume: parseFloat(e.target.value) })}
+                className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+          )}
         </div>
 
         {/* Animation Intensity section removed */}

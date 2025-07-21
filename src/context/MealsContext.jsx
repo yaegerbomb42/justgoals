@@ -34,21 +34,21 @@ export const MealsProvider = ({ children }) => {
 
   // Load user meal data on mount
   useEffect(() => {
-    if (user?.uid) {
+    if (user?.id) {
       loadUserMealData();
     }
-  }, [user?.uid]);
+  }, [user?.id]);
 
   const loadUserMealData = async () => {
-    if (!user?.uid) return;
+    if (!user?.id) return;
     
     setLoading(true);
     try {
       // Load meals, meal plans, and preferences from Firestore
       const [mealsData, mealPlansData, preferencesData] = await Promise.all([
-        firestoreService.getMeals(user.uid),
-        firestoreService.getMealPlans(user.uid),
-        firestoreService.getMealPreferences(user.uid)
+        firestoreService.getMeals(user.id),
+        firestoreService.getMealPlans(user.id),
+        firestoreService.getMealPreferences(user.id)
       ]);
 
       setMeals(mealsData || []);
@@ -65,10 +65,10 @@ export const MealsProvider = ({ children }) => {
   };
 
   const saveMeal = async (mealData) => {
-    if (!user?.uid) throw new Error('User not authenticated');
+    if (!user?.id) throw new Error('User not authenticated');
     
     try {
-      const savedMeal = await firestoreService.saveMeal(user.uid, mealData);
+      const savedMeal = await firestoreService.saveMeal(user.id, mealData);
       setMeals(prev => {
         const existing = prev.findIndex(m => m.id === savedMeal.id);
         if (existing !== -1) {
@@ -86,10 +86,10 @@ export const MealsProvider = ({ children }) => {
   };
 
   const deleteMeal = async (mealId) => {
-    if (!user?.uid) throw new Error('User not authenticated');
+    if (!user?.id) throw new Error('User not authenticated');
     
     try {
-      await firestoreService.deleteMeal(user.uid, mealId);
+      await firestoreService.deleteMeal(user.id, mealId);
       setMeals(prev => prev.filter(m => m.id !== mealId));
     } catch (err) {
       console.error('Error deleting meal:', err);
@@ -98,10 +98,10 @@ export const MealsProvider = ({ children }) => {
   };
 
   const saveMealPlan = async (mealPlanData) => {
-    if (!user?.uid) throw new Error('User not authenticated');
+    if (!user?.id) throw new Error('User not authenticated');
     
     try {
-      const savedPlan = await firestoreService.saveMealPlan(user.uid, mealPlanData);
+      const savedPlan = await firestoreService.saveMealPlan(user.id, mealPlanData);
       setMealPlans(prev => {
         const existing = prev.findIndex(p => p.id === savedPlan.id);
         if (existing !== -1) {
@@ -119,11 +119,11 @@ export const MealsProvider = ({ children }) => {
   };
 
   const updateMealPreferences = async (newPreferences) => {
-    if (!user?.uid) throw new Error('User not authenticated');
+    if (!user?.id) throw new Error('User not authenticated');
     
     try {
       const updatedPreferences = { ...mealPreferences, ...newPreferences };
-      await firestoreService.saveMealPreferences(user.uid, updatedPreferences);
+      await firestoreService.saveMealPreferences(user.id, updatedPreferences);
       setMealPreferences(updatedPreferences);
       return updatedPreferences;
     } catch (err) {
@@ -133,12 +133,12 @@ export const MealsProvider = ({ children }) => {
   };
 
   const markMealCompleted = async (mealId, date, completed = true) => {
-    if (!user?.uid) throw new Error('User not authenticated');
+    if (!user?.id) throw new Error('User not authenticated');
     
     try {
-      await firestoreService.markMealCompleted(user.uid, mealId, date, completed);
+      await firestoreService.markMealCompleted(user.id, mealId, date, completed);
       // Reload meal plans to reflect completion status
-      const updatedPlans = await firestoreService.getMealPlans(user.uid);
+      const updatedPlans = await firestoreService.getMealPlans(user.id);
       setMealPlans(updatedPlans || []);
     } catch (err) {
       console.error('Error marking meal completion:', err);

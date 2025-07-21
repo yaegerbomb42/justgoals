@@ -4,6 +4,9 @@ import firestoreService from '../services/firestoreService';
 
 const SettingsContext = createContext();
 
+// Global music mute state
+let globalMusicMuted = false;
+
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (!context) {
@@ -20,6 +23,8 @@ export const SettingsProvider = ({ children }) => {
       theme: 'system',
       accentColor: 'indigo',
       backgroundEffect: 'none',
+      backgroundMusic: 'none', // new
+      backgroundMusicVolume: 0.5, // new
     },
     theme: 'system', // legacy, for migration
     fontSize: 'medium',
@@ -92,6 +97,7 @@ export const SettingsProvider = ({ children }) => {
     },
   });
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isMusicMuted, setMusicMuted] = useState(false);
 
   // Apply theme to document body
   useEffect(() => {
@@ -221,6 +227,8 @@ export const SettingsProvider = ({ children }) => {
     updateNotificationSettings,
     updateProgressMeterSettings,
     updateAppearanceSettings,
+    isMusicMuted,
+    setMusicMuted,
   };
 
   return (

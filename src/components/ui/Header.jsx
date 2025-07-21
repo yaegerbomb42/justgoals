@@ -9,6 +9,7 @@ import Icon from './Icon';
 const Header = () => {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
+  const { isMusicMuted, setMusicMuted } = useSettings();
   const { achievements, unreadCount } = useAchievements();
   const navigate = useNavigate();
   const location = useLocation();
@@ -108,6 +109,14 @@ const Header = () => {
 
           {/* Right Side Items */}
           <div className="flex items-center space-x-2">
+            {/* Mute/Unmute Global Music */}
+            <button
+              onClick={() => setMusicMuted((v) => !v)}
+              className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-all duration-200"
+              title={isMusicMuted ? 'Unmute Background Music' : 'Mute Background Music'}
+            >
+              <Icon name={isMusicMuted ? 'VolumeX' : 'Volume2'} className="w-5 h-5" />
+            </button>
             {/* Achievement Badge */}
             <button
               onClick={() => navigate('/achievements')}

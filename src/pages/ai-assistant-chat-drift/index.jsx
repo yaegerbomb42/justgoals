@@ -30,6 +30,14 @@ const DriftChat = () => {
   
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const [apiKeyVersion, setApiKeyVersion] = useState(0);
+
+  // Listen for API key changes and force re-render
+  useEffect(() => {
+    const handler = () => setApiKeyVersion(v => v + 1);
+    window.addEventListener('apiKeyChanged', handler);
+    return () => window.removeEventListener('apiKeyChanged', handler);
+  }, []);
 
   // Load conversation history from localStorage
   useEffect(() => {

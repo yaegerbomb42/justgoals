@@ -103,8 +103,15 @@ class NotificationService {
       ntfy: false
     };
 
+    // Get user-selected channels (default to all if not set)
+    const channelPrefs = settings?.notifications?.channelPreferences || ['browser', 'sms', 'discord', 'ntfy'];
+    if (channelPrefs.length === 0) {
+      console.warn('No notification channels selected. No notifications will be sent.');
+      return results;
+    }
+
     // Browser notifications (PWA/Service Worker)
-    if (this.canSendNotification(settings)) {
+    if (channelPrefs.includes('browser') && this.canSendNotification(settings)) {
       try {
         await this.sendBackgroundNotification(title, body, data);
         results.browser = true;
@@ -113,19 +120,8 @@ class NotificationService {
       }
     }
 
-    // Email notifications
-    if (settings?.notifications?.email?.enabled && settings?.notifications?.email?.address) {
-      try {
-        emailNotificationService.init(settings.notifications.email.address, settings.notifications.email.provider);
-        await emailNotificationService.sendEmail(title, body, { html: true, ...data });
-        results.email = true;
-      } catch (error) {
-        console.error('Email notification failed:', error);
-      }
-    }
-
     // SMS notifications
-    if (settings?.notifications?.sms?.enabled && settings?.notifications?.sms?.phoneNumber && settings?.notifications?.sms?.carrier) {
+    if (channelPrefs.includes('sms') && settings?.notifications?.sms?.enabled && settings?.notifications?.sms?.phoneNumber && settings?.notifications?.sms?.carrier) {
       try {
         smsNotificationService.init(settings.notifications.sms.phoneNumber, settings.notifications.sms.carrier);
         await smsNotificationService.sendSMS(body, { subject: title, ...data });
@@ -136,7 +132,7 @@ class NotificationService {
     }
 
     // Discord notifications
-    if (settings?.notifications?.discord?.enabled && settings?.notifications?.discord?.webhookUrl) {
+    if (channelPrefs.includes('discord') && settings?.notifications?.discord?.enabled && settings?.notifications?.discord?.webhookUrl) {
       try {
         discordNotificationService.init(settings.notifications.discord.webhookUrl);
         await discordNotificationService.sendSimpleNotification(`${title}\n\n${body}`);
@@ -147,7 +143,7 @@ class NotificationService {
     }
 
     // ntfy.sh notifications
-    if (settings?.notifications?.ntfy?.enabled && settings?.notifications?.ntfy?.topic) {
+    if (channelPrefs.includes('ntfy') && settings?.notifications?.ntfy?.enabled && settings?.notifications?.ntfy?.topic) {
       try {
         const ntfyNotificationService = (await import('./ntfyNotificationService')).default;
         ntfyNotificationService.init(
