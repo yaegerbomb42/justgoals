@@ -231,7 +231,7 @@ const FocusMode = () => {
 
     // Play completion sound if enabled
     if (localSessionSettings.completionSound !== 'none') {
-      const completionSound = new Audio('/assets/sounds/chime.mp3');
+      const completionSound = new Audio(soundMap[localSessionSettings.completionSound] || soundMap.chime);
       completionSound.volume = 0.3;
       try {
         await completionSound.play();

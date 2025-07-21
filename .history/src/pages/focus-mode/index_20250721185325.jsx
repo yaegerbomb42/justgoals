@@ -16,6 +16,16 @@ import FlowingParticlesBackground from '../../components/ui/FlowingParticlesBack
 import AmbientSoundPlayer from '../../components/ui/AmbientSoundPlayer';
 import * as entityService from '../../services/entityManagementService';
 
+const soundMap = {
+  none: '',
+  rain: '/assets/sounds/11L-Rain_(5_files)_rain_-1752354095970.mp3',
+  forest: '/assets/sounds/11L-Forest_(5_files)_bir-1752354108854.mp3',
+  ocean: '/assets/sounds/11L-Ocean_(5_files)_wave-1752354117569.mp3',
+  cafe: '/assets/sounds/11L-Cafe_(5_files)_coffe-1752354124665.mp3',
+  whitenoise: '/assets/sounds/11L-White_Noise_(4_files-1752354130068.mp3',
+  chime: '/assets/sounds/chime.mp3'
+};
+
 // Utility to check if a sound file exists
 const checkSoundFileExists = async (url) => {
   try {
@@ -231,7 +241,7 @@ const FocusMode = () => {
 
     // Play completion sound if enabled
     if (localSessionSettings.completionSound !== 'none') {
-      const completionSound = new Audio('/assets/sounds/chime.mp3');
+      const completionSound = new Audio(soundMap[localSessionSettings.completionSound] || soundMap.chime);
       completionSound.volume = 0.3;
       try {
         await completionSound.play();
@@ -256,7 +266,11 @@ const FocusMode = () => {
     });
     setIsTimerActive(false);
     
-    // Stop ambient sound - this is now handled by AmbientSoundPlayer
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   };
 
   const handleTimeUpdate = (newElapsedTime) => {
@@ -309,7 +323,11 @@ const FocusMode = () => {
   };
 
   const confirmExit = () => {
-    // Stop ambient sound - this is now handled by AmbientSoundPlayer
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     navigate('/goals-dashboard');
   };
 
@@ -357,12 +375,7 @@ const FocusMode = () => {
 
   return (
     <div className={`min-h-screen ${getBackgroundClass()} relative overflow-hidden`}>
-      {/* Enhanced Ambient Sound System */}
-      <AmbientSoundPlayer
-        soundType={localSessionSettings.selectedAmbientSound || 'none'}
-        volume={focusSettings.soundVolume || 0.5}
-        isActive={isTimerActive && focusSettings.ambientSounds}
-      />
+      <audio ref={audioRef} />
       
       {/* Background Effects */}
       {localSessionSettings.background === 'flowing-particles' && (

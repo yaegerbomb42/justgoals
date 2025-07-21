@@ -487,8 +487,7 @@ Respond naturally first, then add the action.`;
               <button
                 key={index}
                 onClick={() => handleQuickAction(action.text)}
-                disabled={isLoading}
-                className="flex items-center space-x-2 p-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center space-x-2 p-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors"
               >
                 <Icon name={action.icon} className="w-4 h-4" />
                 <span>{action.text}</span>

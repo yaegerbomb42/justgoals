@@ -80,7 +80,6 @@ const FlowingParticlesBackground = () => {
     let animationFrameId;
     let particles = [];
     const particleCount = config.particleCount;
-    const speed = config.speed; // Add this line to use the config speed
 
     // Helper to get theme-aware colors with effect-specific variations
     const getThemeColor = (variableName, fallbackColor) => {
@@ -268,9 +267,9 @@ const FlowingParticlesBackground = () => {
         left: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: -1,
+        zIndex: 1,
         pointerEvents: 'none',
-        opacity: 0.8,
+        opacity: 0.6,
       }}
     />
   );

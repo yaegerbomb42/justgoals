@@ -13,8 +13,17 @@ import ExitConfirmation from './components/ExitConfirmation';
 import QuickLinksPanel from './components/QuickLinksPanel';
 import FocusFloatingActions from './components/FocusFloatingActions';
 import FlowingParticlesBackground from '../../components/ui/FlowingParticlesBackground';
-import AmbientSoundPlayer from '../../components/ui/AmbientSoundPlayer';
 import * as entityService from '../../services/entityManagementService';
+
+const soundMap = {
+  none: '',
+  rain: '/assets/sounds/rain_1.mp3',
+  forest: '/assets/sounds/forest_1.mp3',
+  ocean: '/assets/sounds/ocean_1.mp3',
+  cafe: '/assets/sounds/cafe_1.mp3',
+  whitenoise: '/assets/sounds/white-noise_1.mp3',
+  chime: '/assets/sounds/chime.mp3'
+};
 
 // Utility to check if a sound file exists
 const checkSoundFileExists = async (url) => {
@@ -33,6 +42,7 @@ const FocusMode = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { settings, updateFocusModeSettings } = useSettings();
+  const audioRef = useRef(null);
 
   const getStorageKey = useCallback((baseKey) => {
     if (user && user.id) {
@@ -150,6 +160,54 @@ const FocusMode = () => {
     localStorage.setItem('focus_page_local_settings', JSON.stringify(localSessionSettings));
   }, [localSessionSettings]);
 
+  // Effect for handling ambient sound playback
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const { ambientSounds, soundVolume } = focusSettings;
+    const selectedAmbientSound = localSessionSettings.selectedAmbientSound || 'none';
+    const soundFile = soundMap[selectedAmbientSound];
+
+    let cancelled = false;
+
+    const playAmbient = async () => {
+      if (isTimerActive && ambientSounds && soundFile && selectedAmbientSound !== 'none') {
+        // Check if file exists before playing
+        const exists = await checkSoundFileExists(soundFile);
+        if (!exists) {
+          console.warn(`Ambient sound file missing: ${soundFile}`);
+          return;
+        }
+        if (audio.src !== window.location.origin + soundFile) {
+          audio.src = soundFile;
+        }
+        audio.loop = true;
+        audio.volume = soundVolume || 0.5;
+        try {
+          await audio.play();
+        } catch (error) {
+          console.error('Error playing ambient sound:', error);
+        }
+      } else {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+
+    if (!cancelled) {
+      playAmbient();
+    }
+
+    return () => {
+      cancelled = true;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [isTimerActive, focusSettings.ambientSounds, focusSettings.soundVolume, localSessionSettings.selectedAmbientSound]);
+
   // Load goal chat history
   useEffect(() => {
     const loadChat = async () => {
@@ -231,7 +289,7 @@ const FocusMode = () => {
 
     // Play completion sound if enabled
     if (localSessionSettings.completionSound !== 'none') {
-      const completionSound = new Audio('/assets/sounds/chime.mp3');
+      const completionSound = new Audio(soundMap[localSessionSettings.completionSound] || soundMap.chime);
       completionSound.volume = 0.3;
       try {
         await completionSound.play();
@@ -240,7 +298,12 @@ const FocusMode = () => {
       }
     }
 
-    // Stop ambient sound - this is now handled by AmbientSoundPlayer
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
     setCurrentSession(prev => ({ ...prev, isActive: false }));
     setIsTimerActive(false);
   };
@@ -256,7 +319,11 @@ const FocusMode = () => {
     });
     setIsTimerActive(false);
     
-    // Stop ambient sound - this is now handled by AmbientSoundPlayer
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   };
 
   const handleTimeUpdate = (newElapsedTime) => {
@@ -309,7 +376,11 @@ const FocusMode = () => {
   };
 
   const confirmExit = () => {
-    // Stop ambient sound - this is now handled by AmbientSoundPlayer
+    // Stop ambient sound
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     navigate('/goals-dashboard');
   };
 
@@ -357,12 +428,7 @@ const FocusMode = () => {
 
   return (
     <div className={`min-h-screen ${getBackgroundClass()} relative overflow-hidden`}>
-      {/* Enhanced Ambient Sound System */}
-      <AmbientSoundPlayer
-        soundType={localSessionSettings.selectedAmbientSound || 'none'}
-        volume={focusSettings.soundVolume || 0.5}
-        isActive={isTimerActive && focusSettings.ambientSounds}
-      />
+      <audio ref={audioRef} />
       
       {/* Background Effects */}
       {localSessionSettings.background === 'flowing-particles' && (

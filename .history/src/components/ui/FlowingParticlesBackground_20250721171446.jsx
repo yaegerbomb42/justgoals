@@ -80,30 +80,17 @@ const FlowingParticlesBackground = () => {
     let animationFrameId;
     let particles = [];
     const particleCount = config.particleCount;
-    const speed = config.speed; // Add this line to use the config speed
 
-    // Helper to get theme-aware colors with effect-specific variations
+    // Helper to get theme-aware colors
     const getThemeColor = (variableName, fallbackColor) => {
       if (typeof window !== 'undefined') {
-        const color = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallbackColor;
-        
-        // Apply effect-specific color modifications
-        switch (effect) {
-          case 'creative':
-            return color.replace('0.5)', '0.8)').replace('0.2)', '0.6)');
-          case 'motivational':
-            return color.replace('rgba(148, 163, 184', 'rgba(59, 130, 246'); // Blue theme
-          case 'abstract':
-            return color.replace('rgba(148, 163, 184', 'rgba(168, 85, 247'); // Purple theme
-          default:
-            return color;
-        }
+        return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallbackColor;
       }
       return fallbackColor;
     };
 
-    let particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.8)');
-    let lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.4)');
+    let particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.5)');
+    let lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)');
 
     const resizeCanvas = () => {
       if (!canvas) return;
@@ -124,20 +111,10 @@ const FlowingParticlesBackground = () => {
 
       draw() {
         if (!ctx) return;
-        
-        // Add glow effect for enhanced visibility
-        if (effect !== 'particles') {
-          ctx.shadowColor = this.color;
-          ctx.shadowBlur = effect === 'abstract' ? 15 : effect === 'motivational' ? 10 : 8;
-        }
-        
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
         ctx.fillStyle = this.color;
         ctx.fill();
-        
-        // Reset shadow
-        ctx.shadowBlur = 0;
       }
 
       update() {
@@ -155,35 +132,16 @@ const FlowingParticlesBackground = () => {
     function initParticles() {
       if (!canvas) return;
       particles = [];
-      
-      // Reinitialize colors in case theme changed
-      particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.8)');
-      lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.4)');
+      particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.5)');
+      lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)');
 
       for (let i = 0; i < particleCount; i++) {
-        // Add particle size and glow variations for different effects
-        let particleSize = Math.random() * 2 + 1;
-        
-        switch (effect) {
-          case 'creative':
-            particleSize = Math.random() * 2.5 + 1.5;
-            break;
-          case 'motivational':
-            particleSize = Math.random() * 3 + 2;
-            break;
-          case 'abstract':
-            particleSize = Math.random() * 4 + 2.5;
-            break;
-          default:
-            particleSize = Math.random() * 2 + 1;
-            break;
-        }
-        
+        const size = Math.random() * 2 + 1;
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
-        const vx = (Math.random() - 0.5) * speed;
-        const vy = (Math.random() - 0.5) * speed;
-        particles.push(new Particle(x, y, vx, vy, particleSize, particleColor));
+        const vx = (Math.random() - 0.5) * 0.3;
+        const vy = (Math.random() - 0.5) * 0.3;
+        particles.push(new Particle(x, y, vx, vy, size, particleColor));
       }
     }
 
@@ -195,16 +153,10 @@ const FlowingParticlesBackground = () => {
           const dy = particles[i].y - particles[j].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          // Adjust connection distance based on effect
-          const maxDistance = effect === 'abstract' ? 150 : effect === 'creative' ? 130 : 120;
-          
-          if (distance < maxDistance) {
-            const opacity = 1 - (distance / maxDistance);
-            const adjustedLineColor = lineColor.replace(/[\d.]+\)$/, `${opacity * 0.6})`);
-            
+          if (distance < 120) {
             ctx.beginPath();
-            ctx.strokeStyle = adjustedLineColor;
-            ctx.lineWidth = effect === 'abstract' ? 1 : 0.5;
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 0.5;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
             ctx.stroke();
@@ -268,9 +220,9 @@ const FlowingParticlesBackground = () => {
         left: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: -1,
+        zIndex: 1,
         pointerEvents: 'none',
-        opacity: 0.8,
+        opacity: 0.6,
       }}
     />
   );

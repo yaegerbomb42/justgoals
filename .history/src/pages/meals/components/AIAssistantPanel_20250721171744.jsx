@@ -128,7 +128,7 @@ What would you like me to help you with today?`,
   };
 
   const generateMealResponse = async (message, context) => {
-    // Enhanced system prompt for better action generation
+    // Streamlined system prompt for faster responses
     const systemPrompt = `You are a practical nutrition assistant. Give concise, helpful meal planning advice.
 
 User context:
@@ -137,15 +137,10 @@ User context:
 - Restrictions: ${context.mealData?.preferences?.dietaryRestrictions?.join(', ') || 'none'}
 - Macros: P${context.mealData?.preferences?.macroTargets?.protein || 0}g C${context.mealData?.preferences?.macroTargets?.carbs || 0}g F${context.mealData?.preferences?.macroTargets?.fat || 0}g
 
-IMPORTANT: When the user asks for meal plans, recipes, or meal creation, ALWAYS include an action at the end.
+Respond naturally and conversationally. For meal plans/recipes, add action at the END:
+[ACTION]{"type": "create_meal_plan", "data": {...}}[/ACTION]
 
-For meal plans use this EXACT format:
-[ACTION]{"type": "create_meal_plan", "data": {"title": "Weekly Meal Plan", "description": "AI generated meal plan", "targetCalories": ${context.mealData?.preferences?.dailyCalories || 2000}, "duration": 7, "days": [{"day": "Monday", "breakfast": "Meal name", "lunch": "Meal name", "dinner": "Meal name"}, ...]}}[/ACTION]
-
-For individual meals use:
-[ACTION]{"type": "create_meal", "data": {"title": "Meal Name", "calories": 400, "macros": {"protein": 30, "carbs": 45, "fat": 15}, "ingredients": ["ingredient1", "ingredient2"], "instructions": "Cooking steps"}}[/ACTION]
-
-Respond naturally first, then add the action.`;
+Be helpful and practical.`;
 
     try {
       const fullPrompt = `${systemPrompt}\n\nUser: ${message}\n\nAssistant:`;
@@ -157,11 +152,6 @@ Respond naturally first, then add the action.`;
       
       const responsePromise = geminiService.generateContent(fullPrompt, apiKey);
       const text = await Promise.race([responsePromise, timeoutPromise]);
-      
-      // Check if this is a meal plan request and force action if missing
-      const isMealPlanRequest = message.toLowerCase().includes('meal plan') || 
-                               message.toLowerCase().includes('create') && message.toLowerCase().includes('week') ||
-                               message.toLowerCase().includes('plan');
       
       // Clean response - remove all JSON artifacts first
       let cleanMessage = text
@@ -186,29 +176,6 @@ Respond naturally first, then add the action.`;
             console.warn('Could not parse action:', parseError);
           }
         }
-      }
-
-      // Force create meal plan action if request detected but no action found
-      if (isMealPlanRequest && actions.length === 0) {
-        const fallbackMealPlan = {
-          type: "create_meal_plan",
-          data: {
-            title: "Weekly Meal Plan",
-            description: "AI generated meal plan",
-            targetCalories: context.mealData?.preferences?.dailyCalories || 2000,
-            duration: 7,
-            days: [
-              { day: "Monday", breakfast: "Greek yogurt with berries", lunch: "Chicken salad sandwich", dinner: "Baked salmon with vegetables" },
-              { day: "Tuesday", breakfast: "Oatmeal with banana", lunch: "Turkey wrap", dinner: "Grilled chicken with rice" },
-              { day: "Wednesday", breakfast: "Smoothie bowl", lunch: "Quinoa salad", dinner: "Fish tacos" },
-              { day: "Thursday", breakfast: "Eggs and toast", lunch: "Soup and salad", dinner: "Stir-fry with brown rice" },
-              { day: "Friday", breakfast: "Yogurt parfait", lunch: "Leftover stir-fry", dinner: "Pizza night" },
-              { day: "Saturday", breakfast: "Weekend pancakes", lunch: "Brunch", dinner: "BBQ chicken" },
-              { day: "Sunday", breakfast: "French toast", lunch: "Light salad", dinner: "Meal prep for week" }
-            ]
-          }
-        };
-        actions.push(fallbackMealPlan);
       }
 
       return {
@@ -487,8 +454,7 @@ Respond naturally first, then add the action.`;
               <button
                 key={index}
                 onClick={() => handleQuickAction(action.text)}
-                disabled={isLoading}
-                className="flex items-center space-x-2 p-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center space-x-2 p-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors"
               >
                 <Icon name={action.icon} className="w-4 h-4" />
                 <span>{action.text}</span>

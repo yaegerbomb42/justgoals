@@ -80,7 +80,6 @@ const FlowingParticlesBackground = () => {
     let animationFrameId;
     let particles = [];
     const particleCount = config.particleCount;
-    const speed = config.speed; // Add this line to use the config speed
 
     // Helper to get theme-aware colors with effect-specific variations
     const getThemeColor = (variableName, fallbackColor) => {
@@ -124,20 +123,10 @@ const FlowingParticlesBackground = () => {
 
       draw() {
         if (!ctx) return;
-        
-        // Add glow effect for enhanced visibility
-        if (effect !== 'particles') {
-          ctx.shadowColor = this.color;
-          ctx.shadowBlur = effect === 'abstract' ? 15 : effect === 'motivational' ? 10 : 8;
-        }
-        
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
         ctx.fillStyle = this.color;
         ctx.fill();
-        
-        // Reset shadow
-        ctx.shadowBlur = 0;
       }
 
       update() {
@@ -195,16 +184,10 @@ const FlowingParticlesBackground = () => {
           const dy = particles[i].y - particles[j].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          // Adjust connection distance based on effect
-          const maxDistance = effect === 'abstract' ? 150 : effect === 'creative' ? 130 : 120;
-          
-          if (distance < maxDistance) {
-            const opacity = 1 - (distance / maxDistance);
-            const adjustedLineColor = lineColor.replace(/[\d.]+\)$/, `${opacity * 0.6})`);
-            
+          if (distance < 120) {
             ctx.beginPath();
-            ctx.strokeStyle = adjustedLineColor;
-            ctx.lineWidth = effect === 'abstract' ? 1 : 0.5;
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 0.5;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
             ctx.stroke();
@@ -268,9 +251,9 @@ const FlowingParticlesBackground = () => {
         left: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: -1,
+        zIndex: 1,
         pointerEvents: 'none',
-        opacity: 0.8,
+        opacity: 0.6,
       }}
     />
   );

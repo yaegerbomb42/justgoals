@@ -12,7 +12,6 @@ import Header from './components/ui/Header';
 import { useNotifications } from './hooks/useNotifications';
 import './styles/index.css';
 import FlowingParticlesBackground from './components/ui/FlowingParticlesBackground';
-import AmbientSoundPlayer from './components/ui/AmbientSoundPlayer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useSettings } from './context/SettingsContext';
 
@@ -26,23 +25,40 @@ const NotificationWrapper = ({ children }) => {
 
 const GlobalBackgroundMusic = () => {
   const { settings, isMusicMuted } = useSettings();
+  const audioRef = React.useRef(null);
+  const musicMap = {
+    none: '',
+    rain: '/assets/sounds/rain.mp3',
+    forest: '/assets/sounds/forest.mp3',
+    ocean: '/assets/sounds/ocean.mp3',
+    cafe: '/assets/sounds/cafe.mp3',
+    whitenoise: '/assets/sounds/whitenoise.mp3',
+    chime: '/assets/sounds/chime.mp3',
+  };
   const music = settings?.appearance?.backgroundMusic || 'none';
   const volume = settings?.appearance?.backgroundMusicVolume ?? 0.5;
-  
   // Check if focus mode is active by looking at the URL
   const location = window.location.pathname;
   const isFocusMode = location.startsWith('/focus-mode');
-  
-  // Don't play global music if focus mode is active or music is muted
-  const shouldPlay = !isMusicMuted && !isFocusMode && music !== 'none';
-
-  return (
-    <AmbientSoundPlayer
-      soundType={music}
-      volume={volume}
-      isActive={shouldPlay}
-    />
-  );
+  React.useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isMusicMuted || (isFocusMode && music !== 'none')) {
+      audio.pause();
+      audio.currentTime = 0;
+      return;
+    }
+    if (music && music !== 'none') {
+      audio.src = musicMap[music];
+      audio.volume = volume;
+      audio.loop = true;
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, [music, volume, isMusicMuted, isFocusMode]);
+  return <audio ref={audioRef} style={{ display: 'none' }} />;
 };
 
 const App = () => {
