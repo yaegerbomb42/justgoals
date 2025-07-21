@@ -541,6 +541,49 @@ class FirestoreService {
     }
   }
 
+  // Merge and sync user data between Firestore and localStorage
+  async robustSyncUserData(userId) {
+    if (!userId) throw new Error('User ID is required for sync');
+    try {
+      // 1. Load all data from Firestore
+      const [goals, milestones, focusStats, focusHistory, journalEntries, appSettings] = await Promise.all([
+        this.getGoals(userId),
+        this.getMilestones(userId),
+        this.getFocusSessionStats(userId),
+        this.getFocusSessionHistory(userId),
+        this.getJournalEntries(userId),
+        this.getAppSettings(userId)
+      ]);
+      // 2. Load all data from localStorage
+      const localGoals = JSON.parse(localStorage.getItem(`goals_data_${userId}`) || '[]');
+      const localMilestones = JSON.parse(localStorage.getItem(`milestones_data_${userId}`) || '[]');
+      const localFocusStats = JSON.parse(localStorage.getItem(`focus_session_stats_${userId}`) || '{}');
+      const localFocusHistory = JSON.parse(localStorage.getItem(`focus_session_history_${userId}`) || '[]');
+      const localJournalEntries = JSON.parse(localStorage.getItem(`journal_entries_${userId}`) || '[]');
+      const localAppSettings = JSON.parse(localStorage.getItem(`app_settings_${userId}`) || '{}');
+      // 3. Merge logic (favor most recent or highest value)
+      const mergedGoals = goals.length >= localGoals.length ? goals : localGoals;
+      const mergedMilestones = milestones.length >= localMilestones.length ? milestones : localMilestones;
+      const mergedFocusStats = (focusStats.updatedAt && (!localFocusStats.updatedAt || focusStats.updatedAt > localFocusStats.updatedAt)) ? focusStats : localFocusStats;
+      const mergedFocusHistory = focusHistory.length >= localFocusHistory.length ? focusHistory : localFocusHistory;
+      const mergedJournalEntries = journalEntries.length >= localJournalEntries.length ? journalEntries : localJournalEntries;
+      const mergedAppSettings = (appSettings.updatedAt && (!localAppSettings.updatedAt || appSettings.updatedAt > localAppSettings.updatedAt)) ? appSettings : localAppSettings;
+      // 4. Save merged data to Firestore (if local is newer or has more data)
+      // (Implement save methods for each type as needed)
+      // 5. Update localStorage with merged data
+      localStorage.setItem(`goals_data_${userId}`, JSON.stringify(mergedGoals));
+      localStorage.setItem(`milestones_data_${userId}`, JSON.stringify(mergedMilestones));
+      localStorage.setItem(`focus_session_stats_${userId}`, JSON.stringify(mergedFocusStats));
+      localStorage.setItem(`focus_session_history_${userId}`, JSON.stringify(mergedFocusHistory));
+      localStorage.setItem(`journal_entries_${userId}`, JSON.stringify(mergedJournalEntries));
+      localStorage.setItem(`app_settings_${userId}`, JSON.stringify(mergedAppSettings));
+      return true;
+    } catch (error) {
+      console.error('Robust user data sync failed:', error);
+      return false;
+    }
+  }
+
   // Achievement methods
   async getAchievements(userId) {
     if (!userId) return [];

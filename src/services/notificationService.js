@@ -153,12 +153,12 @@ class NotificationService {
     if (!this.serviceWorkerRegistration) return;
 
     try {
-      await this.serviceWorkerRegistration.showNotification(title, {
+      await this.serviceWorkerRegistration.showNotification('JustGoals', {
         body,
         icon: '/assets/images/app-icon.png',
         badge: '/assets/images/app-icon.png',
         vibrate: [100, 50, 100],
-        data,
+        data: { ...data, theme: 'justgoals' },
         requireInteraction: false,
         actions: [
           {
@@ -166,12 +166,14 @@ class NotificationService {
             title: 'Open App',
             icon: '/assets/images/app-icon.png'
           }
-        ]
+        ],
+        // Theming via color (supported in some browsers)
+        // color: '#6366f1', // Tailwind indigo-500 (not standard, but some browsers use it)
       });
     } catch (error) {
       console.error('Background notification failed:', error);
       // Fallback to regular notification
-      this.showNotification({ title, body, data });
+      this.showNotification({ title: 'JustGoals', body, data: { ...data, theme: 'justgoals' } });
     }
   }
 
@@ -413,13 +415,14 @@ class NotificationService {
       return;
     }
 
-    const notification = new Notification(options.title, {
+    const notification = new Notification('JustGoals', {
       body: options.body,
       icon: '/assets/images/app-icon.png',
       badge: '/assets/images/app-icon.png',
       tag: options.tag,
       requireInteraction: options.requireInteraction || false,
-      data: options.data || {},
+      data: { ...options.data, theme: 'justgoals' },
+      // color: '#6366f1', // Not standard, but some browsers use it
     });
 
     // Handle notification click

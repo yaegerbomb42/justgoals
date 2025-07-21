@@ -28,9 +28,9 @@ export const AuthProviderComponent = ({ children }) => {
         setUser(userData);
         // Sync data from Firestore to localStorage for offline fallback
         if (userData && userData.id) {
-          firestoreService.syncToLocalStorage(userData.id)
-            .then(() => console.log('Data synced from Firestore to localStorage'))
-            .catch(error => console.error('Data sync failed:', error));
+          firestoreService.robustSyncUserData(userData.id)
+            .then(() => console.log('Robust user data sync complete'))
+            .catch(error => console.error('Robust user data sync failed:', error));
         }
       } else {
         setUser(null);

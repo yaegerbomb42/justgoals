@@ -39,6 +39,26 @@ const ensureArray = (val, label) => {
   return val;
 };
 
+// In-memory retry queue for failed Firestore saves
+const retryQueue = [];
+
+function queueRetry(fn) {
+  retryQueue.push(fn);
+  // Optionally, set up a background retry interval
+  if (!window._entityRetryInterval) {
+    window._entityRetryInterval = setInterval(async () => {
+      for (let i = retryQueue.length - 1; i >= 0; i--) {
+        try {
+          await retryQueue[i]();
+          retryQueue.splice(i, 1);
+        } catch (e) {
+          // Still failed, keep in queue
+        }
+      }
+    }, 10000); // Retry every 10s
+  }
+}
+
 // --- Goal Management ---
 
 const getGoalStorageKey = (userId) => userId ? `goals_data_${userId}` : null;
@@ -48,17 +68,14 @@ export const createGoal = async (user, goalData) => {
     console.error("User object with ID is required to create a goal.");
     return null;
   }
-
   try {
-    // Always set createdAt to a valid ISO string if not present
     const now = new Date().toISOString();
     const goalToSave = {
       ...goalData,
       createdAt: goalData.createdAt || now,
     };
-    // Save to Firestore for cross-device sync
     const savedGoal = await firestoreService.saveGoal(user.id, goalToSave);
-    // Also save to localStorage for offline fallback
+    // Update localStorage with latest
     const storageKey = getGoalStorageKey(user.id);
     const goals = getItems(storageKey);
     const updatedGoals = [...goals, savedGoal];
@@ -66,7 +83,7 @@ export const createGoal = async (user, goalData) => {
     return savedGoal;
   } catch (error) {
     console.error("Error creating goal:", error);
-    // Fallback to localStorage only
+    // Fallback to localStorage only, and queue retry
     const storageKey = getGoalStorageKey(user.id);
     const goals = getItems(storageKey);
     const now = new Date().toISOString();
@@ -79,6 +96,7 @@ export const createGoal = async (user, goalData) => {
     };
     const updatedGoals = [...goals, newGoal];
     saveItems(storageKey, updatedGoals);
+    queueRetry(() => firestoreService.saveGoal(user.id, newGoal));
     return newGoal;
   }
 };
@@ -112,34 +130,26 @@ export const getGoalById = (user, goalId) => {
 
 export const updateGoal = async (user, goalId, updateData) => {
   if (!user || !user.id) return null;
-
   try {
-    // Update in Firestore
     const updatedGoal = await firestoreService.updateGoal(user.id, goalId, updateData);
-    
-    // Update localStorage
     const storageKey = getGoalStorageKey(user.id);
     let goals = getItems(storageKey);
     goals = goals.map(goal => goal.id === goalId ? updatedGoal : goal);
     saveItems(storageKey, goals);
-    
     return updatedGoal;
   } catch (error) {
     console.error("Error updating goal in Firestore, falling back to localStorage:", error);
-    
-    // Fallback to localStorage only
     const storageKey = getGoalStorageKey(user.id);
     let goals = getItems(storageKey);
     let updatedGoal = null;
-
     goals = goals.map(goal => {
       if (goal.id === goalId) {
         updatedGoal = { ...goal, ...updateData, updatedAt: new Date().toISOString() };
+        queueRetry(() => firestoreService.updateGoal(user.id, goalId, updatedGoal));
         return updatedGoal;
       }
       return goal;
     });
-
     if (updatedGoal) {
       saveItems(storageKey, goals);
     }
@@ -246,34 +256,26 @@ export const createMilestone = async (user, milestoneData) => {
     console.error("User object with ID is required to create a milestone.");
     return null;
   }
-
   try {
-    // Save to Firestore
     const savedMilestone = await firestoreService.saveMilestone(user.id, milestoneData);
-    
-    // Save to localStorage
     const storageKey = getMilestoneStorageKey(user.id);
     const milestones = getItems(storageKey);
     const updatedMilestones = [...milestones, savedMilestone];
     saveItems(storageKey, updatedMilestones);
-    
     return savedMilestone;
   } catch (error) {
     console.error("Error creating milestone:", error);
-    
-    // Fallback to localStorage
     const storageKey = getMilestoneStorageKey(user.id);
     const milestones = getItems(storageKey);
-
     const newMilestone = {
       id: Date.now().toString(),
       ...milestoneData,
       createdAt: new Date().toISOString(),
       userId: user.id,
     };
-
     const updatedMilestones = [...milestones, newMilestone];
     saveItems(storageKey, updatedMilestones);
+    queueRetry(() => firestoreService.saveMilestone(user.id, newMilestone));
     return newMilestone;
   }
 };
@@ -378,25 +380,17 @@ export const createJournalEntry = async (user, entryData) => {
     console.error("User object with ID is required to create a journal entry.");
     return null;
   }
-
   try {
-    // Save to Firestore
     const savedEntry = await firestoreService.saveJournalEntry(user.id, entryData);
-    
-    // Save to localStorage
     const storageKey = getJournalStorageKey(user.id);
     const entries = getItems(storageKey);
-    const updatedEntries = [savedEntry, ...entries]; // Prepend new entries
+    const updatedEntries = [savedEntry, ...entries];
     saveItems(storageKey, updatedEntries);
-    
     return savedEntry;
   } catch (error) {
     console.error("Error creating journal entry:", error);
-    
-    // Fallback to localStorage
     const storageKey = getJournalStorageKey(user.id);
     const entries = getItems(storageKey);
-
     const newEntry = {
       id: Date.now().toString(),
       ...entryData,
@@ -404,9 +398,9 @@ export const createJournalEntry = async (user, entryData) => {
       updatedAt: new Date().toISOString(),
       userId: user.id,
     };
-
     const updatedEntries = [newEntry, ...entries];
     saveItems(storageKey, updatedEntries);
+    queueRetry(() => firestoreService.saveJournalEntry(user.id, newEntry));
     return newEntry;
   }
 };

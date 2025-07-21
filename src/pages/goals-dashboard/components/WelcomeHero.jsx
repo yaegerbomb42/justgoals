@@ -25,10 +25,19 @@ const WelcomeHero = ({ userName, userId, overallProgress, totalGoals, completedG
       if (userId) {
         try {
           const firestoreTotal = await firestoreService.getTotalTimeLogged(userId);
-          if (typeof firestoreTotal === 'number' && firestoreTotal > getTotalTime()) {
-            localStorage.setItem('totalTimeLoggedSeconds', firestoreTotal);
-            if (isMounted) setTotalTime(firestoreTotal);
+          const localTotal = getTotalTime();
+          let mergedTotal = Math.max(firestoreTotal, localTotal);
+          // If local is higher, update Firestore
+          if (localTotal > firestoreTotal) {
+            try {
+              await firestoreService.saveTotalTimeLogged(userId, localTotal);
+            } catch (e) {
+              // If save fails, fallback to Firestore value
+              mergedTotal = firestoreTotal;
+            }
           }
+          localStorage.setItem('totalTimeLoggedSeconds', mergedTotal);
+          if (isMounted) setTotalTime(mergedTotal);
         } catch (e) {
           // Ignore Firestore errors, fallback to localStorage
         }
@@ -40,12 +49,20 @@ const WelcomeHero = ({ userName, userId, overallProgress, totalGoals, completedG
 
   // Update total time logged every 5 seconds, save to Firestore if userId
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       setTotalTime(prev => {
         const updated = prev + 5;
-        localStorage.setItem('totalTimeLoggedSeconds', updated);
+        // Save to Firestore first, then update localStorage
         if (userId) {
-          firestoreService.saveTotalTimeLogged(userId, updated).catch(() => {});
+          firestoreService.saveTotalTimeLogged(userId, updated)
+            .then(() => {
+              localStorage.setItem('totalTimeLoggedSeconds', updated);
+            })
+            .catch(() => {
+              // If save fails, do not update localStorage
+            });
+        } else {
+          localStorage.setItem('totalTimeLoggedSeconds', updated);
         }
         return updated;
       });
