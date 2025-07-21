@@ -95,6 +95,8 @@ export const SettingsProvider = ({ children }) => {
       swipeNavigation: true,
       touchOptimized: true,
     },
+    // API Key
+    geminiApiKey: '',
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMusicMuted, setMusicMuted] = useState(false);
@@ -220,9 +222,22 @@ export const SettingsProvider = ({ children }) => {
     }));
   };
 
+  // Add a robust updateApiKey method
+  const updateApiKey = (apiKey) => {
+    setSettings(prev => {
+      const updated = { ...prev, geminiApiKey: apiKey };
+      localStorage.setItem('justgoals-settings', JSON.stringify(updated));
+      if (isAuthenticated && user && user.id) {
+        firestoreService.saveAppSettings(user.id, updated).catch(() => {});
+      }
+      return updated;
+    });
+  };
+
   const value = {
     settings,
     updateSettings,
+    updateApiKey,
     updateFocusModeSettings,
     updateNotificationSettings,
     updateProgressMeterSettings,

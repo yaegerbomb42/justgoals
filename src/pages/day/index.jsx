@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getGoals } from '../../utils/goalUtils';
 import { geminiService } from '../../services/geminiService';
 import calendarSyncService from '../../services/calendarSyncService';
+import { useSettings } from '../../context/SettingsContext';
 
 // Add Event Modal Component
 const AddEventModal = ({ isOpen, onClose, onAdd }) => {
@@ -135,10 +136,10 @@ const PreferencesModal = ({ isOpen, onClose, eventCount, setEventCount, novelty,
 
 const DayPlanner = () => {
   const { user, isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const [dayPlan, setDayPlan] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [apiKey, setApiKey] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -155,14 +156,14 @@ const DayPlanner = () => {
       setIsLoading(true);
       try {
         // Load API key
-        const key = await geminiService.loadApiKey(user?.id);
-        setApiKey(key);
+        // const key = await geminiService.loadApiKey(user?.id); // Removed
+        // setApiKey(key); // Removed
         
-        if (key) {
-          // Test connection
-          const result = await geminiService.testConnection(key);
-          setIsConnected(result.success);
-        }
+        // if (key) { // Removed
+        //   // Test connection // Removed
+        //   const result = await geminiService.testConnection(key); // Removed
+        //   setIsConnected(result.success); // Removed
+        // } // Removed
 
         // Load existing plan for today
         loadExistingPlan(selectedDate);
@@ -179,19 +180,19 @@ const DayPlanner = () => {
   // Listen for API key changes
   useEffect(() => {
     const handleApiKeyChange = async (event) => {
-      const newApiKey = event.detail.apiKey;
-      setApiKey(newApiKey);
+      // const newApiKey = event.detail.apiKey; // Removed
+      // setApiKey(newApiKey); // Removed
       
-      if (newApiKey) {
-        try {
-          const result = await geminiService.testConnection(newApiKey);
-          setIsConnected(result.success);
-        } catch (error) {
-          setIsConnected(false);
-        }
-      } else {
-        setIsConnected(false);
-      }
+      // if (newApiKey) { // Removed
+      //   try { // Removed
+      //     const result = await geminiService.testConnection(newApiKey); // Removed
+      //     setIsConnected(result.success); // Removed
+      //   } catch (error) { // Removed
+      //     setIsConnected(false); // Removed
+      //   } // Removed
+      // } else { // Removed
+      //   setIsConnected(false); // Removed
+      // } // Removed
     };
 
     window.addEventListener('apiKeyChanged', handleApiKeyChange);
@@ -334,8 +335,9 @@ const DayPlanner = () => {
     }
   };
 
+  // In generateDailyPlan and other places, use settings.geminiApiKey
   const generateDailyPlan = async () => {
-    if (!isConnected || !apiKey) {
+    if (!isConnected || !settings.geminiApiKey) {
       alert('Please configure your Gemini API key in Settings first.');
       return;
     }
@@ -577,7 +579,7 @@ const DayPlanner = () => {
           </div>
         </div>
 
-        {!apiKey ? (
+        {!settings.geminiApiKey ? (
           <div className="text-center py-12">
             <Icon name="Calendar" className="w-16 h-16 mx-auto text-text-muted mb-4" />
             <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>

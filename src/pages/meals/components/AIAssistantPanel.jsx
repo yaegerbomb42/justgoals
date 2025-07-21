@@ -270,6 +270,7 @@ Be encouraging, knowledgeable, and focus on practical, achievable meal planning.
     setInputMessage(text);
   };
 
+  // In the UI, check for settings.geminiApiKey
   if (!settings?.geminiApiKey) {
     return (
       <div className="bg-surface border border-border rounded-xl p-8 text-center">

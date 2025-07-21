@@ -4,11 +4,13 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { useAuth } from '../../../context/AuthContext';
+import { useSettings } from '../../../context/SettingsContext';
 import { geminiService } from '../../../services/geminiService';
 
 const ApiKeySection = () => {
   const { user } = useAuth();
-  const [apiKey, setApiKey] = useState('');
+  const { settings, updateApiKey } = useSettings();
+  const [apiKey, setApiKey] = useState(settings?.geminiApiKey || '');
   const [model, setModel] = useState('gemini-pro');
   const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,26 +18,10 @@ const ApiKeySection = () => {
   const [connectionStatus, setConnectionStatus] = useState(null); // null, 'success', 'error'
   const [message, setMessage] = useState('');
 
-  // Load API key on mount
+  // Load API key on mount and when settings change
   useEffect(() => {
-    const loadKey = async () => {
-      setIsLoading(true);
-      try {
-        const key = await geminiService.loadApiKey(user?.id);
-        setApiKey(key || '');
-        if (key) {
-          // Auto-test connection if key exists
-          testConnection(key);
-        }
-      } catch (error) {
-        console.error('Failed to load API key:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadKey();
-  }, [user?.id]);
+    setApiKey(settings?.geminiApiKey || '');
+  }, [settings?.geminiApiKey]);
 
   const testConnection = async (keyToTest = null) => {
     const testKey = keyToTest || apiKey;
@@ -67,18 +53,7 @@ const ApiKeySection = () => {
     setApiKey(value);
     setConnectionStatus(null);
     setMessage('');
-    
-    if (value?.trim()) {
-      try {
-        await geminiService.setApiKey(value, user?.id);
-        // Dispatch event to notify other components
-        window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
-          detail: { apiKey: value } 
-        }));
-      } catch (error) {
-        console.error('Failed to save API key:', error);
-      }
-    }
+    updateApiKey(value);
   };
 
   const handleModelChange = (e) => {
@@ -88,10 +63,7 @@ const ApiKeySection = () => {
 
   const handleSave = async () => {
     await geminiService.initialize(apiKey, model);
-    // Dispatch event to notify other components
-    window.dispatchEvent(new CustomEvent('apiKeyChanged', { 
-      detail: { apiKey: apiKey } 
-    }));
+    // No need to dispatch custom event, context will update
   };
 
   const handleTestConnection = () => {

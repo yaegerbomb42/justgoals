@@ -62,13 +62,13 @@ class NotificationService {
       console.error('Cannot request push permission: Service Worker is not registered.');
       return false;
     }
-    
     try {
-      const subscription = await this.serviceWorkerRegistration.pushManager.subscribe({
+      // Wait for the service worker to be ready
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(process.env.REACT_APP_VAPID_PUBLIC_KEY || '')
       });
-      
       console.log('Push notification subscription:', subscription);
       return true;
     } catch (error) {
