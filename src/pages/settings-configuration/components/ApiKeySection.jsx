@@ -152,25 +152,6 @@ const ApiKeySection = () => {
             </button>
           </div>
           
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-xs text-text-secondary">
-              Get your API key from{' '}
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary-dark underline"
-              >
-                Google AI Studio
-              </a>
-            </p>
-            {apiKey && (
-              <span className="text-xs text-success">
-                ✓ Key saved
-              </span>
-            )}
-          </div>
-          
           {/* Why API Key is Needed */}
           <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
             <h4 className="text-sm font-medium text-primary mb-2">Why is this API key needed?</h4>

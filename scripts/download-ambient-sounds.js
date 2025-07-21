@@ -4,20 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-// Firebase Admin SDK is initialized below for backend access to Firebase services.
-// See README.md for details on usage and security.
-const admin = require('firebase-admin');
-const serviceAccount = require('../goals-d50ab-firebase-adminsdk-fbsvc-4f737e36b3.json');
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-    // databaseURL: 'https://goals-d50ab.firebaseio.com'
-  });
-  // You can now use admin.firestore(), admin.auth(), etc. in this script
-  console.log('Firebase Admin initialized');
-}
-
 const OUTPUT_DIR = path.join(__dirname, '..', 'public', 'assets', 'sounds');
 
 // Direct MP3 links from various sources
@@ -179,62 +165,6 @@ async function createPlaceholderSounds() {
     }
   }
 }
-
-// --- Firestore Utility Functions ---
-const db = admin.firestore();
-
-function getUserCollection(userId, collection) {
-  return db.collection('users').doc(userId).collection(collection);
-}
-
-async function saveUserData(userId, collection, data) {
-  // data should be an array of objects with unique 'id' fields
-  const batch = db.batch();
-  const colRef = getUserCollection(userId, collection);
-  data.forEach(item => {
-    const docRef = colRef.doc(item.id.toString());
-    batch.set(docRef, item);
-  });
-  await batch.commit();
-}
-
-async function getUserData(userId, collection) {
-  const colRef = getUserCollection(userId, collection);
-  const snapshot = await colRef.get();
-  return snapshot.docs.map(doc => doc.data());
-}
-
-async function deleteUserData(userId, collection) {
-  const colRef = getUserCollection(userId, collection);
-  const snapshot = await colRef.get();
-  const batch = db.batch();
-  snapshot.docs.forEach(doc => batch.delete(doc.ref));
-  await batch.commit();
-}
-
-// Example usage of Firestore utilities
-async function firestoreDemo() {
-  const testUserId = 'demo-user';
-  const testMilestones = [
-    { id: 'milestone1', title: 'Test Milestone 1', createdAt: new Date().toISOString() },
-    { id: 'milestone2', title: 'Test Milestone 2', createdAt: new Date().toISOString() }
-  ];
-
-  // Save milestones
-  await saveUserData(testUserId, 'milestones', testMilestones);
-  console.log('Saved test milestones to Firestore');
-
-  // Retrieve milestones
-  const loadedMilestones = await getUserData(testUserId, 'milestones');
-  console.log('Loaded milestones from Firestore:', loadedMilestones);
-
-  // Delete milestones
-  await deleteUserData(testUserId, 'milestones');
-  console.log('Deleted test milestones from Firestore');
-}
-
-// Uncomment to run the demo
-// firestoreDemo();
 
 async function main() {
   console.log('🎵 Ambient Sound Downloader');

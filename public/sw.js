@@ -49,8 +49,8 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Goal reminder!',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/assets/images/app-icon.png',
+    badge: '/assets/images/app-icon.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -60,12 +60,12 @@ self.addEventListener('push', (event) => {
       {
         action: 'explore',
         title: 'Open App',
-        icon: '/favicon.ico'
+        icon: '/assets/images/app-icon.png'
       },
       {
         action: 'close',
         title: 'Close',
-        icon: '/favicon.ico'
+        icon: '/assets/images/app-icon.png'
       }
     ]
   };

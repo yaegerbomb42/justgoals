@@ -37,20 +37,6 @@ const NotificationSection = () => {
     });
   };
 
-  const handleEmailChange = (email) => {
-    updateNotificationSettings({
-      email: {
-        ...settings.notifications.email,
-        address: email,
-        enabled: !!email
-      }
-    });
-    
-    if (email) {
-      emailNotificationService.init(email, 'emailjs');
-    }
-  };
-
   const handleSMSChange = (phoneNumber, carrier) => {
     updateNotificationSettings({
       sms: {
@@ -100,9 +86,6 @@ const NotificationSection = () => {
       let success = false;
       
       switch (type) {
-        case 'email':
-          success = await emailNotificationService.sendMorningMotivation();
-          break;
         case 'sms':
           success = await smsNotificationService.sendTestSMS();
           break;
@@ -112,9 +95,11 @@ const NotificationSection = () => {
         case 'browser':
           // Test browser notification
           if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('JustGoals Test', {
+            new Notification('JustGoals', {
               body: 'Browser notifications are working!',
-              icon: '/favicon.ico'
+              icon: '/assets/images/app-icon.png',
+              badge: '/assets/images/app-icon.png',
+              data: { theme: 'justgoals' }
             });
             success = true;
           }
@@ -227,43 +212,6 @@ const NotificationSection = () => {
           </p>
         </div>
 
-        {/* Email Notifications */}
-        <div className="bg-surface-700 rounded-lg p-4 border border-border">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <Icon name="Mail" className="w-4 h-4 text-green-500" />
-              </div>
-              <div>
-                <h5 className="font-medium text-text-primary">Email Notifications</h5>
-                <p className="text-sm text-text-secondary">Receive notifications via email</p>
-              </div>
-            </div>
-            <button
-              onClick={() => handleTestNotification('email')}
-              disabled={!settings.notifications.enabled || !settings.notifications.email?.address}
-              className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass('email')} ${
-                !settings.notifications.enabled || !settings.notifications.email?.address ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              aria-label="Test Email Notification"
-            >
-              {getTestButtonContent('email')}
-            </button>
-          </div>
-          <div className="space-y-2">
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              value={settings.notifications.email?.address || ''}
-              onChange={(e) => handleEmailChange(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-text-secondary">
-              Receive notifications via email
-            </p>
-          </div>
-        </div>
-
         {/* SMS Notifications */}
         <div className="bg-surface-700 rounded-lg p-4 border border-border">
           <div className="flex items-center justify-between mb-3">
@@ -293,14 +241,14 @@ const NotificationSection = () => {
               placeholder="Enter your phone number"
               value={settings.notifications.sms?.phoneNumber || ''}
               onChange={(e) => handleSMSChange(e.target.value, settings.notifications.sms?.carrier)}
-              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <input
               type="text"
               placeholder="Carrier (e.g. xfinity, att, verizon)"
               value={settings.notifications.sms?.carrier || ''}
               onChange={(e) => handleSMSChange(settings.notifications.sms?.phoneNumber, e.target.value)}
-              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
               Receive notifications via SMS (US carriers only)
@@ -337,7 +285,7 @@ const NotificationSection = () => {
               placeholder="Discord webhook URL"
               value={settings.notifications.discord?.webhookUrl || ''}
               onChange={(e) => handleDiscordChange(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
               Create a webhook in your Discord server settings.
@@ -374,7 +322,7 @@ const NotificationSection = () => {
               placeholder="ntfy topic (e.g. mywebapp_alerts_xyz123)"
               value={settings.notifications.ntfy?.topic || ''}
               onChange={(e) => handleNtfyChange(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-xs text-text-secondary">
               <strong>How to use:</strong> Download the <a href="https://ntfy.sh/app/" target="_blank" rel="noopener noreferrer" className="underline text-primary">ntfy app</a> on your phone, choose a unique topic, and subscribe to it in the app. Enter your topic above.
@@ -642,7 +590,7 @@ const NotificationSection = () => {
                       type="time"
                       value={settings.notifications.quietHours.start}
                       onChange={(e) => handleTimeChange('start', e.target.value)}
-                      className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                   <div>
@@ -651,7 +599,7 @@ const NotificationSection = () => {
                       type="time"
                       value={settings.notifications.quietHours.end}
                       onChange={(e) => handleTimeChange('end', e.target.value)}
-                      className="px-3 py-2 bg-surface-600 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 </div>

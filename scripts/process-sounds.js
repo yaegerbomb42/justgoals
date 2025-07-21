@@ -2,52 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// Firebase Admin SDK is initialized below for backend access to Firebase services.
-// See README.md for details on usage and security.
-const admin = require('firebase-admin');
-const serviceAccount = require('../goals-d50ab-firebase-adminsdk-fbsvc-4f737e36b3.json');
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-    // databaseURL: 'https://goals-d50ab.firebaseio.com'
-  });
-  // You can now use admin.firestore(), admin.auth(), etc. in this script
-  console.log('Firebase Admin initialized');
-}
-
-// --- Firestore Utility Functions ---
-const db = admin.firestore();
-
-function getUserCollection(userId, collection) {
-  return db.collection('users').doc(userId).collection(collection);
-}
-
-async function saveUserData(userId, collection, data) {
-  // data should be an array of objects with unique 'id' fields
-  const batch = db.batch();
-  const colRef = getUserCollection(userId, collection);
-  data.forEach(item => {
-    const docRef = colRef.doc(item.id.toString());
-    batch.set(docRef, item);
-  });
-  await batch.commit();
-}
-
-async function getUserData(userId, collection) {
-  const colRef = getUserCollection(userId, collection);
-  const snapshot = await colRef.get();
-  return snapshot.docs.map(doc => doc.data());
-}
-
-async function deleteUserData(userId, collection) {
-  const colRef = getUserCollection(userId, collection);
-  const snapshot = await colRef.get();
-  const batch = db.batch();
-  snapshot.docs.forEach(doc => batch.delete(doc.ref));
-  await batch.commit();
-}
-
 // Configuration
 const RAW_SOUNDS_DIR = path.resolve('public/assets/sounds/raw');
 const OUTPUT_DIR = path.resolve('public/assets/sounds');
@@ -234,16 +188,16 @@ async function firestoreDemo() {
   ];
 
   // Save app settings
-  await saveUserData(testUserId, 'appSettings', testSettings);
-  console.log('Saved test app settings to Firestore');
+  // await saveUserData(testUserId, 'appSettings', testSettings); // REMOVED
+  // console.log('Saved test app settings to Firestore');
 
   // Retrieve app settings
-  const loadedSettings = await getUserData(testUserId, 'appSettings');
-  console.log('Loaded app settings from Firestore:', loadedSettings);
+  // const loadedSettings = await getUserData(testUserId, 'appSettings'); // REMOVED
+  // console.log('Loaded app settings from Firestore:', loadedSettings);
 
   // Delete app settings
-  await deleteUserData(testUserId, 'appSettings');
-  console.log('Deleted test app settings from Firestore');
+  // await deleteUserData(testUserId, 'appSettings'); // REMOVED
+  // console.log('Deleted test app settings from Firestore');
 }
 
 // Uncomment to run the demo
