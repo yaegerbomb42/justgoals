@@ -49,6 +49,7 @@ const Header = () => {
 
   const navigationItems = [
     { path: '/goals-dashboard', label: 'Goals', icon: 'Target' },
+    { path: '/temp-todos', label: 'Todos', icon: 'ListTodo' },
     { path: '/day', label: 'Today', icon: 'Calendar' },
     { path: '/focus-mode', label: 'Focus', icon: 'Zap' },
     { path: '/daily-milestones', label: 'Milestones', icon: 'CheckSquare' },

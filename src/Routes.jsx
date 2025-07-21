@@ -20,6 +20,7 @@ import Day from "pages/day";
 import AchievementsPage from "pages/achievements";
 import HabitsPage from "pages/habits";
 import MealsPage from "pages/meals";
+import TemporaryTodosPage from "pages/temp-todos";
 import Oauth2Callback from './pages/oauth2callback';
 import ThemeDemo from 'components/ThemeDemo';
 
@@ -57,6 +58,7 @@ const Routes = () => {
 
         {/* Protected routes */}
         <Route path="/goals-dashboard" element={<ProtectedRoute><GoalsDashboard /></ProtectedRoute>} />
+        <Route path="/temp-todos" element={<ProtectedRoute><TemporaryTodosPage /></ProtectedRoute>} />
         <Route path="/ai-assistant-chat-drift" element={<ProtectedRoute><AiAssistantChatDrift /></ProtectedRoute>} />
         <Route path="/focus-mode" element={<ProtectedRoute><FocusMode /></ProtectedRoute>} />
         <Route path="/settings-configuration" element={<ProtectedRoute><SettingsConfiguration /></ProtectedRoute>} />

@@ -9,6 +9,7 @@ import { PlanDataProvider } from './context/PlanDataContext';
 import { AchievementProvider } from './context/AchievementContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { MealsProvider } from './context/MealsContext';
+import { TemporaryTodosProvider } from './context/TemporaryTodosContext';
 
 const container = document.getElementById("root");
 const root = createRoot(container);
@@ -20,7 +21,9 @@ root.render(
         <AchievementProvider>
           <NotificationProvider>
             <MealsProvider>
-              <App />
+              <TemporaryTodosProvider>
+                <App />
+              </TemporaryTodosProvider>
             </MealsProvider>
           </NotificationProvider>
         </AchievementProvider>
