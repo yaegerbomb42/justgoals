@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import firestoreService from '../services/firestoreService';
 
 const SettingsContext = createContext();
 
@@ -11,6 +13,7 @@ export const useSettings = () => {
 };
 
 export const SettingsProvider = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
   const [settings, setSettings] = useState({
     // Appearance
     appearance: {
@@ -88,6 +91,7 @@ export const SettingsProvider = ({ children }) => {
       touchOptimized: true,
     },
   });
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Apply theme to document body
   useEffect(() => {
@@ -125,51 +129,42 @@ export const SettingsProvider = ({ children }) => {
     return () => window.removeEventListener('resize', detectMobile);
   }, []);
 
-  // Load settings from localStorage
+  // On mount or user change, load settings from Firestore if logged in, else from localStorage
   useEffect(() => {
-    const savedSettings = localStorage.getItem('justgoals-settings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setSettings(prev => ({
-          ...prev,
-          ...parsed,
-          mobile: {
-            ...prev.mobile,
-            ...parsed.mobile,
-          },
-          // Ensure new notification channels are initialized
-          notifications: {
-            ...prev.notifications,
-            ...parsed.notifications,
-            email: {
-              ...prev.notifications.email,
-              ...parsed.notifications?.email,
-            },
-            sms: {
-              ...prev.notifications.sms,
-              ...parsed.notifications?.sms,
-            },
-            discord: {
-              ...prev.notifications.discord,
-              ...parsed.notifications?.discord,
-            },
-            ntfy: {
-              ...prev.notifications.ntfy,
-              ...parsed.notifications?.ntfy,
-            },
-          },
-        }));
-      } catch (error) {
-        console.error('Error loading settings:', error);
+    async function loadSettings() {
+      if (isAuthenticated && user && user.id) {
+        try {
+          const remoteSettings = await firestoreService.getAppSettings(user.id);
+          if (remoteSettings && Object.keys(remoteSettings).length > 0) {
+            setSettings(prev => ({ ...prev, ...remoteSettings }));
+            localStorage.setItem('justgoals-settings', JSON.stringify(remoteSettings));
+            setIsLoaded(true);
+            return;
+          }
+        } catch (error) {
+          // Fallback to localStorage
+        }
       }
+      // Fallback: load from localStorage
+      const savedSettings = localStorage.getItem('justgoals-settings');
+      if (savedSettings) {
+        try {
+          setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
+        } catch {}
+      }
+      setIsLoaded(true);
     }
-  }, []);
+    loadSettings();
+  }, [isAuthenticated, user]);
 
-  // Save settings to localStorage
+  // Save settings to localStorage and Firestore (if logged in) whenever they change
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('justgoals-settings', JSON.stringify(settings));
-  }, [settings]);
+    if (isAuthenticated && user && user.id) {
+      firestoreService.saveAppSettings(user.id, settings).catch(() => {});
+    }
+  }, [settings, isAuthenticated, user, isLoaded]);
 
   const updateSettings = (updates) => {
     setSettings(prev => ({
