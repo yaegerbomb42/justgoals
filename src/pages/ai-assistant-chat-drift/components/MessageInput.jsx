@@ -7,7 +7,7 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (message.trim() && !isProcessing) {
+    if (typeof message === 'string' && message.trim() && !isProcessing) {
       onSubmit(e);
     }
   };
@@ -42,18 +42,20 @@ const MessageInput = ({ message, setMessage, onSubmit, isProcessing, placeholder
         {/* Send Button */}
         <motion.button
           type="submit"
-          disabled={!message.trim() || isProcessing}
-          className={`
-            absolute right-2 top-1/2 transform -translate-y-1/2
-            w-8 h-8 rounded-lg flex items-center justify-center
-            transition-all duration-200
-            ${message.trim() && !isProcessing
-              ? 'bg-primary text-primary-foreground hover:bg-primary-dark shadow-lg'
-              : 'bg-surface-600 text-text-secondary cursor-not-allowed'
-            }
-          `}
-          whileHover={message.trim() && !isProcessing ? { scale: 1.05 } : {}}
-          whileTap={message.trim() && !isProcessing ? { scale: 0.95 } : {}}
+          disabled={!message || typeof message !== 'string' || !message.trim() || isProcessing}
+          className={
+            `
+              absolute right-2 top-1/2 transform -translate-y-1/2
+              w-8 h-8 rounded-lg flex items-center justify-center
+              transition-all duration-200
+              ${typeof message === 'string' && message.trim() && !isProcessing
+                ? 'bg-primary text-primary-foreground hover:bg-primary-dark shadow-lg'
+                : 'bg-surface-600 text-text-secondary cursor-not-allowed'
+              }
+            `
+          }
+          whileHover={typeof message === 'string' && message.trim() && !isProcessing ? { scale: 1.05 } : {}}
+          whileTap={typeof message === 'string' && message.trim() && !isProcessing ? { scale: 0.95 } : {}}
         >
           {isProcessing ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

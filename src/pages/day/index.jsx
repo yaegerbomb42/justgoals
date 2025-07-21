@@ -199,6 +199,23 @@ const DayPlanner = () => {
     return () => window.removeEventListener('apiKeyChanged', handleApiKeyChange);
   }, []);
 
+  // Add effect to test API key connection when it changes
+  useEffect(() => {
+    const testApiKey = async () => {
+      if (settings.geminiApiKey) {
+        try {
+          const result = await geminiService.testConnection(settings.geminiApiKey);
+          setIsConnected(result.success);
+        } catch {
+          setIsConnected(false);
+        }
+      } else {
+        setIsConnected(false);
+      }
+    };
+    testApiKey();
+  }, [settings.geminiApiKey]);
+
   // Dopamine celebration logic
   useEffect(() => {
     if (dayPlan.length > 0 && dayPlan.every(ev => ev.completed)) {

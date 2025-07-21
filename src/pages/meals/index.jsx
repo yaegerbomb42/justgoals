@@ -43,7 +43,7 @@ const MealsPage = () => {
     { id: 'ai', label: 'AI Assistant', icon: 'Bot' },
   ];
 
-  if (!user?.uid) {
+  if (!user?.id) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
