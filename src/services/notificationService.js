@@ -8,6 +8,7 @@ class NotificationService {
     this.permission = null;
     this.isSupported = 'Notification' in window;
     this.serviceWorkerRegistration = null;
+    this.registrationFailed = false;
     this.init();
   }
 
@@ -24,27 +25,43 @@ class NotificationService {
     }
 
     // Register service worker for background notifications
-    await this.registerServiceWorker();
+    await this.safeRegisterServiceWorker();
   }
 
-  async registerServiceWorker() {
+  async safeRegisterServiceWorker() {
     if ('serviceWorker' in navigator) {
       try {
         this.serviceWorkerRegistration = await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registered successfully');
-        
-        // Request notification permission for PWA
+        this.registrationFailed = false;
+        // Only request push permission if registration succeeded
         if (this.permission === 'granted') {
           await this.requestPushPermission();
         }
       } catch (error) {
+        this.registrationFailed = true;
+        this.serviceWorkerRegistration = null;
         console.error('Service Worker registration failed:', error);
       }
+    } else {
+      this.registrationFailed = true;
+      this.serviceWorkerRegistration = null;
+      console.error('Service Worker not supported in this browser.');
+    }
+  }
+
+  async retryServiceWorkerRegistration() {
+    if (this.registrationFailed) {
+      console.log('Retrying service worker registration...');
+      await this.safeRegisterServiceWorker();
     }
   }
 
   async requestPushPermission() {
-    if (!this.serviceWorkerRegistration) return false;
+    if (!this.serviceWorkerRegistration) {
+      console.error('Cannot request push permission: Service Worker is not registered.');
+      return false;
+    }
     
     try {
       const subscription = await this.serviceWorkerRegistration.pushManager.subscribe({

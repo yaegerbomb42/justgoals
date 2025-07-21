@@ -10,12 +10,12 @@ import DataManagementSection from './components/DataManagementSection';
 
 const SettingsPage = () => {
   const { settings } = useSettings();
-  const [activeSection, setActiveSection] = useState('notifications');
+  const [activeSection, setActiveSection] = useState('api');
   const isMobile = settings?.mobile?.detected;
 
   const sections = [
-    { id: 'notifications', label: 'Notifications', icon: 'Bell' },
     { id: 'api', label: 'API Keys', icon: 'Key' },
+    { id: 'notifications', label: 'Notifications', icon: 'Bell' },
     { id: 'appearance', label: 'Appearance', icon: 'Palette' },
     { id: 'focus', label: 'Focus Mode', icon: 'Zap' },
     { id: 'progress', label: 'Progress', icon: 'BarChart3' },
@@ -108,52 +108,4 @@ const SettingsPage = () => {
                       if (nextIdx < 0) nextIdx = sections.length - 1;
                       if (nextIdx >= sections.length) nextIdx = 0;
                       setActiveSection(sections[nextIdx].id);
-                      document.getElementById(`settings-tab-${sections[nextIdx].id}`)?.focus();
-                    }
-                  }}
-                >
-                  {sections.map((section) => (
-                    <button
-                      key={section.id}
-                      id={`settings-tab-${section.id}`}
-                      onClick={() => setActiveSection(section.id)}
-                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
-                        activeSection === section.id
-                          ? 'bg-primary text-white shadow-lg'
-                          : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                      }`}
-                      role="tab"
-                      aria-selected={activeSection === section.id}
-                      aria-controls={`settings-tabpanel-${section.id}`}
-                      tabIndex={activeSection === section.id ? 0 : -1}
-                    >
-                      <Icon name={section.icon} className="w-4 h-4" />
-                      <span className="font-medium">{section.label}</span>
-                    </button>
-                  ))}
-                </nav>
-              )}
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className={`flex-1 ${isMobile ? 'order-1' : 'order-2'}`}> 
-            {sections.map(section => (
-              <div
-                key={section.id}
-                id={`settings-tabpanel-${section.id}`}
-                role="tabpanel"
-                aria-labelledby={`settings-tab-${section.id}`}
-                hidden={activeSection !== section.id}
-              >
-                {activeSection === section.id && renderSection()}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default SettingsPage;
+                      document.getElementById(`

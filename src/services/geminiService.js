@@ -11,6 +11,10 @@ class GeminiService {
     this.endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent`;
   }
 
+  setApiKey(apiKey) {
+    this.apiKey = apiKey;
+  }
+
   async initialize(apiKey) {
     if (!apiKey) {
       throw new Error('API key is required');
