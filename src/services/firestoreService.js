@@ -932,6 +932,110 @@ class FirestoreService {
       return [];
     }
   }
+
+  // Temporary Todos CRUD operations
+  async saveTempTodo(userId, todoData) {
+    if (!userId || !todoData) {
+      throw new Error('User ID and todo data are required');
+    }
+
+    try {
+      const todoId = todoData.id || `temp_todo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const todoDoc = this.getUserDoc(userId, 'tempTodos', todoId);
+      
+      const todoToSave = {
+        ...todoData,
+        id: todoId,
+        userId,
+        updatedAt: serverTimestamp(),
+        createdAt: todoData.createdAt || serverTimestamp()
+      };
+
+      await setDoc(todoDoc, todoToSave);
+      return { ...todoToSave, id: todoId };
+    } catch (error) {
+      console.error('Error saving temp todo to Firestore:', error);
+      throw error;
+    }
+  }
+
+  async getTempTodos(userId) {
+    try {
+      const todosRef = collection(this.db, `users/${userId}/tempTodos`);
+      const q = query(todosRef, where('archived', '!=', true), orderBy('priority', 'desc'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting temp todos from Firestore:', error);
+      return [];
+    }
+  }
+
+  async getArchivedTempTodos(userId) {
+    try {
+      const todosRef = collection(this.db, `users/${userId}/tempTodos`);
+      const q = query(todosRef, where('archived', '==', true), orderBy('completedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error getting archived temp todos from Firestore:', error);
+      return [];
+    }
+  }
+
+  async updateTempTodo(userId, todoId, updates) {
+    try {
+      const todoDoc = this.getUserDoc(userId, 'tempTodos', todoId);
+      const updateData = {
+        ...updates,
+        updatedAt: serverTimestamp()
+      };
+      await updateDoc(todoDoc, updateData);
+      return { id: todoId, ...updates };
+    } catch (error) {
+      console.error('Error updating temp todo in Firestore:', error);
+      throw error;
+    }
+  }
+
+  async completeTempTodo(userId, todoId) {
+    try {
+      const updates = {
+        completed: true,
+        archived: true,
+        completedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      return await this.updateTempTodo(userId, todoId, updates);
+    } catch (error) {
+      console.error('Error completing temp todo in Firestore:', error);
+      throw error;
+    }
+  }
+
+  async deleteTempTodo(userId, todoId) {
+    try {
+      const todoDoc = this.getUserDoc(userId, 'tempTodos', todoId);
+      await deleteDoc(todoDoc);
+      return todoId;
+    } catch (error) {
+      console.error('Error deleting temp todo from Firestore:', error);
+      throw error;
+    }
+  }
+
+  async batchUpdateTempTodosPriority(userId, todosWithPriority) {
+    try {
+      const promises = todosWithPriority.map(({ id, priority }) => 
+        this.updateTempTodo(userId, id, { priority, aiPrioritized: true })
+      );
+      await Promise.all(promises);
+      return todosWithPriority;
+    } catch (error) {
+      console.error('Error batch updating temp todos priority in Firestore:', error);
+      throw error;
+    }
+  }
 }
 
 // Create singleton instance

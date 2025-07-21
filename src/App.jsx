@@ -6,6 +6,7 @@ import { PlanDataProvider } from './context/PlanDataContext';
 import { AchievementProvider } from './context/AchievementContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { MealsProvider } from './context/MealsContext';
+import { TemporaryTodosProvider } from './context/TemporaryTodosContext';
 import Routes from './Routes';
 import Header from './components/ui/Header';
 import { useNotifications } from './hooks/useNotifications';
