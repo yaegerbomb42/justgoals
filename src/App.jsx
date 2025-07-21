@@ -70,26 +70,14 @@ const App = () => {
   }, [settings?.appearance?.backgroundEffect]);
   return (
     <Router>
-      <AuthProvider>
-        <SettingsProvider>
-          <PlanDataProvider>
-            <AchievementProvider>
-              <NotificationProvider>
-                <MealsProvider>
-                  <NotificationWrapper>
-                    <FlowingParticlesBackground />
-                    <GlobalBackgroundMusic />
-                    <div className="min-h-screen bg-background text-text-primary">
-                      <Header />
-                      <Routes />
-                    </div>
-                  </NotificationWrapper>
-                </MealsProvider>
-              </NotificationProvider>
-            </AchievementProvider>
-          </PlanDataProvider>
-        </SettingsProvider>
-      </AuthProvider>
+      <NotificationWrapper>
+        <FlowingParticlesBackground />
+        <GlobalBackgroundMusic />
+        <div className="min-h-screen bg-background text-text-primary">
+          <Header />
+          <Routes />
+        </div>
+      </NotificationWrapper>
     </Router>
   );
 };

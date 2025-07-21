@@ -3,11 +3,31 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles/tailwind.css";
 import "./styles/index.css";
+import { AuthProvider } from './context/AuthContext';
+import { SettingsProvider } from './context/SettingsContext';
+import { PlanDataProvider } from './context/PlanDataContext';
+import { AchievementProvider } from './context/AchievementContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { MealsProvider } from './context/MealsContext';
 
 const container = document.getElementById("root");
 const root = createRoot(container);
 
-root.render(<App />);
+root.render(
+  <AuthProvider>
+    <SettingsProvider>
+      <PlanDataProvider>
+        <AchievementProvider>
+          <NotificationProvider>
+            <MealsProvider>
+              <App />
+            </MealsProvider>
+          </NotificationProvider>
+        </AchievementProvider>
+      </PlanDataProvider>
+    </SettingsProvider>
+  </AuthProvider>
+);
 
 // Register service worker with update notification
 if ('serviceWorker' in navigator) {
