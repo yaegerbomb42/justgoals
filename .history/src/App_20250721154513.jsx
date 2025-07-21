@@ -12,7 +12,6 @@ import Header from './components/ui/Header';
 import { useNotifications } from './hooks/useNotifications';
 import './styles/index.css';
 import FlowingParticlesBackground from './components/ui/FlowingParticlesBackground';
-import ErrorBoundary from './components/ErrorBoundary';
 import { useSettings } from './context/SettingsContext';
 
 // Notification wrapper component
@@ -79,21 +78,17 @@ const App = () => {
 
   return (
     <Router>
-      <ErrorBoundary>
-        <NotificationWrapper>
-          {/* Only render background animations if not in production or if they're specifically enabled */}
-          {process.env.NODE_ENV !== 'production' || settings?.appearance?.backgroundEffect !== 'none' ? (
-            <ErrorBoundary>
-              <FlowingParticlesBackground />
-            </ErrorBoundary>
-          ) : null}
-          <GlobalBackgroundMusic />
-          <div className="min-h-screen bg-background text-text-primary">
-            <Header />
-            <Routes />
-          </div>
-        </NotificationWrapper>
-      </ErrorBoundary>
+      <NotificationWrapper>
+        {/* Only render background animations if not in production or if they're specifically enabled */}
+        {process.env.NODE_ENV !== 'production' || settings?.appearance?.backgroundEffect !== 'none' ? (
+          <FlowingParticlesBackground />
+        ) : null}
+        <GlobalBackgroundMusic />
+        <div className="min-h-screen bg-background text-text-primary">
+          <Header />
+          <Routes />
+        </div>
+      </NotificationWrapper>
     </Router>
   );
 };

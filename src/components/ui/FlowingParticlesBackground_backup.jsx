@@ -1,7 +1,25 @@
 import React, { useRef, useEffect, useState } from 'react';
 
 const FlowingParticlesBackground = () => {
-  const [effect, setEffect] = useState(() => {
+    function connectParticles() {
+      if (!ctx) return;
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 120) { // Max distance to connect
+            ctx.beginPath();
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 0.5; // Thin lines
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+    }etEffect] = useState(() => {
     if (typeof document !== 'undefined') {
       return document.body.getAttribute('data-bg-effect') || 'none';
     }
@@ -19,11 +37,11 @@ const FlowingParticlesBackground = () => {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!['particles', 'creative', 'abstract', 'motivational'].includes(effect)) {
-      return;
-    }
+  if (!['particles', 'creative', 'abstract', 'motivational'].includes(effect)) {
+    return null;
+  }
 
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -32,7 +50,7 @@ const FlowingParticlesBackground = () => {
     
     let animationFrameId;
     let particles = [];
-    const particleCount = 50;
+    const particleCount = 50; // Adjust for density
 
     // Helper to get theme-aware colors
     const getThemeColor = (variableName, fallbackColor) => {
@@ -42,13 +60,15 @@ const FlowingParticlesBackground = () => {
       return fallbackColor;
     };
 
-    let particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.5)');
-    let lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)');
+    let particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.5)'); // slate-400 with opacity
+    let lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)'); // slate-400 with stronger opacity
 
     const resizeCanvas = () => {
       if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      // Re-initialize particles on resize or just update their bounds
+      // For simplicity, let's re-initialize. A more complex approach would update.
       initParticles();
     };
 
@@ -75,6 +95,7 @@ const FlowingParticlesBackground = () => {
         this.x += this.vx;
         this.y += this.vy;
 
+        // Boundary checks (wrap around)
         if (this.x < 0) this.x = canvas.width;
         if (this.x > canvas.width) this.x = 0;
         if (this.y < 0) this.y = canvas.height;
@@ -89,27 +110,27 @@ const FlowingParticlesBackground = () => {
       lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)');
 
       for (let i = 0; i < particleCount; i++) {
-        const size = Math.random() * 2 + 1;
+        const size = Math.random() * 2 + 1; // Particle size between 1 and 3
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
-        const vx = (Math.random() - 0.5) * 0.3;
-        const vy = (Math.random() - 0.5) * 0.3;
+        // Slower, more calm movement
+        const vx = (Math.random() - 0.5) * 0.3; // Reduced velocity
+        const vy = (Math.random() - 0.5) * 0.3; // Reduced velocity
         particles.push(new Particle(x, y, vx, vy, size, particleColor));
       }
     }
 
     function connectParticles() {
-      if (!ctx) return;
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 120) {
+          if (distance < 120) { // Max distance to connect
             ctx.beginPath();
             ctx.strokeStyle = lineColor;
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = 0.5; // Thin lines
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
             ctx.stroke();
@@ -119,7 +140,6 @@ const FlowingParticlesBackground = () => {
     }
 
     function animate() {
-      if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.forEach(p => {
@@ -128,41 +148,37 @@ const FlowingParticlesBackground = () => {
       });
 
       connectParticles();
+
       animationFrameId = requestAnimationFrame(animate);
     }
 
-    resizeCanvas();
+    // Initial setup
+    resizeCanvas(); // Set initial size and init particles
     animate();
 
-    const themeObserver = new MutationObserver((mutationsList) => {
+    // Theme change listener to update colors
+    const observer = new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          // class on <html> changed (likely dark/light mode)
           particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.5)');
           lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)');
-          particles.forEach(p => p.color = particleColor);
+          particles.forEach(p => p.color = particleColor); // Update existing particle colors
         }
       }
     });
+    observer.observe(document.documentElement, { attributes: true });
 
-    if (typeof document !== 'undefined') {
-      themeObserver.observe(document.documentElement, { attributes: true });
-      window.addEventListener('resize', resizeCanvas);
-    }
 
+    window.addEventListener('resize', resizeCanvas);
+
+    // Cleanup
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', resizeCanvas);
-      }
-      themeObserver.disconnect();
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resizeCanvas);
+      observer.disconnect();
     };
-  }, [effect]);
-
-  if (!['particles', 'creative', 'abstract', 'motivational'].includes(effect)) {
-    return null;
-  }
+  }, []); // Empty dependency array means this effect runs once on mount and cleans up on unmount
 
   return (
     <canvas
@@ -173,8 +189,8 @@ const FlowingParticlesBackground = () => {
         left: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: -1,
-        pointerEvents: 'none',
+        zIndex: -1, // Behind all other content
+        pointerEvents: 'none', // Make sure it doesn't interfere with interactions
       }}
     />
   );
