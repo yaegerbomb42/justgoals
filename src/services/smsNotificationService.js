@@ -1,6 +1,26 @@
 // Free SMS Notification Service
 // Uses email-to-SMS gateways and free SMS services
 
+// Add support for both SMS and MMS gateways for major US carriers
+const CARRIER_GATEWAYS = {
+  att: { sms: 'txt.att.net', mms: 'mms.att.net' },
+  verizon: { sms: 'vtext.com', mms: 'mypixmessages.com' },
+  tmobile: { sms: 'tmomail.net', mms: 'tmomail.net' },
+  sprint: { sms: 'messaging.sprintpcs.com', mms: 'pm.sprint.com' },
+  boost: { sms: 'myboostmobile.com', mms: 'myboostmobile.com' },
+  cricket: { sms: 'sms.cricketwireless.net', mms: 'sms.cricketwireless.net' },
+  metro: { sms: 'mymetropcs.com', mms: 'mymetropcs.com' },
+  uscellular: { sms: 'email.uscc.net', mms: 'email.uscc.net' },
+  virgin: { sms: 'vmobl.com', mms: 'vmobl.com' },
+  xfinity: { sms: 'vtext.com', mms: 'mypixmessages.com' },
+};
+
+function getGatewayAddress(phoneNumber, carrier, type = 'sms') {
+  const gateway = CARRIER_GATEWAYS[carrier]?.[type] || CARRIER_GATEWAYS[carrier]?.sms;
+  if (!gateway) return null;
+  return `${phoneNumber}@${gateway}`;
+}
+
 class SMSNotificationService {
   constructor() {
     this.isEnabled = false;
@@ -81,12 +101,12 @@ class SMSNotificationService {
 
   // Email-to-SMS (Free - works with most carriers)
   async sendViaEmailSMS(message, options = {}) {
-    if (!this.carriers[this.carrier]) {
-      console.error('Unsupported carrier:', this.carrier);
+    const type = options.type || 'sms';
+    const emailAddress = getGatewayAddress(this.phoneNumber, this.carrier, type);
+    if (!emailAddress) {
+      console.error('Unsupported carrier or missing phone number:', this.carrier);
       return false;
     }
-
-    const emailAddress = `${this.phoneNumber}${this.carriers[this.carrier]}`;
     const subject = options.subject || 'JustGoals Notification';
 
     // Call backend API to send email to SMS gateway
@@ -580,3 +600,6 @@ class SMSNotificationService {
 const smsNotificationService = new SMSNotificationService();
 
 export default smsNotificationService; 
+
+// Export getGatewayAddress for use in settings UI if needed
+export { getGatewayAddress }; 

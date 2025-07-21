@@ -21,6 +21,7 @@ const ApiKeySection = () => {
   // Load API key on mount and when settings change
   useEffect(() => {
     setApiKey(settings?.geminiApiKey || '');
+    setIsLoading(false);
   }, [settings?.geminiApiKey]);
 
   const testConnection = async (keyToTest = null) => {
