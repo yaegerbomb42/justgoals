@@ -94,53 +94,90 @@ class GeminiService {
   }
 
   async generateResponse(userMessage, context, capabilities = {}) {
-    if (!this.apiKey) {
-      throw new Error('Gemini service not initialized. Please set your API key.');
-    }
-
     const systemPrompt = this.buildSystemPrompt(context, capabilities);
     const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nDrift:`;
-    
     try {
       const text = await this.generateContent(fullPrompt);
-      
-      // Simple parsing - just return the text with minimal processing
-      const cleanMessage = text
-        .replace(/===ACTION===[\s\S]*?===END_ACTION===/g, '')
-        .replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '')
-        .trim();
-
+      const parsedResponse = this.parseResponse(text);
       return {
-        message: cleanMessage || text || "I'm here to help! How can I assist you with your goals today?",
-        actions: [],
-        suggestions: [],
+        message: parsedResponse.message,
+        actions: parsedResponse.actions || [],
+        suggestions: parsedResponse.suggestions || [],
       };
     } catch (error) {
       console.error('Error generating response:', error);
-      if (error.message.includes('API key')) {
-        throw new Error('Please check your Gemini API key in Settings.');
-      }
-      throw new Error('I encountered an issue generating a response. Please try again.');
+      throw new Error('Failed to generate response. Please try again.');
     }
   }
 
   buildSystemPrompt(context, capabilities) {
-    const basePrompt = `You are Drift, a helpful AI assistant for goal achievement and productivity.
+    const basePrompt = `You are Drift, an intelligent AI assistant for the JustGoals app. You help users achieve their goals, manage their time, and improve their productivity.
 
-User Context:
-- Name: ${context?.user?.name || 'User'}
-- Current Goals: ${context?.currentGoals?.length || 0} active goals
-- Conversation History: ${context?.conversationHistory?.length || 0} previous messages
+Your personality:
+- Friendly, encouraging, and motivational
+- Practical and actionable in your advice
+- Understanding of human psychology and behavior change
+- Always supportive and non-judgmental
 
-Keep responses:
-- Conversational and friendly
-- Practical and actionable
-- Concise (2-3 sentences max)
-- Focused on helping with goals and productivity
+Current user context:
+- User: ${context.user?.name || 'User'} (${context.user?.email || 'No email'})
+- Active goals: ${context.currentGoals?.length || 0} goals
+- Recent activity: ${JSON.stringify(context.recentActivity)}
+- User preferences: ${JSON.stringify(context.userPreferences)}
 
-Be encouraging and supportive in your responses.`;
+Conversation history (last 10 messages):
+${context.conversationHistory?.map(msg => `${msg.role}: ${msg.content}`).join('\n') || 'No previous conversation'}
 
-    return basePrompt;
+Your capabilities:`;
+
+    let capabilitiesPrompt = '';
+    if (capabilities.canCreateGoals) {
+      capabilitiesPrompt += `
+- CREATE_GOAL: You can create new goals for users. When a user wants to create a goal, respond with the goal details and include an action.
+- UPDATE_GOAL: You can update existing goals (progress, status, details, etc.)
+- CREATE_MILESTONE: You can create milestones for existing goals
+- ADD_JOURNAL_ENTRY: You can help users add journal entries for reflection
+- CREATE_HABIT: You can help users create new habits
+- ANALYZE_PROGRESS: You can analyze user progress and provide insights
+- NAVIGATE_TO: You can suggest navigation to different app sections`;
+    }
+
+    const actionFormatPrompt = `
+When you need to perform an action, format your response like this:
+===ACTION===
+{
+  "type": "action_type",
+  "data": {
+    // action-specific data
+  }
+}
+===END_ACTION===
+
+Available actions:
+1. create_goal: Create a new goal
+   Data: { title, description, category, priority, deadline, milestones }
+
+2. update_goal: Update an existing goal
+   Data: { goalId, updates: { field: value } }
+
+3. create_milestone: Create a milestone for a goal
+   Data: { title, description, goalId, dueDate }
+
+4. add_journal_entry: Add a journal entry
+   Data: { title, content, mood, tags }
+
+5. create_habit: Create a new habit
+   Data: { title, description, frequency }
+
+6. analyze_progress: Analyze user progress
+   Data: { goals, timeframe }
+
+7. navigate_to: Navigate to app section
+   Data: { path }
+
+Always provide a helpful, conversational response first, then include any actions if needed.`;
+
+    return basePrompt + capabilitiesPrompt + actionFormatPrompt;
   }
 
   parseResponse(responseText) {
@@ -368,58 +405,6 @@ Keep it concise but impactful.`;
     } catch (error) {
       console.error('Error loading API key:', error);
       return null;
-    }
-  }
-
-  // New method for AI-powered note prioritization
-  async prioritizeNotes(notes, context = {}) {
-    if (!this.apiKey) {
-      throw new Error('Gemini service not initialized. Please set your API key.');
-    }
-
-    if (!Array.isArray(notes) || notes.length === 0) {
-      return notes;
-    }
-
-    const prompt = `Analyze and prioritize these notes based on importance and urgency:
-
-Notes:
-${notes.map((note, index) => `${index + 1}. ${note.title || 'Untitled'}: ${note.content || note.description || 'No content'}`).join('\n')}
-
-Return a JSON array with reordered note indices by priority:
-[{"originalIndex": 0, "priorityScore": 8, "reason": "High priority reason"}]
-
-Return ONLY the JSON array.`;
-
-    try {
-      const text = await this.generateContent(prompt);
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      
-      if (jsonMatch) {
-        try {
-          const priorities = JSON.parse(jsonMatch[0]);
-          
-          // Reorder notes based on priorities
-          const prioritizedNotes = priorities
-            .filter(p => p.originalIndex < notes.length)
-            .sort((a, b) => b.priorityScore - a.priorityScore)
-            .map(p => ({
-              ...notes[p.originalIndex],
-              priorityScore: p.priorityScore,
-              priorityReason: p.reason
-            }));
-          
-          return prioritizedNotes;
-        } catch (parseError) {
-          console.warn('Could not parse prioritization response:', parseError);
-          return notes;
-        }
-      }
-      
-      return notes;
-    } catch (error) {
-      console.error('Error prioritizing notes:', error);
-      return notes; // Return original notes if AI fails
     }
   }
 }

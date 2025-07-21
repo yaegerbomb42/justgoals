@@ -57,11 +57,10 @@ class AnalyticsService {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Try to get data from Firestore using v9 syntax
-      const docRef = doc(db, 'users', user.uid, 'analytics', 'dashboard');
-      const docSnap = await getDoc(docRef);
-      let data = docSnap.exists() ? docSnap.data() : {};
+      // Try to get data from Firestore
+      const docRef = firestore.collection('users').doc(user.uid).collection('analytics').doc('dashboard');
+      const doc = await docRef.get();
+      let data = doc.exists ? doc.data() : {};
       // --- Prefill heatmap days ---
       // Determine date range
       let days = [];

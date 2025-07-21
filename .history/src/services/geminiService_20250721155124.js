@@ -370,58 +370,6 @@ Keep it concise but impactful.`;
       return null;
     }
   }
-
-  // New method for AI-powered note prioritization
-  async prioritizeNotes(notes, context = {}) {
-    if (!this.apiKey) {
-      throw new Error('Gemini service not initialized. Please set your API key.');
-    }
-
-    if (!Array.isArray(notes) || notes.length === 0) {
-      return notes;
-    }
-
-    const prompt = `Analyze and prioritize these notes based on importance and urgency:
-
-Notes:
-${notes.map((note, index) => `${index + 1}. ${note.title || 'Untitled'}: ${note.content || note.description || 'No content'}`).join('\n')}
-
-Return a JSON array with reordered note indices by priority:
-[{"originalIndex": 0, "priorityScore": 8, "reason": "High priority reason"}]
-
-Return ONLY the JSON array.`;
-
-    try {
-      const text = await this.generateContent(prompt);
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      
-      if (jsonMatch) {
-        try {
-          const priorities = JSON.parse(jsonMatch[0]);
-          
-          // Reorder notes based on priorities
-          const prioritizedNotes = priorities
-            .filter(p => p.originalIndex < notes.length)
-            .sort((a, b) => b.priorityScore - a.priorityScore)
-            .map(p => ({
-              ...notes[p.originalIndex],
-              priorityScore: p.priorityScore,
-              priorityReason: p.reason
-            }));
-          
-          return prioritizedNotes;
-        } catch (parseError) {
-          console.warn('Could not parse prioritization response:', parseError);
-          return notes;
-        }
-      }
-      
-      return notes;
-    } catch (error) {
-      console.error('Error prioritizing notes:', error);
-      return notes; // Return original notes if AI fails
-    }
-  }
 }
 
 // Create singleton instance
