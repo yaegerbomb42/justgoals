@@ -66,9 +66,9 @@ const App = () => {
       <ErrorBoundary>
         <NotificationWrapper>
           {/* Background effects layer */}
-          {process.env.NODE_ENV !== 'production' || settings?.appearance?.backgroundEffect !== 'none' ? (
+          {settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none' ? (
             <ErrorBoundary>
-              <FlowingParticlesBackground />
+              <FlowingParticlesBackground effect={settings.appearance.backgroundEffect} />
             </ErrorBoundary>
           ) : null}
           <GlobalBackgroundMusic />

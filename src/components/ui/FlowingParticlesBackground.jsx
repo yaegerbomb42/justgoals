@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 
-const FlowingParticlesBackground = () => {
+const FlowingParticlesBackground = ({ effect: propEffect }) => {
   const [effect, setEffect] = useState(() => {
+    if (propEffect) return propEffect;
     if (typeof document !== 'undefined') {
       return document.body.getAttribute('data-bg-effect') || 'none';
     }
@@ -10,6 +11,11 @@ const FlowingParticlesBackground = () => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
+    if (propEffect) {
+      setEffect(propEffect);
+      return;
+    }
+    
     if (typeof document === 'undefined') return;
     
     const observer = new MutationObserver(() => {
@@ -17,7 +23,7 @@ const FlowingParticlesBackground = () => {
     });
     observer.observe(document.body, { attributes: true, attributeFilter: ['data-bg-effect'] });
     return () => observer.disconnect();
-  }, []);
+  }, [propEffect]);
 
   useEffect(() => {
     if (!['particles', 'creative', 'abstract', 'motivational'].includes(effect)) {
@@ -87,14 +93,36 @@ const FlowingParticlesBackground = () => {
       if (typeof window !== 'undefined') {
         const color = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallbackColor;
         
-        // Apply effect-specific color modifications
+        // Apply effect-specific color modifications for more distinct looks
         switch (effect) {
           case 'creative':
-            return color.replace('0.5)', '0.8)').replace('0.2)', '0.6)');
+            // Vibrant rainbow-like colors for creativity
+            return 'rgba(255, 107, 107, 0.8)'; // Coral red
           case 'motivational':
-            return color.replace('rgba(148, 163, 184', 'rgba(59, 130, 246'); // Blue theme
+            // Energetic blue colors for motivation
+            return 'rgba(59, 130, 246, 0.9)'; // Bright blue
           case 'abstract':
-            return color.replace('rgba(148, 163, 184', 'rgba(168, 85, 247'); // Purple theme
+            // Purple/violet for abstract thinking
+            return 'rgba(168, 85, 247, 0.8)'; // Purple
+          default:
+            return color;
+        }
+      }
+      return fallbackColor;
+    };
+
+    const getLineColor = (variableName, fallbackColor) => {
+      if (typeof window !== 'undefined') {
+        const color = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallbackColor;
+        
+        // Apply effect-specific line color modifications
+        switch (effect) {
+          case 'creative':
+            return 'rgba(255, 159, 67, 0.4)'; // Orange connections
+          case 'motivational':
+            return 'rgba(34, 197, 94, 0.5)'; // Green connections
+          case 'abstract':
+            return 'rgba(139, 92, 246, 0.4)'; // Violet connections
           default:
             return color;
         }
@@ -103,7 +131,7 @@ const FlowingParticlesBackground = () => {
     };
 
     let particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.8)');
-    let lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.4)');
+    let lineColor = getLineColor('--color-border-strong', 'rgba(148, 163, 184, 0.4)');
 
     const resizeCanvas = () => {
       if (!canvas) return;
@@ -158,31 +186,41 @@ const FlowingParticlesBackground = () => {
       
       // Reinitialize colors in case theme changed
       particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.8)');
-      lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.4)');
+      lineColor = getLineColor('--color-border-strong', 'rgba(148, 163, 184, 0.4)');
 
       for (let i = 0; i < particleCount; i++) {
-        // Add particle size and glow variations for different effects
-        let particleSize = Math.random() * 2 + 1;
+        // Add particle size and movement variations for different effects
+        let particleSize, vx, vy;
         
         switch (effect) {
           case 'creative':
-            particleSize = Math.random() * 2.5 + 1.5;
+            // Larger, more dynamic particles with varied movement
+            particleSize = Math.random() * (config.size.max - config.size.min) + config.size.min;
+            vx = (Math.random() - 0.5) * speed * (1 + Math.random());
+            vy = (Math.random() - 0.5) * speed * (1 + Math.random());
             break;
           case 'motivational':
-            particleSize = Math.random() * 3 + 2;
+            // Fast-moving, energetic particles
+            particleSize = Math.random() * (config.size.max - config.size.min) + config.size.min;
+            vx = (Math.random() - 0.5) * speed * 1.5;
+            vy = (Math.random() - 0.5) * speed * 1.5;
             break;
           case 'abstract':
-            particleSize = Math.random() * 4 + 2.5;
+            // Slower, floating particles with subtle movement
+            particleSize = Math.random() * (config.size.max - config.size.min) + config.size.min;
+            vx = (Math.random() - 0.5) * speed * 0.7;
+            vy = (Math.random() - 0.5) * speed * 0.7;
             break;
           default:
-            particleSize = Math.random() * 2 + 1;
+            // Standard particles
+            particleSize = Math.random() * (config.size.max - config.size.min) + config.size.min;
+            vx = (Math.random() - 0.5) * speed;
+            vy = (Math.random() - 0.5) * speed;
             break;
         }
         
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
-        const vx = (Math.random() - 0.5) * speed;
-        const vy = (Math.random() - 0.5) * speed;
         particles.push(new Particle(x, y, vx, vy, particleSize, particleColor));
       }
     }
@@ -195,19 +233,51 @@ const FlowingParticlesBackground = () => {
           const dy = particles[i].y - particles[j].y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          // Adjust connection distance based on effect
-          const maxDistance = effect === 'abstract' ? 150 : effect === 'creative' ? 130 : 120;
+          // Adjust connection distance and style based on effect
+          let maxDistance, lineWidth, glowEffect;
+          
+          switch (effect) {
+            case 'abstract':
+              maxDistance = 150;
+              lineWidth = 1.5;
+              glowEffect = true;
+              break;
+            case 'creative':
+              maxDistance = 130;
+              lineWidth = 1;
+              glowEffect = true;
+              break;
+            case 'motivational':
+              maxDistance = 100;
+              lineWidth = 0.8;
+              glowEffect = false;
+              break;
+            default:
+              maxDistance = 120;
+              lineWidth = 0.5;
+              glowEffect = false;
+              break;
+          }
           
           if (distance < maxDistance) {
             const opacity = 1 - (distance / maxDistance);
             const adjustedLineColor = lineColor.replace(/[\d.]+\)$/, `${opacity * 0.6})`);
             
+            if (glowEffect) {
+              ctx.shadowColor = adjustedLineColor;
+              ctx.shadowBlur = 3;
+            }
+            
             ctx.beginPath();
             ctx.strokeStyle = adjustedLineColor;
-            ctx.lineWidth = effect === 'abstract' ? 1 : 0.5;
+            ctx.lineWidth = lineWidth;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
             ctx.stroke();
+            
+            if (glowEffect) {
+              ctx.shadowBlur = 0;
+            }
           }
         }
       }
@@ -233,7 +303,7 @@ const FlowingParticlesBackground = () => {
       for (const mutation of mutationsList) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
           particleColor = getThemeColor('--color-text-secondary', 'rgba(148, 163, 184, 0.5)');
-          lineColor = getThemeColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)');
+          lineColor = getLineColor('--color-border-strong', 'rgba(148, 163, 184, 0.2)');
           particles.forEach(p => p.color = particleColor);
         }
       }

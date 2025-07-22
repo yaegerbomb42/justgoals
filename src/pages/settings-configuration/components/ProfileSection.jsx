@@ -92,6 +92,46 @@ const ProfileSection = () => {
           </div>
         </div>
 
+        {/* Account Information Section */}
+        <div className="bg-background border border-border rounded-lg p-4">
+          <div className="flex items-center space-x-3 mb-4">
+            <Icon name="Info" className="w-5 h-5 text-blue-500" />
+            <h4 className="font-medium text-text-primary">Account Information</h4>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-surface-700 rounded-lg">
+              <span className="text-sm font-medium text-text-secondary">Email:</span>
+              <span className="text-sm text-text-primary">{user?.email || 'Not available'}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 bg-surface-700 rounded-lg">
+              <span className="text-sm font-medium text-text-secondary">User ID:</span>
+              <span className="text-xs text-text-primary font-mono break-all">{user?.uid || 'Not available'}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 bg-surface-700 rounded-lg">
+              <span className="text-sm font-medium text-text-secondary">Account Created:</span>
+              <span className="text-sm text-text-primary">
+                {user?.metadata?.creationTime 
+                  ? new Date(user.metadata.creationTime).toLocaleDateString()
+                  : 'Not available'
+                }
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 bg-surface-700 rounded-lg">
+              <span className="text-sm font-medium text-text-secondary">Last Sign In:</span>
+              <span className="text-sm text-text-primary">
+                {user?.metadata?.lastSignInTime 
+                  ? new Date(user.metadata.lastSignInTime).toLocaleDateString()
+                  : 'Not available'
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Display Name Setting */}
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">

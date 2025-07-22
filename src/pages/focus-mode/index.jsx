@@ -12,6 +12,7 @@ import SessionStats from './components/SessionStats';
 import ExitConfirmation from './components/ExitConfirmation';
 import QuickLinksPanel from './components/QuickLinksPanel';
 import FocusFloatingActions from './components/FocusFloatingActions';
+import FocusSessionNotes from './components/FocusSessionNotes';
 import FlowingParticlesBackground from '../../components/ui/FlowingParticlesBackground';
 import AmbientSoundPlayer from '../../components/ui/AmbientSoundPlayer';
 import * as entityService from '../../services/entityManagementService';
@@ -526,6 +527,9 @@ const FocusMode = () => {
         isNotesOpen={isNotesOpen}
         isLinksOpen={isLinksOpen}
       />
+
+      {/* Focus Session Notes Chat Bar */}
+      <FocusSessionNotes />
 
       {/* Exit Confirmation */}
       <ExitConfirmation

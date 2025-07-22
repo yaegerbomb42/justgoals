@@ -23,20 +23,30 @@ export const TemporaryTodosProvider = ({ children }) => {
 
   // Load todos from Firestore
   const loadTodos = useCallback(async () => {
-    if (!user?.uid || !isAuthenticated) return;
+    if (!user?.uid || !isAuthenticated) {
+      console.log('User not authenticated, skipping todos load');
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
+      console.log('Loading todos for user:', user.uid);
+      
       const [activeTodos, archived] = await Promise.all([
         firestoreService.getTempTodos(user.uid),
         firestoreService.getArchivedTempTodos(user.uid)
       ]);
-      setTodos(activeTodos);
-      setArchivedTodos(archived);
+      
+      console.log('Loaded todos:', { activeTodos, archived });
+      setTodos(Array.isArray(activeTodos) ? activeTodos : []);
+      setArchivedTodos(Array.isArray(archived) ? archived : []);
     } catch (err) {
       console.error('Error loading temp todos:', err);
       setError('Failed to load todos');
+      // Set empty arrays on error to prevent crashes
+      setTodos([]);
+      setArchivedTodos([]);
     } finally {
       setLoading(false);
     }
@@ -52,6 +62,7 @@ export const TemporaryTodosProvider = ({ children }) => {
     if (!user?.uid || !todoText.trim()) return null;
 
     try {
+      console.log('Adding new todo:', todoText);
       const newTodo = {
         text: todoText.trim(),
         completed: false,
@@ -63,7 +74,14 @@ export const TemporaryTodosProvider = ({ children }) => {
       };
 
       const savedTodo = await firestoreService.saveTempTodo(user.uid, newTodo);
-      setTodos(prev => [savedTodo, ...prev]);
+      console.log('Todo saved successfully:', savedTodo);
+      
+      setTodos(prev => {
+        const updated = [savedTodo, ...prev];
+        console.log('Updated todos list:', updated);
+        return updated;
+      });
+      
       return savedTodo;
     } catch (err) {
       console.error('Error adding todo:', err);

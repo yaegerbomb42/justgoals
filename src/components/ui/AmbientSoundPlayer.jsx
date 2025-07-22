@@ -69,6 +69,7 @@ const AmbientSoundPlayer = ({
 
     if (!soundsAvailable) {
       console.log('Ambient sounds not available in this environment');
+      setIsActive(false); // Disable the player if sounds aren't available
       return;
     }
 
@@ -100,7 +101,7 @@ const AmbientSoundPlayer = ({
           smoothVolumeChange(audio, volume, 1000);
           setIsInitialized(true);
         }).catch(error => {
-          console.warn('Error starting ambient sound:', error);
+          console.warn('Error starting ambient sound:', error.message);
           // If autoplay is blocked, try to enable on user interaction
           if (error.name === 'NotAllowedError' || error.message.includes('interact')) {
             console.log('Audio autoplay blocked. Will start on next user interaction.');
@@ -109,13 +110,20 @@ const AmbientSoundPlayer = ({
               audio.play().then(() => {
                 smoothVolumeChange(audio, volume, 1000);
                 setIsInitialized(true);
-              }).catch(e => console.warn('Still unable to play audio:', e));
+              }).catch(e => {
+                console.warn('Still unable to play audio:', e.message);
+                setSoundsAvailable(false);
+              });
               document.removeEventListener('click', enableAudio);
               document.removeEventListener('keydown', enableAudio);
             };
             document.addEventListener('click', enableAudio, { once: true });
             document.addEventListener('keydown', enableAudio, { once: true });
+          } else if (error.name === 'NotSupportedError') {
+            console.warn('Audio format not supported in this environment');
+            setSoundsAvailable(false);
           } else {
+            console.warn('Audio not available in this environment');
             setSoundsAvailable(false);
           }
         });
