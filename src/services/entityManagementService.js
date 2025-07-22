@@ -72,6 +72,7 @@ export const createGoal = async (user, goalData) => {
     const now = new Date().toISOString();
     const goalToSave = {
       ...goalData,
+      progress: goalData.progress || 0,  // Ensure progress is always a number
       createdAt: goalData.createdAt || now,
     };
     const savedGoal = await firestoreService.saveGoal(user.id, goalToSave);

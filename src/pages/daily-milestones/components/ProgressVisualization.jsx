@@ -131,13 +131,13 @@ const ProgressVisualization = ({
               {selectedGoal.title}
             </span>
             <span className="text-sm text-text-secondary">
-              {selectedGoal.progress}%
+              {selectedGoal.progress || 0}%
             </span>
           </div>
           <div className="w-full h-2 bg-surface-600 rounded-full overflow-hidden">
             <div 
               className={`h-full bg-${selectedGoal.color || 'primary'} transition-all duration-normal`}
-              style={{ width: `${selectedGoal.progress}%` }}
+              style={{ width: `${selectedGoal.progress || 0}%` }}
             />
           </div>
         </div>

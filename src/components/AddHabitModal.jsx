@@ -206,7 +206,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
             {/* Target Checks */}
             <div>
               <label className="block text-sm font-body-medium text-text-primary mb-2">
-                Target Check-ins per Day
+                Target Daily Goals
               </label>
               <input
                 type="number"
@@ -231,7 +231,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
                   className="w-4 h-4 text-primary bg-surface-600 border-border rounded focus:ring-primary focus:ring-2"
                 />
                 <span className="text-sm font-body-medium text-text-primary">
-                  Allow extra check-ins beyond target
+                  Allow extra completions beyond target
                 </span>
               </label>
               <div className="text-xs text-text-secondary mt-1 ml-7">
@@ -258,7 +258,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
                       <div className="text-xs text-text-secondary">{suggestion.description}</div>
                     </div>
                     <div className="text-xs text-text-secondary">
-                      {suggestion.targetChecks} check{suggestion.targetChecks > 1 ? 's' : ''}
+                      {suggestion.targetChecks} goal{suggestion.targetChecks > 1 ? 's' : ''}
                     </div>
                   </button>
                 ))}

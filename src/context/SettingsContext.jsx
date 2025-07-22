@@ -62,6 +62,12 @@ export const SettingsProvider = ({ children }) => {
         start: '22:00',
         end: '08:00',
       },
+      schedules: {
+        morningMotivation: '08:00',
+        eveningReflection: '20:00',
+        focusReminders: '14:00',
+        streakProtection: '21:00',
+      },
       // New notification channels
       email: {
         enabled: false,

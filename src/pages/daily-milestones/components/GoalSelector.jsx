@@ -76,11 +76,11 @@ const GoalSelector = ({ goals, selectedGoalId, onGoalSelect, showAllGoals = true
               
               <div className="flex items-center space-x-2">
                 <div className="text-xs text-text-secondary">
-                  {goal.progress}%
+                  {goal.progress || 0}%
                 </div>
                 <div className="w-12 h-1 bg-surface-600 rounded-full overflow-hidden">
                   <div 
-                    className={`h-full`} style={{backgroundColor: `var(--color-secondary)`, width: `${goal.progress}%`}}
+                    className={`h-full`} style={{backgroundColor: `var(--color-secondary)`, width: `${goal.progress || 0}%`}}
                   />
                 </div>
               </div>

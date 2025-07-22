@@ -174,7 +174,7 @@ const HabitsPage = () => {
                       onClick={() => handleCheckIn(habit.id, node.id, 'default')}
                       disabled={checks.length >= targetChecks}
                     >
-                      Check In
+                      +
                     </Button>
                     {habit.allowMultipleChecks && (
                       <Button
@@ -182,7 +182,7 @@ const HabitsPage = () => {
                         variant="outline"
                         onClick={() => handleCheckIn(habit.id, node.id, 'extra')}
                       >
-                        Extra Check
+                        + Extra
                       </Button>
                     )}
                     <Button
@@ -286,7 +286,7 @@ const HabitsPage = () => {
                         <div className="flex items-center space-x-2">
                           <Icon name="Target" className="w-4 h-4 text-primary" />
                           <span className="text-sm text-text-secondary">
-                            {progress.completed}/{progress.total} checks today
+                            {progress.completed}/{progress.total} goals today
                           </span>
                         </div>
                         

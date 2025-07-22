@@ -93,13 +93,35 @@ const AmbientSoundPlayer = ({
       audio.volume = 0;
       
       audio.load();
-      audio.play().then(() => {
-        smoothVolumeChange(audio, volume, 1000);
-        setIsInitialized(true);
-      }).catch(error => {
-        console.warn('Error starting ambient sound:', error);
-        setSoundsAvailable(false);
-      });
+      
+      // Chrome autoplay policy compliance - play only after user interaction
+      const playAudio = () => {
+        audio.play().then(() => {
+          smoothVolumeChange(audio, volume, 1000);
+          setIsInitialized(true);
+        }).catch(error => {
+          console.warn('Error starting ambient sound:', error);
+          // If autoplay is blocked, try to enable on user interaction
+          if (error.name === 'NotAllowedError' || error.message.includes('interact')) {
+            console.log('Audio autoplay blocked. Will start on next user interaction.');
+            // Set up one-time click listener to enable audio
+            const enableAudio = () => {
+              audio.play().then(() => {
+                smoothVolumeChange(audio, volume, 1000);
+                setIsInitialized(true);
+              }).catch(e => console.warn('Still unable to play audio:', e));
+              document.removeEventListener('click', enableAudio);
+              document.removeEventListener('keydown', enableAudio);
+            };
+            document.addEventListener('click', enableAudio, { once: true });
+            document.addEventListener('keydown', enableAudio, { once: true });
+          } else {
+            setSoundsAvailable(false);
+          }
+        });
+      };
+      
+      playAudio();
     } else {
       // Just adjust volume if already playing
       smoothVolumeChange(audio, volume, 500);

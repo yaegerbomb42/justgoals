@@ -66,17 +66,13 @@ const NotificationSection = () => {
     }
   };
 
-  const handleNtfyChange = (topic) => {
+  const handleScheduleTimeChange = (notificationType, time) => {
     updateNotificationSettings({
-      ntfy: {
-        ...settings.notifications.ntfy,
-        topic,
-        enabled: !!topic
+      schedules: {
+        ...settings.notifications.schedules,
+        [notificationType]: time
       }
     });
-    if (topic) {
-      ntfyNotificationService.init(topic);
-    }
   };
 
   const handleTestNotification = async (type) => {
@@ -144,7 +140,6 @@ const NotificationSection = () => {
   // Add channel preferences state and handler
   const channelOptions = [
     { id: 'browser', label: 'Browser', icon: 'Globe', color: 'blue' },
-    { id: 'sms', label: 'SMS', icon: 'MessageCircle', color: 'pink' },
     { id: 'discord', label: 'Discord', icon: 'MessageCircle', color: 'indigo' },
     { id: 'ntfy', label: 'ntfy', icon: 'Bell', color: 'orange' },
   ];
@@ -249,7 +244,8 @@ const NotificationSection = () => {
           </p>
         </div>
 
-        {/* SMS Notifications */}
+        {/* SMS Notifications - REMOVED: Per user request to remove email to SMS option */}
+        {/*
         <div className="bg-surface-700 rounded-lg p-4 border border-border">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
@@ -292,6 +288,7 @@ const NotificationSection = () => {
             </p>
           </div>
         </div>
+        */}
 
         {/* Discord Notifications */}
         <div className="bg-surface-700 rounded-lg p-4 border border-border">
@@ -641,6 +638,58 @@ const NotificationSection = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Notification Scheduling */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h5 className="font-medium text-text-primary">Notification Schedule</h5>
+                  <p className="text-sm text-text-secondary">Configure when specific notifications are sent</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-text-primary">Morning Motivation</label>
+                  <input
+                    type="time"
+                    value={settings.notifications.schedules?.morningMotivation || '08:00'}
+                    onChange={(e) => handleScheduleTimeChange('morningMotivation', e.target.value)}
+                    className="px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-text-primary">Evening Reflection</label>
+                  <input
+                    type="time"
+                    value={settings.notifications.schedules?.eveningReflection || '20:00'}
+                    onChange={(e) => handleScheduleTimeChange('eveningReflection', e.target.value)}
+                    className="px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-text-primary">Focus Reminders</label>
+                  <input
+                    type="time"
+                    value={settings.notifications.schedules?.focusReminders || '14:00'}
+                    onChange={(e) => handleScheduleTimeChange('focusReminders', e.target.value)}
+                    className="px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-text-primary">Streak Protection</label>
+                  <input
+                    type="time"
+                    value={settings.notifications.schedules?.streakProtection || '21:00'}
+                    onChange={(e) => handleScheduleTimeChange('streakProtection', e.target.value)}
+                    className="px-3 py-2 bg-surface-800 border border-border focus:border-primary rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}

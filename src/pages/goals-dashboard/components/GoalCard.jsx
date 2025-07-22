@@ -240,14 +240,14 @@ const GoalCard = ({ goal, onGoalUpdate, onGoalDelete }) => {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-body-medium text-text-primary">Progress</span>
-            <span className={`text-sm font-body-medium ${getProgressColor(goal.progress)}`}>
-              {goal.progress}%
+            <span className={`text-sm font-body-medium ${getProgressColor(goal.progress || 0)}`}>
+              {goal.progress || 0}%
             </span>
           </div>
           <div className="w-full bg-surface-700 rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${goal.progress}%` }}
+              style={{ width: `${goal.progress || 0}%` }}
             />
           </div>
         </div>
