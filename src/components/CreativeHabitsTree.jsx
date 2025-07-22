@@ -473,6 +473,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 };
