@@ -94,7 +94,7 @@ const Header = () => {
                   <button
                     key={item.path}
                     onClick={() => navigate(item.path)}
-                    className={`flex items-center space-x-2 px-2.5 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
                       isActive
                         ? 'bg-primary text-white shadow-lg'
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
@@ -109,7 +109,7 @@ const Header = () => {
           )}
 
           {/* Right Side Items */}
-          <div className="flex items-center space-x-1 flex-shrink-0">
+          <div className="flex items-center space-x-2">
             {/* Mute/Unmute Global Music */}
             <button
               onClick={() => setMusicMuted((v) => !v)}

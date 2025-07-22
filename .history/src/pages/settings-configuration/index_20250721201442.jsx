@@ -12,7 +12,7 @@ import MealPreferencesSection from './components/MealPreferencesSection';
 
 const SettingsPage = () => {
   const { settings } = useSettings();
-  const [activeSection, setActiveSection] = useState('profile');
+  const [activeSection, setActiveSection] = useState('api');
   const isMobile = settings?.mobile?.detected;
 
   const sections = [

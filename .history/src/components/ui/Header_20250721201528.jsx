@@ -87,14 +87,14 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           {!isMobile && (
-            <nav className="hidden md:flex items-center space-x-0.5 mr-4">
+            <nav className="hidden md:flex items-center space-x-1">
               {navigationItems.map((item) => {
                 const isActive = location.pathname.startsWith(item.path);
                 return (
                   <button
                     key={item.path}
                     onClick={() => navigate(item.path)}
-                    className={`flex items-center space-x-2 px-2.5 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
                       isActive
                         ? 'bg-primary text-white shadow-lg'
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
@@ -109,7 +109,7 @@ const Header = () => {
           )}
 
           {/* Right Side Items */}
-          <div className="flex items-center space-x-1 flex-shrink-0">
+          <div className="flex items-center space-x-2">
             {/* Mute/Unmute Global Music */}
             <button
               onClick={() => setMusicMuted((v) => !v)}
@@ -150,7 +150,7 @@ const Header = () => {
                 onClick={() => setProfileMenuOpen((v) => !v)}
                 title="Profile"
               >
-                {(settings?.profile?.displayName || user?.displayName)?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?'}
+                {user?.displayName?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?'}
               </button>
               <AnimatePresence>
                 {profileMenuOpen && (

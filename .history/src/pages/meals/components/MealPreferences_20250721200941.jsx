@@ -46,6 +46,8 @@ const MealPreferences = ({ preferences }) => {
     }
   };
 
+  const macroTotal = Object.values(formData.macroTargets || {}).reduce((sum, val) => sum + val, 0);
+
   return (
     <div className="max-w-4xl space-y-6">
       {/* Goals Section */}

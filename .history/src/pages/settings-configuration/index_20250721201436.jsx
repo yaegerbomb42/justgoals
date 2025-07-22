@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import Icon from '../../components/ui/Icon';
-import ProfileSection from './components/ProfileSection';
 import ApiKeySection from './components/ApiKeySection';
 import NotificationSection from './components/NotificationSection';
 import AppearanceSection from './components/AppearanceSection';
@@ -12,7 +11,7 @@ import MealPreferencesSection from './components/MealPreferencesSection';
 
 const SettingsPage = () => {
   const { settings } = useSettings();
-  const [activeSection, setActiveSection] = useState('profile');
+  const [activeSection, setActiveSection] = useState('api');
   const isMobile = settings?.mobile?.detected;
 
   const sections = [
