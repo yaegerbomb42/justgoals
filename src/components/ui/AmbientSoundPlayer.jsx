@@ -69,7 +69,12 @@ const AmbientSoundPlayer = ({
 
     if (!soundsAvailable) {
       console.log('Ambient sounds not available in this environment');
-      setIsActive(false); // Disable the player if sounds aren't available
+      // Stop playback and mark as not initialized
+      if (!audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      setIsInitialized(false);
       return;
     }
 
