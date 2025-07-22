@@ -27,7 +27,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
       type: 'root',
       date: today,
       x: 400, // Center position
-      y: 50,
+      y: 80,
       level: 0
     };
     nodes.push(rootNode);
@@ -44,12 +44,17 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
     // Create date nodes in a creative tree layout
     sortedDates.forEach((date, dateIndex) => {
       if (date !== today) {
+        const isEven = dateIndex % 2 === 0;
+        const branchOffset = Math.floor(dateIndex / 2) + 1;
+        
         const dateNode = {
           id: `date-${date}`,
           type: 'date',
           date: date,
-          x: 400 + (dateIndex % 2 === 0 ? -150 : 150) * Math.ceil(dateIndex / 2),
-          y: 120 + dateIndex * 80,
+          x: isEven 
+            ? 400 - (120 + branchOffset * 60)  // Left side
+            : 400 + (120 + branchOffset * 60), // Right side
+          y: 160 + dateIndex * 70,
           level: dateIndex + 1
         };
         nodes.push(dateNode);
@@ -76,9 +81,14 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
           );
           
           if (parentDateNode) {
-            const angleStep = (2 * Math.PI) / Math.max(habits.length, 3);
-            const angle = habitIndex * angleStep - Math.PI / 2;
-            const radius = 80;
+            const habitNodesForDate = habits.filter(h => 
+              h.treeNodes && h.treeNodes.some(hn => hn.date === node.date)
+            ).length;
+            
+            const angleStep = (Math.PI) / Math.max(habitNodesForDate, 1);
+            const startAngle = -Math.PI / 2 - (angleStep * (habitNodesForDate - 1)) / 2;
+            const angle = startAngle + habitIndex * angleStep;
+            const radius = 100;
             
             const habitNode = {
               id: `habit-${habit.id}-${node.id}`,
@@ -89,7 +99,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
               node: node,
               date: node.date,
               x: parentDateNode.x + Math.cos(angle) * radius,
-              y: parentDateNode.y + Math.sin(angle) * radius + 40,
+              y: parentDateNode.y + Math.sin(angle) * radius + 50,
               level: parentDateNode.level + 1,
               color: habitColor
             };
@@ -177,7 +187,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
             ease: "easeInOut"
           }}
         >
-          <Icon name="TreePine" className="w-16 h-16 text-primary" />
+          <Icon name="Trees" className="w-16 h-16 text-primary" />
         </motion.div>
         <h3 className="text-2xl font-semibold text-text-primary mb-3">Your Habit Forest Awaits</h3>
         <p className="text-text-secondary max-w-md mx-auto">
@@ -188,16 +198,33 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
   }
 
   return (
-    <div className="relative w-full min-h-[600px] overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 via-slate-800/30 to-slate-900/50 rounded-xl" />
+    <div className="relative w-full min-h-[600px] overflow-hidden bg-gradient-to-br from-surface to-surface-700 border border-border rounded-xl p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-text-primary mb-1 flex items-center">
+          <motion.div
+            className="w-2 h-2 bg-primary rounded-full mr-3"
+            animate={{ scale: [1, 1.5, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          Creative Habits Tree
+        </h2>
+        <p className="text-sm text-text-secondary">
+          Your habit journey visualized as a living tree
+        </p>
+      </div>
+
+      {/* Tree visualization container */}
+      <div className="relative w-full h-[500px] overflow-hidden rounded-lg">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 via-slate-800/30 to-slate-900/50" />
       
-      {/* Tree visualization */}
-      <svg 
-        className="absolute inset-0 w-full h-full" 
-        viewBox="0 0 800 600"
-        style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
-      >
+        {/* Tree visualization */}
+        <svg 
+          className="absolute inset-0 w-full h-full" 
+          viewBox="0 0 800 500"
+          style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
+        >
         {/* Render branches */}
         <AnimatePresence>
           {treeStructure.branches.map((branch) => (
@@ -231,42 +258,32 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                   r="3"
                   fill={branch.color}
                   opacity={0.6}
-                  initial={{ 
-                    offsetDistance: "0%",
-                    scale: 0
-                  }}
-                  animate={{ 
-                    offsetDistance: "100%",
-                    scale: [0, 1, 0]
-                  }}
-                  transition={{ 
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  style={{
-                    offsetPath: `path('M ${branch.from.x} ${branch.from.y} Q ${(branch.from.x + branch.to.x) / 2} ${branch.from.y + 20} ${branch.to.x} ${branch.to.y}')`
-                  }}
-                />
+                >
+                  <animateMotion
+                    dur="2s"
+                    repeatCount="indefinite"
+                    path={`M ${branch.from.x} ${branch.from.y} Q ${(branch.from.x + branch.to.x) / 2} ${branch.from.y + 20} ${branch.to.x} ${branch.to.y}`}
+                  />
+                </motion.circle>
               )}
             </motion.g>
           ))}
         </AnimatePresence>
-      </svg>
+        </svg>
 
-      {/* Render nodes */}
-      <AnimatePresence>
-        {treeStructure.nodes.map((node, index) => (
-          <motion.div
-            key={node.id}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-            style={{ left: node.x, top: node.y }}
-            initial={{ scale: 0, opacity: 0, y: node.y + 20 }}
-            animate={{ scale: 1, opacity: 1, y: node.y }}
-            transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
-            whileHover={{ scale: 1.1 }}
-            onClick={() => handleNodeClick(node)}
-          >
+        {/* Render nodes */}
+        <AnimatePresence>
+          {treeStructure.nodes.map((node, index) => (
+            <motion.div
+              key={node.id}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+              style={{ left: `${(node.x / 800) * 100}%`, top: `${(node.y / 500) * 100}%` }}
+              initial={{ scale: 0, opacity: 0, y: node.y + 20 }}
+              animate={{ scale: 1, opacity: 1, y: node.y }}
+              transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
+              whileHover={{ scale: 1.1 }}
+              onClick={() => handleNodeClick(node)}
+            >
             {node.type === 'root' && (
               <motion.div 
                 className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full shadow-lg flex items-center justify-center border-4 border-white/20"

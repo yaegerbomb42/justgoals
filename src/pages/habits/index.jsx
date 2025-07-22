@@ -378,7 +378,7 @@ const HabitsPage = () => {
                 onClick={() => setViewMode('creative')}
                 className="px-3 py-1"
               >
-                <Icon name="TreePine" size={16} />
+                <Icon name="Trees" size={16} />
               </Button>
               <Button
                 size="sm"
