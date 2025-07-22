@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import AddHabitModal from '../../components/AddHabitModal';
+import HabitsTreeVisualization from '../../components/HabitsTreeVisualization';
 import habitService from '../../services/habitService';
 
 // Demo version of habits page that works without authentication
@@ -269,8 +270,68 @@ const HabitsPageDemo = () => {
           </div>
         </div>
 
-        {/* Habits Grid */}
-        {habits.length === 0 ? (
+        {/* Habits Tree Visualization */}
+        <HabitsTreeVisualization 
+          habits={habits}
+          onCheckIn={handleCheckIn}
+        />
+
+        {/* Individual Habit Cards (Compact View) */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Quick Actions</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {habits.map((habit) => {
+              const progress = getHabitProgress(habit);
+              const streak = getHabitStreak(habit);
+              
+              return (
+                <div key={habit.id} className="bg-surface border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xl">{habit.emoji}</span>
+                      <div>
+                        <h3 className="font-medium text-text-primary text-sm">{habit.title}</h3>
+                        <p className="text-xs text-text-secondary">{progress.completed}/{progress.total} today</p>
+                      </div>
+                    </div>
+                    
+                    {(() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      const activeNode = habit.treeNodes?.find(node => 
+                        node.date === today && node.status === 'active'
+                      );
+                      const isCompleted = progress.percentage >= 100;
+                      
+                      return !isCompleted && activeNode ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleCheckIn(habit.id, activeNode.id)}
+                          className="px-3 py-1"
+                        >
+                          <Icon name="Plus" size={12} />
+                        </Button>
+                      ) : isCompleted ? (
+                        <Icon name="CheckCircle" className="w-4 h-4 text-success" />
+                      ) : null;
+                    })()}
+                  </div>
+                  
+                  <div className="w-full bg-surface-700 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full transition-all ${
+                        progress.percentage >= 100 ? 'bg-success' : 'bg-primary'
+                      }`}
+                      style={{ width: `${progress.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Empty State */}
+        {habits.length === 0 && (
           <div className="text-center py-12">
             <Icon name="Target" className="w-16 h-16 mx-auto mb-4 text-text-secondary" />
             <h3 className="text-xl font-semibold text-text-primary mb-2">No habits yet</h3>
@@ -284,94 +345,6 @@ const HabitsPageDemo = () => {
             >
               Create Your First Habit
             </Button>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {habits.map((habit) => {
-              const progress = getHabitProgress(habit);
-              const streak = getHabitStreak(habit);
-              
-              return (
-                <div key={habit.id} className="bg-surface border border-border rounded-xl p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-text-primary mb-2">
-                        {habit.emoji} {habit.title}
-                      </h3>
-                      <p className="text-text-secondary mb-3">{habit.description}</p>
-                      
-                      <div className="flex items-center space-x-6">
-                        <div className="flex items-center space-x-2">
-                          <Icon name="Target" className="w-4 h-4 text-primary" />
-                          <span className="text-sm text-text-secondary">
-                            {progress.completed}/{progress.total} goals today
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Icon name="Flame" className="w-4 h-4 text-orange-500" />
-                          <span className="text-sm text-text-secondary">
-                            {streak} day streak
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Icon name="Calendar" className="w-4 h-4 text-blue-500" />
-                          <span className="text-sm text-text-secondary">
-                            {habit.frequency || 'Daily'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      {/* Quick check-in button */}
-                      {(() => {
-                        const today = new Date().toISOString().split('T')[0];
-                        const activeNode = habit.treeNodes?.find(node => 
-                          node.date === today && node.status === 'active'
-                        );
-                        const isCompleted = progress.percentage >= 100;
-                        
-                        return !isCompleted && activeNode ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleCheckIn(habit.id, activeNode.id)}
-                            className="mr-2"
-                          >
-                            <Icon name="Plus" size={16} className="mr-1" />
-                            Check In
-                          </Button>
-                        ) : isCompleted ? (
-                          <div className="flex items-center text-success mr-2">
-                            <Icon name="CheckCircle" size={16} className="mr-1" />
-                            <span className="text-sm">Complete</span>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  </div>
-                  
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-text-primary">Today's Progress</span>
-                      <span className="text-sm text-text-secondary">{progress.percentage}%</span>
-                    </div>
-                    <div className="w-full bg-surface-700 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          progress.percentage >= 100 
-                            ? 'bg-gradient-to-r from-success to-success' 
-                            : 'bg-gradient-to-r from-primary to-secondary'
-                        }`}
-                        style={{ width: `${progress.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
       </div>
