@@ -9,7 +9,10 @@ import { MealsProvider } from './context/MealsContext';
 import { TemporaryTodosProvider } from './context/TemporaryTodosContext';
 import Routes from './Routes';
 import Header from './components/ui/Header';
+import NotificationDisplay from './components/ui/NotificationDisplay';
 import { useNotifications } from './hooks/useNotifications';
+import { useNotificationContext } from './context/NotificationContext';
+import inAppNotificationService from './services/inAppNotificationService';
 import './styles/index.css';
 import FlowingParticlesBackground from './components/ui/FlowingParticlesBackground';
 import AmbientSoundPlayer from './components/ui/AmbientSoundPlayer';
@@ -18,8 +21,24 @@ import { useSettings } from './context/SettingsContext';
 
 // Notification wrapper component
 const NotificationWrapper = ({ children }) => {
+  const notificationContext = useNotificationContext();
+  
   // Initialize notifications
   useNotifications();
+  
+  // Initialize in-app notification service
+  React.useEffect(() => {
+    if (notificationContext) {
+      inAppNotificationService.init(notificationContext);
+      
+      // Add test functions for development
+      if (process.env.NODE_ENV === 'development') {
+        window.testNotification = () => inAppNotificationService.showTest();
+        window.inAppNotificationService = inAppNotificationService;
+        console.log('Development mode: Use window.testNotification() to test notifications');
+      }
+    }
+  }, [notificationContext]);
   
   return children;
 };
@@ -83,6 +102,8 @@ const App = () => {
           >
             <Header />
             <Routes />
+            {/* In-app notification display */}
+            <NotificationDisplay />
           </div>
         </NotificationWrapper>
       </ErrorBoundary>
