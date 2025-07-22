@@ -284,6 +284,211 @@ class AchievementService {
         category: 'meals',
         condition: (userData) => userData.completedMeals >= 50,
         points: 100
+      },
+
+      // Additional Goal Achievements
+      goalVisionary: {
+        id: 'goalVisionary',
+        title: 'Goal Visionary',
+        description: 'Create 25 goals',
+        icon: '🌟',
+        category: 'goals',
+        condition: (userData) => userData.totalGoals >= 25,
+        points: 75
+      },
+      goalLegend: {
+        id: 'goalLegend',
+        title: 'Goal Legend',
+        description: 'Complete 25 goals',
+        icon: '🏅',
+        category: 'goals',
+        condition: (userData) => userData.completedGoals >= 25,
+        points: 150
+      },
+      goalArchitect: {
+        id: 'goalArchitect',
+        title: 'Goal Architect',
+        description: 'Create goals in 5 different categories',
+        icon: '🏗️',
+        category: 'goals',
+        condition: (userData) => userData.goalCategories >= 5,
+        points: 60
+      },
+
+      // Enhanced Streak Achievements
+      fireStarter: {
+        id: 'fireStarter',
+        title: 'Fire Starter',
+        description: 'Achieve your first 3-day streak',
+        icon: '🔥',
+        category: 'streaks',
+        condition: (userData) => userData.longestStreak >= 3,
+        points: 15
+      },
+      burnBright: {
+        id: 'burnBright',
+        title: 'Burn Bright',
+        description: 'Maintain a 50-day streak',
+        icon: '🌋',
+        category: 'streaks',
+        condition: (userData) => userData.longestStreak >= 50,
+        points: 200
+      },
+      ultraStreak: {
+        id: 'ultraStreak',
+        title: 'Ultra Streak',
+        description: 'Achieve a 100-day streak',
+        icon: '⚡',
+        category: 'streaks',
+        condition: (userData) => userData.longestStreak >= 100,
+        points: 500
+      },
+
+      // Advanced Focus Achievements
+      focusNinja: {
+        id: 'focusNinja',
+        title: 'Focus Ninja',
+        description: 'Complete 100 focus sessions',
+        icon: '🥷',
+        category: 'focus',
+        condition: (userData) => userData.totalFocusSessions >= 100,
+        points: 150
+      },
+      deepWork: {
+        id: 'deepWork',
+        title: 'Deep Work Master',
+        description: 'Complete a 4-hour focus session',
+        icon: '🧘',
+        category: 'focus',
+        condition: (userData) => userData.longestFocusSession >= 240, // 240 minutes = 4 hours
+        points: 100
+      },
+      focusMarathon: {
+        id: 'focusMarathon',
+        title: 'Focus Marathon',
+        description: 'Complete 50 hours of total focus time',
+        icon: '🏃‍♂️',
+        category: 'focus',
+        condition: (userData) => userData.totalFocusTime >= 3000, // 3000 minutes = 50 hours
+        points: 250
+      },
+
+      // Special Time-based Achievements
+      midnightWarrior: {
+        id: 'midnightWarrior',
+        title: 'Midnight Warrior',
+        description: 'Complete a goal after midnight',
+        icon: '🌙',
+        category: 'special',
+        condition: (userData) => userData.midnightCompletions >= 1,
+        points: 30
+      },
+      quickStart: {
+        id: 'quickStart',
+        title: 'Quick Start',
+        description: 'Complete a goal within an hour of creating it',
+        icon: '⚡',
+        category: 'special',
+        condition: (userData) => userData.quickCompletions >= 1,
+        points: 25
+      },
+      perfectWeek: {
+        id: 'perfectWeek',
+        title: 'Perfect Week',
+        description: 'Complete all daily goals for 7 consecutive days',
+        icon: '💯',
+        category: 'special',
+        condition: (userData) => userData.perfectWeeks >= 1,
+        points: 80
+      },
+
+      // Milestone & Achievement Focused
+      milestoneCollector: {
+        id: 'milestoneCollector',
+        title: 'Milestone Collector',
+        description: 'Complete 100 milestones',
+        icon: '🏆',
+        category: 'milestones',
+        condition: (userData) => userData.completedMilestones >= 100,
+        points: 120
+      },
+      speedRunner: {
+        id: 'speedRunner',
+        title: 'Speed Runner',
+        description: 'Complete 10 milestones in one day',
+        icon: '💨',
+        category: 'milestones',
+        condition: (userData) => userData.milestonesInOneDay >= 10,
+        points: 60
+      },
+
+      // Social & Engagement Achievements
+      shareExpert: {
+        id: 'shareExpert',
+        title: 'Share Expert',
+        description: 'Share 25 achievements or progress updates',
+        icon: '📢',
+        category: 'special',
+        condition: (userData) => userData.sharesCount >= 25,
+        points: 40
+      },
+      motivator: {
+        id: 'motivator',
+        title: 'Motivator',
+        description: 'Use the AI assistant 50 times',
+        icon: '🤖',
+        category: 'special',
+        condition: (userData) => userData.aiInteractions >= 50,
+        points: 70
+      },
+
+      // Creative & Exploration Achievements
+      explorer: {
+        id: 'explorer',
+        title: 'Explorer',
+        description: 'Use every feature in the app at least once',
+        icon: '🗺️',
+        category: 'special',
+        condition: (userData) => userData.featuresUsed >= 8, // Assuming 8 main features
+        points: 90
+      },
+      customizer: {
+        id: 'customizer',
+        title: 'Customizer',
+        description: 'Change your theme and background effects',
+        icon: '🎨',
+        category: 'special',
+        condition: (userData) => userData.themeChanges >= 3,
+        points: 20
+      },
+      dataGeek: {
+        id: 'dataGeek',
+        title: 'Data Geek',
+        description: 'View analytics dashboard 20 times',
+        icon: '📊',
+        category: 'special',
+        condition: (userData) => userData.analyticsViews >= 20,
+        points: 35
+      },
+
+      // Advanced Meal Achievements
+      healthyChoices: {
+        id: 'healthyChoices',
+        title: 'Healthy Choices',
+        description: 'Log 100 healthy meals',
+        icon: '🥗',
+        category: 'meals',
+        condition: (userData) => userData.healthyMeals >= 100,
+        points: 80
+      },
+      balanceSeeker: {
+        id: 'balanceSeeker',
+        title: 'Balance Seeker',
+        description: 'Maintain balanced macros for 14 days',
+        icon: '⚖️',
+        category: 'meals',
+        condition: (userData) => userData.balancedMacroStreak >= 14,
+        points: 65
       }
     };
 
