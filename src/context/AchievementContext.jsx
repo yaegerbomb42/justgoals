@@ -7,14 +7,14 @@ import firestoreService from '../services/firestoreService';
 
 const AchievementContext = createContext(null);
 
-export const AchievementProvider = ({ children }) => {
+const AchievementProvider = React.memo(({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [achievements, setAchievements] = useState([]);
   const [userPoints, setUserPoints] = useState(0);
   const [newAchievements, setNewAchievements] = useState([]);
   const [showAchievementModal, setShowAchievementModal] = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
-  const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, success, error
+  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'success', 'error'
   const [lastSync, setLastSync] = useState(null);
   const [errorLogs, setErrorLogs] = useState([]);
   const [error, setError] = useState(null);
@@ -43,10 +43,10 @@ export const AchievementProvider = ({ children }) => {
     }
   }, [user]);
 
-  const loadUserAchievements = () => {
+  const loadUserAchievements = async () => {
     if (!user?.id) return;
     try {
-      const userAchievements = achievementService.getAllAchievementsWithProgress(user.id);
+      const userAchievements = await achievementService.getAllAchievementsWithProgress(user);
       const points = achievementService.getUserPoints(user.id);
       setAchievements(Array.isArray(userAchievements) ? userAchievements : []);
       setUserPoints(points);
@@ -58,10 +58,10 @@ export const AchievementProvider = ({ children }) => {
   };
 
   // Check for new achievements
-  const checkAchievements = () => {
+  const checkAchievements = async () => {
     if (!user?.id) return [];
 
-    const newAchievements = achievementService.checkAchievements(user.id);
+    const newAchievements = await achievementService.checkAchievements(user);
     
     if (newAchievements.length > 0) {
       setNewAchievements(newAchievements);
@@ -72,7 +72,7 @@ export const AchievementProvider = ({ children }) => {
       setUserPoints(updatedPoints);
       
       // Reload achievements
-      loadUserAchievements();
+      await loadUserAchievements();
       
       // Play achievement sound
       playAchievementSound();
@@ -229,12 +229,19 @@ export const AchievementProvider = ({ children }) => {
       )}
     </AchievementContext.Provider>
   );
-};
+});
 
+// Add display name for debugging
+AchievementProvider.displayName = 'AchievementProvider';
+
+// Export the hook separately for better HMR compatibility
 export const useAchievements = () => {
   const context = useContext(AchievementContext);
   if (!context) {
     throw new Error('useAchievements must be used within an AchievementProvider');
   }
   return context;
-}; 
+};
+
+// Default export the provider
+export default AchievementProvider; 

@@ -83,6 +83,19 @@ export const calculateUserStreak = (userId) => {
   }
 
   try {
+    // Import daily activity service for more accurate streak calculation
+    import('../services/dailyActivityService').then(module => {
+      const dailyActivityService = module.default;
+      const activityStreak = dailyActivityService.getStreak(userId);
+      
+      // Fall back to milestone-based calculation if no activity data
+      if (activityStreak.currentStreak > 0) {
+        return activityStreak;
+      }
+    }).catch(() => {
+      // Fallback to original calculation if service not available
+    });
+
     // Get milestones data
     const milestonesKey = `milestones_data_${userId}`;
     const milestonesData = localStorage.getItem(milestonesKey);

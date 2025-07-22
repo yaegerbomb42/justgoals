@@ -59,7 +59,10 @@ export const TemporaryTodosProvider = ({ children }) => {
 
   // Add a new todo
   const addTodo = async (todoText, priority = 0) => {
-    if (!user?.uid || !todoText.trim()) return null;
+    if (!user?.uid || !todoText.trim()) {
+      console.log('Cannot add todo: user not authenticated or empty text');
+      return null;
+    }
 
     try {
       console.log('Adding new todo:', todoText);
@@ -76,11 +79,15 @@ export const TemporaryTodosProvider = ({ children }) => {
       const savedTodo = await firestoreService.saveTempTodo(user.uid, newTodo);
       console.log('Todo saved successfully:', savedTodo);
       
+      // Force state update and reload
       setTodos(prev => {
         const updated = [savedTodo, ...prev];
         console.log('Updated todos list:', updated);
         return updated;
       });
+      
+      // Also reload todos to ensure consistency
+      setTimeout(() => loadTodos(), 100);
       
       return savedTodo;
     } catch (err) {

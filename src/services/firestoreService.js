@@ -962,16 +962,16 @@ class FirestoreService {
   async getTempTodos(userId) {
     try {
       const todosRef = collection(this.db, `users/${userId}/tempTodos`);
-      const q = query(
-        todosRef, 
-        where('archived', '!=', true), 
-        orderBy('createdAt', 'desc')
-      );
+      // Use simpler query to avoid index requirements, filter archived locally
+      const q = query(todosRef, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
-      const todos = querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const allTodos = querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter out archived todos locally
+      const activeTodos = allTodos.filter(todo => !todo.archived);
       
       // Sort by priority locally (handle missing priority fields)
-      return todos.sort((a, b) => {
+      return activeTodos.sort((a, b) => {
         const priorityA = a.priority || 0;
         const priorityB = b.priority || 0;
         if (priorityA !== priorityB) {
@@ -984,19 +984,43 @@ class FirestoreService {
       });
     } catch (error) {
       console.error('Error getting temp todos from Firestore:', error);
-      return [];
+      // Fallback to localStorage for offline support
+      try {
+        const localKey = `tempTodos_${userId}`;
+        const localData = JSON.parse(localStorage.getItem(localKey) || '[]');
+        return localData.filter(todo => !todo.archived);
+      } catch (localError) {
+        console.error('Error getting todos from localStorage:', localError);
+        return [];
+      }
     }
   }
 
   async getArchivedTempTodos(userId) {
     try {
       const todosRef = collection(this.db, `users/${userId}/tempTodos`);
-      const q = query(todosRef, where('archived', '==', true), orderBy('completedAt', 'desc'));
+      // Use simpler query to avoid index requirements, sort locally
+      const q = query(todosRef, where('archived', '==', true));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const archivedTodos = querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Sort by completedAt locally
+      return archivedTodos.sort((a, b) => {
+        const dateA = a.completedAt?.toDate?.() || new Date(a.completedAt) || new Date(0);
+        const dateB = b.completedAt?.toDate?.() || new Date(b.completedAt) || new Date(0);
+        return dateB - dateA; // Most recent first
+      });
     } catch (error) {
       console.error('Error getting archived temp todos from Firestore:', error);
-      return [];
+      // Fallback to localStorage for offline support
+      try {
+        const localKey = `tempTodos_${userId}`;
+        const localData = JSON.parse(localStorage.getItem(localKey) || '[]');
+        return localData.filter(todo => todo.archived);
+      } catch (localError) {
+        console.error('Error getting archived todos from localStorage:', localError);
+        return [];
+      }
     }
   }
 

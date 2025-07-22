@@ -16,8 +16,11 @@ export default async function handler(req, res) {
     const clientSecret = process.env.VITE_GOOGLE_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
+      console.error('OAuth credentials not configured:', { clientId: !!clientId, clientSecret: !!clientSecret });
       return res.status(500).json({ error: 'OAuth credentials not configured' });
     }
+
+    console.log('Attempting OAuth token exchange with:', { clientId, redirectUri, hasCode: !!code });
 
     // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -36,11 +39,19 @@ export default async function handler(req, res) {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
-      console.error('Google OAuth error:', errorData);
-      return res.status(400).json({ error: 'Failed to exchange authorization code' });
+      console.error('Google OAuth token exchange failed:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorData
+      });
+      return res.status(400).json({ 
+        error: 'Failed to exchange authorization code',
+        details: errorData
+      });
     }
 
     const tokenData = await tokenResponse.json();
+    console.log('OAuth token exchange successful');
 
     // Return the tokens to the client
     res.status(200).json({
@@ -53,6 +64,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('OAuth handler error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 } 

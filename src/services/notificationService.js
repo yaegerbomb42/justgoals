@@ -1,6 +1,7 @@
 import { useSettings } from '../context/SettingsContext';
 import emailNotificationService from './emailNotificationService';
-import smsNotificationService from './smsNotificationService';
+import inAppNotificationService from './inAppNotificationService';
+import ntfyNotificationService from './ntfyNotificationService';
 import discordNotificationService from './discordNotificationService';
 
 class NotificationService {
@@ -100,13 +101,12 @@ class NotificationService {
     const results = {
       browser: false,
       email: false,
-      sms: false,
       discord: false,
       ntfy: false
     };
 
     // Get user-selected channels (default to all if not set)
-    const channelPrefs = settings?.notifications?.channelPreferences || ['browser', 'sms', 'discord', 'ntfy'];
+    const channelPrefs = settings?.notifications?.channelPreferences || ['browser', 'discord', 'ntfy'];
     if (channelPrefs.length === 0) {
       console.warn('No notification channels selected. No notifications will be sent.');
       return results;
@@ -119,17 +119,6 @@ class NotificationService {
         results.browser = true;
       } catch (error) {
         console.error('Browser notification failed:', error);
-      }
-    }
-
-    // SMS notifications
-    if (channelPrefs.includes('sms') && settings?.notifications?.sms?.enabled && settings?.notifications?.sms?.phoneNumber && settings?.notifications?.sms?.carrier) {
-      try {
-        smsNotificationService.init(settings.notifications.sms.phoneNumber, settings.notifications.sms.carrier);
-        await smsNotificationService.sendSMS(body, { subject: title, ...data });
-        results.sms = true;
-      } catch (error) {
-        console.error('SMS notification failed:', error);
       }
     }
 

@@ -1,4 +1,6 @@
 // Achievement system for tracking user progress and awarding badges
+import dailyActivityService from './dailyActivityService';
+import * as entityService from './entityManagementService';
 
 class AchievementService {
   constructor() {
@@ -503,8 +505,8 @@ class AchievementService {
   }
 
   // Get user data for achievement checking
-  getUserData(userId) {
-    if (!userId) return {
+  async getUserData(user) {
+    if (!user) return {
       totalGoals: 0,
       completedGoals: 0,
       totalMilestones: 0,
@@ -512,6 +514,7 @@ class AchievementService {
       totalFocusSessions: 0,
       totalFocusTime: 0,
       currentStreak: 0,
+      longestStreak: 0,
       earlyBirdMilestones: 0,
       nightOwlMilestones: 0,
       weekendStreak: 0,
@@ -528,23 +531,48 @@ class AchievementService {
       mealCompletionStreak: 0,
       proteinStreak: 0
     };
+    
     try {
-      // Get goals data
-      const goalsKey = `goals_data_${userId}`;
+      // Get goals data from entity service (properly integrated with Firestore/localStorage sync)
       let goalsData = [];
-      try { goalsData = JSON.parse(localStorage.getItem(goalsKey) || '[]'); } catch (e) { goalsData = []; }
-      // Get milestones data
-      const milestonesKey = `milestones_data_${userId}`;
+      try { 
+        goalsData = await entityService.getGoals(user) || [];
+      } catch (e) { 
+        console.warn('Failed to get goals from entity service, falling back to localStorage');
+        const goalsKey = `goals_data_${user.uid || user.id}`;
+        goalsData = JSON.parse(localStorage.getItem(goalsKey) || '[]');
+      }
+      
+      // Get milestones data from entity service  
       let milestonesData = [];
-      try { milestonesData = JSON.parse(localStorage.getItem(milestonesKey) || '[]'); } catch (e) { milestonesData = []; }
-      // Get focus session data
+      try { 
+        milestonesData = await entityService.getMilestones(user) || [];
+      } catch (e) { 
+        console.warn('Failed to get milestones from entity service, falling back to localStorage');
+        const milestonesKey = `milestones_data_${user.uid || user.id}`;
+        milestonesData = JSON.parse(localStorage.getItem(milestonesKey) || '[]');
+      }
+      
+      // Get focus session data (matching focus mode keys)
+      const userId = user.uid || user.id;
       const focusStatsKey = `focus_session_stats_${userId}`;
       let focusStats = {};
       try { focusStats = JSON.parse(localStorage.getItem(focusStatsKey) || '{}'); } catch (e) { focusStats = {}; }
-      // Get focus history
+      
+      // Get focus history (try multiple key formats)
       const focusHistoryKey = `focus_session_history_${userId}`;
+      const focusSessionsKey = `focus_session_sessions_${userId}`;
       let focusHistory = [];
-      try { focusHistory = JSON.parse(localStorage.getItem(focusHistoryKey) || '[]'); } catch (e) { focusHistory = []; }
+      try { 
+        focusHistory = JSON.parse(localStorage.getItem(focusHistoryKey) || '[]');
+        // If empty, try the alternative key format
+        if (focusHistory.length === 0) {
+          focusHistory = JSON.parse(localStorage.getItem(focusSessionsKey) || '[]');
+        }
+      } catch (e) { 
+        focusHistory = []; 
+      }
+      
       // Get journal entries
       const journalKey = `journal_entries_${userId}`;
       let journalEntries = [];
@@ -562,6 +590,11 @@ class AchievementService {
       const mealCompletionsKey = `meal_completions_data_${userId}`;
       let mealCompletionsData = [];
       try { mealCompletionsData = JSON.parse(localStorage.getItem(mealCompletionsKey) || '[]'); } catch (e) { mealCompletionsData = []; }
+      
+      // Get daily activity streak (improved streak calculation)
+      const activityStreak = dailyActivityService.getStreak(userId);
+      const activityStats = dailyActivityService.getActivityStats(userId);
+      
       // Calculate streak data
       const streakData = this.calculateStreakData(milestonesData);
       // Calculate special achievements data
@@ -570,6 +603,7 @@ class AchievementService {
       const mealStats = this.calculateMealStats(mealsData, mealPlansData, mealCompletionsData);
       // Calculate completed tasks (goals + milestones)
       const completedTasks = (Array.isArray(goalsData) ? goalsData.filter(goal => goal.progress >= 100).length : 0) + (Array.isArray(milestonesData) ? milestonesData.filter(m => m.completed).length : 0);
+      
       return {
         totalGoals: Array.isArray(goalsData) ? goalsData.length : 0,
         completedGoals: Array.isArray(goalsData) ? goalsData.filter(goal => goal.progress >= 100).length : 0,
@@ -577,11 +611,13 @@ class AchievementService {
         completedMilestones: Array.isArray(milestonesData) ? milestonesData.filter(m => m.completed).length : 0,
         totalFocusSessions: focusStats.sessionsToday || 0,
         totalFocusTime: focusStats.totalFocusTime || 0,
-        currentStreak: streakData.currentStreak || 0,
+        // Use daily activity service for more accurate streak calculation
+        currentStreak: Math.max(activityStreak.currentStreak, streakData.currentStreak || 0),
+        longestStreak: Math.max(activityStreak.longestStreak, streakData.longestStreak || 0),
         earlyBirdMilestones: specialData.earlyBird || 0,
         nightOwlMilestones: specialData.nightOwl || 0,
         weekendStreak: specialData.weekendStreak || 0,
-        consecutiveDays: specialData.consecutiveDays || 0,
+        consecutiveDays: Math.max(activityStats.totalDays, specialData.consecutiveDays || 0),
         totalJournalEntries: Array.isArray(journalEntries) ? journalEntries.length : 0,
         completedTasks,
         // Meal-related data
@@ -790,10 +826,11 @@ class AchievementService {
   }
 
   // Check and award achievements
-  checkAchievements(userId) {
-    const userData = this.getUserData(userId);
+  async checkAchievements(user) {
+    const userData = await this.getUserData(user);
     if (!userData) return [];
 
+    const userId = user?.uid || user?.id;
     const userAchievements = this.getUserAchievements(userId);
     const newAchievements = [];
 
@@ -885,8 +922,8 @@ class AchievementService {
   }
 
   // Get achievement progress with detailed state
-  getAchievementProgress(userId, achievementId) {
-    if (!userId || !achievementId) {
+  async getAchievementProgress(user, achievementId) {
+    if (!user || !achievementId) {
       return { progress: 0, total: 0, percentage: 0, state: 'not-started' };
     }
 
@@ -895,7 +932,7 @@ class AchievementService {
       return { progress: 0, total: 0, percentage: 0, state: 'not-started' };
     }
 
-    const userData = this.getUserData(userId);
+    const userData = await this.getUserData(user);
     if (!userData) {
       return { progress: 0, total: 0, percentage: 0, state: 'not-started' };
     }
@@ -1133,12 +1170,13 @@ class AchievementService {
   }
 
   // Get all achievements with progress
-  getAllAchievementsWithProgress(userId) {
+  async getAllAchievementsWithProgress(user) {
+    const userId = user?.uid || user?.id;
     const userAchievements = this.getUserAchievements(userId);
     
-    return Object.values(this.achievements).map(achievement => {
+    return Promise.all(Object.values(this.achievements).map(async achievement => {
       const userAchievement = userAchievements.find(ua => ua.id === achievement.id);
-      const progress = this.getAchievementProgress(userId, achievement.id);
+      const progress = await this.getAchievementProgress(user, achievement.id);
       
       return {
         ...achievement,
@@ -1148,12 +1186,12 @@ class AchievementService {
         total: progress.total,
         percentage: progress.percentage
       };
-    });
+    }));
   }
 
   // Get achievements by category
-  getAchievementsByCategory(userId) {
-    const achievements = this.getAllAchievementsWithProgress(userId);
+  async getAchievementsByCategory(user) {
+    const achievements = await this.getAllAchievementsWithProgress(user);
     const categorized = {};
 
     Object.keys(this.categories).forEach(category => {
@@ -1175,8 +1213,8 @@ class AchievementService {
   }
 
   // Get next achievable achievements
-  getNextAchievements(userId) {
-    const achievements = this.getAllAchievementsWithProgress(userId);
+  async getNextAchievements(user) {
+    const achievements = await this.getAllAchievementsWithProgress(user);
     return achievements
       .filter(a => !a.earned && a.percentage > 0)
       .sort((a, b) => b.percentage - a.percentage)

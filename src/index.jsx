@@ -6,7 +6,7 @@ import "./styles/index.css";
 import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { PlanDataProvider } from './context/PlanDataContext';
-import { AchievementProvider } from './context/AchievementContext';
+import AchievementProvider from './context/AchievementContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { MealsProvider } from './context/MealsContext';
 import { TemporaryTodosProvider } from './context/TemporaryTodosContext';

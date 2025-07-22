@@ -217,13 +217,21 @@ const GoalFormWizard = ({ onGoalSave, onStepChange, currentStep }) => {
 
   const handleSave = () => {
     if (validateStep(currentStep)) {
-      // Ensure goal starts with proper defaults
+      // Ensure goal starts with proper defaults and handle date properly
       const goalData = {
         ...formData,
         progress: 0, // Always start at 0 progress
         completed: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        // Handle targetDate properly in user's local timezone
+        targetDate: formData.targetDate ? (() => {
+          // Parse the date input as local date (YYYY-MM-DD)
+          const localDate = new Date(formData.targetDate + 'T00:00:00');
+          // Set to end of day in local timezone to avoid date shifting
+          localDate.setHours(23, 59, 59, 999);
+          return localDate.toISOString();
+        })() : null,
         milestones: [],
         id: `goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       };

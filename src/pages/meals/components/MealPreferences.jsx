@@ -4,43 +4,122 @@ import { useMeals } from '../../../context/MealsContext';
 import Icon from '../../../components/ui/Icon';
 import MacroSlider from '../../../components/ui/MacroSlider';
 
-const MealPreferences = ({ preferences }) => {
-  const { updateMealPreferences } = useMeals();
-  const [formData, setFormData] = useState(preferences);
+const MealPreferences = ({ preferences = {}, onError }) => {
+  const [contextError, setContextError] = useState(null);
+  
+  // Safely get context with error handling
+  let mealsContext = null;
+  try {
+    mealsContext = useMeals();
+  } catch (error) {
+    console.error('Error accessing MealsContext:', error);
+    setContextError(error.message);
+    if (onError) onError('Unable to access meal preferences service');
+  }
+
+  const updateMealPreferences = mealsContext?.updateMealPreferences;
+
+  const [formData, setFormData] = useState(() => {
+    try {
+      return preferences && typeof preferences === 'object' ? { ...preferences } : {
+        goal: 'maintain',
+        dailyCalories: 2000,
+        macroTargets: { protein: 25, carbs: 45, fat: 30 },
+        dietaryRestrictions: [],
+        allergens: [],
+        preferredMealCount: 3,
+        cookingTime: 'medium'
+      };
+    } catch (error) {
+      console.error('Error initializing form data:', error);
+      if (onError) onError('Error initializing meal preferences');
+      return {
+        goal: 'maintain',
+        dailyCalories: 2000,
+        macroTargets: { protein: 25, carbs: 45, fat: 30 },
+        dietaryRestrictions: [],
+        allergens: [],
+        preferredMealCount: 3,
+        cookingTime: 'medium'
+      };
+    }
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setFormData(preferences);
-  }, [preferences]);
+    try {
+      if (preferences && typeof preferences === 'object') {
+        setFormData(prev => ({ ...prev, ...preferences }));
+      }
+    } catch (error) {
+      console.error('Error updating preferences:', error);
+      if (onError) onError('Error updating preferences');
+    }
+  }, [preferences, onError]);
+
+  // Show error state if context is unavailable
+  if (contextError) {
+    return (
+      <div className="bg-error/10 border border-error/20 rounded-lg p-4">
+        <div className="flex items-center space-x-2">
+          <Icon name="AlertTriangle" className="w-5 h-5 text-error" />
+          <span className="text-error font-medium">Service Unavailable</span>
+        </div>
+        <p className="text-text-secondary text-sm mt-2">
+          Unable to load meal preferences service. Please refresh the page and try again.
+        </p>
+      </div>
+    );
+  }
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    try {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    } catch (error) {
+      console.error('Error updating form data:', error);
+      if (onError) onError(error.message);
+    }
   };
 
   const handleMacroChange = (newMacroTargets) => {
-    setFormData(prev => ({
-      ...prev,
-      macroTargets: newMacroTargets
-    }));
+    try {
+      setFormData(prev => ({
+        ...prev,
+        macroTargets: newMacroTargets
+      }));
+    } catch (error) {
+      console.error('Error updating macro targets:', error);
+      if (onError) onError(error.message);
+    }
   };
 
   const handleArrayChange = (field, value) => {
-    const array = value.split(',').map(item => item.trim()).filter(item => item);
-    setFormData(prev => ({
-      ...prev,
-      [field]: array
-    }));
+    try {
+      const array = value ? value.split(',').map(item => item.trim()).filter(item => item) : [];
+      setFormData(prev => ({
+        ...prev,
+        [field]: array
+      }));
+    } catch (error) {
+      console.error('Error updating array field:', error);
+      if (onError) onError(error.message);
+    }
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await updateMealPreferences(formData);
+      if (updateMealPreferences && typeof updateMealPreferences === 'function') {
+        await updateMealPreferences(formData);
+      } else {
+        throw new Error('updateMealPreferences function not available');
+      }
     } catch (error) {
       console.error('Error saving preferences:', error);
+      if (onError) onError('Failed to save meal preferences: ' + error.message);
     } finally {
       setIsSaving(false);
     }

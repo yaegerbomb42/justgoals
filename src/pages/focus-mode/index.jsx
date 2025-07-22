@@ -75,6 +75,7 @@ const FocusMode = () => {
   const [localSessionSettings, setLocalSessionSettings] = useState({
     background: 'solid',
     completionSound: 'chime',
+    selectedAmbientSound: 'none'
   });
 
   const [isNotesOpen, setIsNotesOpen] = useState(false);
@@ -362,18 +363,21 @@ const FocusMode = () => {
       <AmbientSoundPlayer
         soundType={localSessionSettings.selectedAmbientSound || 'none'}
         volume={focusSettings.soundVolume || 0.5}
-        isActive={isTimerActive && focusSettings.ambientSounds}
+        isActive={isTimerActive && (focusSettings.ambientSounds !== false) && localSessionSettings.selectedAmbientSound !== 'none'}
       />
       
       {/* Background Effects */}
       {focusSettings.backgroundEffects && localSessionSettings.background === 'flowing-particles' && (
-        <FlowingParticlesBackground />
+        <FlowingParticlesBackground effect="particles" />
+      )}
+      {focusSettings.backgroundEffects && localSessionSettings.background === 'creative-flow' && (
+        <FlowingParticlesBackground effect="creative" />
       )}
       {focusSettings.backgroundEffects && localSessionSettings.background === 'abstract-waves' && (
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 animate-pulse"></div>
-          <div className="absolute inset-0 bg-gradient-to-l from-accent/20 via-primary/20 to-secondary/20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        </div>
+        <FlowingParticlesBackground effect="abstract" />
+      )}
+      {focusSettings.backgroundEffects && localSessionSettings.background === 'motivational-energy' && (
+        <FlowingParticlesBackground effect="motivational" />
       )}
       {focusSettings.backgroundEffects && localSessionSettings.background === 'confetti' && (
         <div className="absolute inset-0 opacity-20">

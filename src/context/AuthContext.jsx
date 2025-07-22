@@ -5,6 +5,7 @@ import { auth, googleProvider } from '../services/firebaseClient';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup } from 'firebase/auth';
 import firestoreService from '../services/firestoreService';
 import integrationService from '../services/integrationService';
+import dailyActivityService from '../services/dailyActivityService';
 
 const AuthContext = createContext(null);
 
@@ -17,15 +18,24 @@ export const AuthProviderComponent = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Use Firebase Auth user
+        // Use Firebase Auth user with full metadata
         const userData = {
           id: firebaseUser.uid,
+          uid: firebaseUser.uid,
           email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
           name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
           picture: firebaseUser.photoURL || undefined,
+          photoURL: firebaseUser.photoURL,
           isGoogleUser: firebaseUser.providerData.some(p => p.providerId === 'google.com'),
+          metadata: firebaseUser.metadata, // Include full Firebase metadata
+          providerData: firebaseUser.providerData,
         };
         setUser(userData);
+        
+        // Track daily activity when user logs in or app loads
+        dailyActivityService.trackDailyActivity(userData.id);
+        
         // Sync data from Firestore to localStorage for offline fallback
         if (userData && userData.id) {
           firestoreService.robustSyncUserData(userData.id)

@@ -153,16 +153,77 @@ const FlowingParticlesBackground = ({ effect: propEffect }) => {
       draw() {
         if (!ctx) return;
         
-        // Add glow effect for enhanced visibility
-        if (effect !== 'particles') {
-          ctx.shadowColor = this.color;
-          ctx.shadowBlur = effect === 'abstract' ? 15 : effect === 'motivational' ? 10 : 8;
+        // Apply effect-specific visual styles
+        switch (effect) {
+          case 'creative':
+            // Rainbow rotating colors for creativity
+            const time = Date.now() * 0.001;
+            const hue = (time * 30 + this.x * 0.01) % 360;
+            this.color = `hsla(${hue}, 70%, 60%, 0.8)`;
+            
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 12;
+            
+            // Draw as rotating triangle for creative effect
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(time + this.x * 0.01);
+            ctx.beginPath();
+            ctx.moveTo(0, -this.size);
+            ctx.lineTo(-this.size * 0.866, this.size * 0.5);
+            ctx.lineTo(this.size * 0.866, this.size * 0.5);
+            ctx.closePath();
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.restore();
+            break;
+            
+          case 'motivational':
+            // Pulsing bright blue squares for energy
+            const pulse = Math.sin(Date.now() * 0.005 + this.x * 0.01) * 0.3 + 0.7;
+            this.color = `rgba(59, 130, 246, ${pulse})`;
+            
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 8;
+            
+            // Draw as pulsing squares
+            const size = this.size * pulse;
+            ctx.beginPath();
+            ctx.rect(this.x - size/2, this.y - size/2, size, size);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            break;
+            
+          case 'abstract':
+            // Flowing purple/violet shapes with trails
+            const opacity = Math.sin(Date.now() * 0.003 + this.y * 0.01) * 0.4 + 0.6;
+            this.color = `rgba(168, 85, 247, ${opacity})`;
+            
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 15;
+            
+            // Draw as flowing diamond shapes
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath();
+            ctx.rect(-this.size/2, -this.size/2, this.size, this.size);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.restore();
+            break;
+            
+          default:
+            // Standard circular particles
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 5;
+            
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            break;
         }
-        
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-        ctx.fillStyle = this.color;
-        ctx.fill();
         
         // Reset shadow
         ctx.shadowBlur = 0;

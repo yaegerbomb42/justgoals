@@ -268,6 +268,19 @@ const TemporaryTodosPage = () => {
         {loading && (
           <div className="flex items-center justify-center py-12">
             <Icon name="Loader2" className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-text-secondary">Loading todos...</span>
+          </div>
+        )}
+
+        {/* Debug Info for Development */}
+        {!loading && process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-3 bg-info/10 border border-info/20 rounded-lg text-xs">
+            <p><strong>Debug Info:</strong></p>
+            <p>User authenticated: {isAuthenticated ? 'Yes' : 'No'}</p>
+            <p>User ID: {user?.uid || 'None'}</p>
+            <p>Todos count: {todos?.length || 0}</p>
+            <p>Loading: {loading ? 'Yes' : 'No'}</p>
+            <p>Error: {error || 'None'}</p>
           </div>
         )}
 
@@ -278,7 +291,7 @@ const TemporaryTodosPage = () => {
             animate={{ opacity: 1 }}
             className="space-y-3"
           >
-            {todos.length === 0 ? (
+            {(!todos || todos.length === 0) ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

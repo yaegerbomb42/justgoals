@@ -175,27 +175,6 @@ const ProfileSection = () => {
             </div>
           )}
         </div>
-
-        {/* Account Information */}
-        <div className="border-t border-border pt-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">Account Information</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-text-secondary">Email:</span>
-              <span className="text-sm text-text-primary">{user?.email}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-text-secondary">User ID:</span>
-              <span className="text-xs text-text-secondary font-mono">{user?.uid?.slice(0, 8)}...</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-text-secondary">Account Created:</span>
-              <span className="text-sm text-text-primary">
-                {user?.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
