@@ -45,13 +45,13 @@ const CelebrationEffect = ({ show, onComplete }) => {
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: [0, 1.2, 1], rotate: 0 }}
         transition={{ duration: 0.6, ease: "backOut" }}
-        className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg"
+        className="w-16 h-16 bg-gradient-to-br from-success to-success/80 rounded-full flex items-center justify-center shadow-lg"
       >
         <motion.svg
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="w-8 h-8 text-white"
+          className="w-8 h-8 text-success-foreground"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -70,7 +70,7 @@ const CelebrationEffect = ({ show, onComplete }) => {
         initial={{ scale: 0, opacity: 0.8 }}
         animate={{ scale: 4, opacity: 0 }}
         transition={{ duration: 1, ease: "easeOut" }}
-        className="absolute w-16 h-16 border-4 border-green-400 rounded-full"
+        className="absolute w-16 h-16 border-4 border-success rounded-full"
       />
     </motion.div>
   );

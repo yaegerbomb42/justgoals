@@ -255,11 +255,11 @@ const TemporaryTodosPage = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl"
+            className="mb-4 p-4 bg-error/10 border border-error/20 rounded-xl"
           >
             <div className="flex items-center gap-2">
-              <Icon name="AlertTriangle" className="w-5 h-5 text-red-500" />
-              <span className="text-red-500 font-medium">{error}</span>
+              <Icon name="AlertTriangle" className="w-5 h-5 text-error" />
+              <span className="text-error font-medium">{error}</span>
             </div>
           </motion.div>
         )}
@@ -342,7 +342,7 @@ const TemporaryTodosPage = () => {
                       className="bg-surface/50 border border-border/50 rounded-lg p-3 opacity-75"
                     >
                       <div className="flex items-center gap-3">
-                        <Icon name="Check" className="w-4 h-4 text-green-500" />
+                        <Icon name="Check" className="w-4 h-4 text-success" />
                         <span className="text-text-secondary line-through flex-1">
                           {todo.text}
                         </span>
@@ -351,7 +351,7 @@ const TemporaryTodosPage = () => {
                         </span>
                         <button
                           onClick={() => handleDeleteTodo(todo.id)}
-                          className="p-1 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 rounded transition-all duration-200"
+                          className="p-1 text-error/50 hover:text-error hover:bg-error/10 rounded transition-all duration-200"
                           title="Delete permanently"
                         >
                           <Icon name="Trash2" className="w-3 h-3" />

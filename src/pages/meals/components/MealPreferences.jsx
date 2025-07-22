@@ -116,7 +116,7 @@ const MealPreferences = ({ preferences }) => {
                 max="60"
                 value={formData.macroTargets?.protein || 25}
                 onChange={(e) => handleMacroChange('protein', e.target.value)}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-green"
+                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-green"
               />
               <div className="text-sm text-text-secondary mt-1">
                 {Math.round((formData.dailyCalories * (formData.macroTargets?.protein || 25) / 100) / 4)}g
@@ -134,7 +134,7 @@ const MealPreferences = ({ preferences }) => {
                 max="70"
                 value={formData.macroTargets?.carbs || 45}
                 onChange={(e) => handleMacroChange('carbs', e.target.value)}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-yellow"
+                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-yellow"
               />
               <div className="text-sm text-text-secondary mt-1">
                 {Math.round((formData.dailyCalories * (formData.macroTargets?.carbs || 45) / 100) / 4)}g
@@ -152,7 +152,7 @@ const MealPreferences = ({ preferences }) => {
                 max="50"
                 value={formData.macroTargets?.fat || 30}
                 onChange={(e) => handleMacroChange('fat', e.target.value)}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-blue"
+                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-blue"
               />
               <div className="text-sm text-text-secondary mt-1">
                 {Math.round((formData.dailyCalories * (formData.macroTargets?.fat || 30) / 100) / 9)}g
@@ -233,7 +233,7 @@ const MealPreferences = ({ preferences }) => {
               max="6"
               value={formData.preferredMealCount || 3}
               onChange={(e) => handleInputChange('preferredMealCount', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-text-secondary mt-1">
               <span>2</span>
