@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import achievementService from '../services/achievementService';
+import inAppNotificationService from '../services/inAppNotificationService';
 import AchievementModal from '../components/ui/AchievementModal';
 import firestoreService from '../services/firestoreService';
 
@@ -75,6 +76,13 @@ export const AchievementProvider = ({ children }) => {
       
       // Play achievement sound
       playAchievementSound();
+      
+      // Show in-app notification for each new achievement
+      newAchievements.forEach((achievement, index) => {
+        setTimeout(() => {
+          inAppNotificationService.showAchievement(achievement);
+        }, index * 1000); // Stagger notifications by 1 second
+      });
     }
 
     return newAchievements;
