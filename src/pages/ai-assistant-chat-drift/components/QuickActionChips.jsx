@@ -8,37 +8,37 @@ const QuickActionChips = ({ onAction }) => {
       id: 'create_goal',
       label: 'Create Goal',
       icon: 'Target',
-      color: 'bg-blue-500 hover:bg-blue-600',
+      color: 'bg-primary hover:bg-primary/90',
     },
     {
       id: 'check_progress',
       label: 'Check Progress',
       icon: 'BarChart3',
-      color: 'bg-green-500 hover:bg-green-600',
+      color: 'bg-success hover:bg-success/90',
     },
     {
       id: 'add_milestone',
       label: 'Add Milestone',
       icon: 'CheckSquare',
-      color: 'bg-purple-500 hover:bg-purple-600',
+      color: 'bg-secondary hover:bg-secondary/90',
     },
     {
       id: 'journal_entry',
       label: 'Journal Entry',
       icon: 'BookOpen',
-      color: 'bg-orange-500 hover:bg-orange-600',
+      color: 'bg-warning hover:bg-warning/90',
     },
     {
       id: 'focus_session',
       label: 'Focus Session',
       icon: 'Zap',
-      color: 'bg-yellow-500 hover:bg-yellow-600',
+      color: 'bg-accent hover:bg-accent/90',
     },
     {
       id: 'habit_tracker',
       label: 'Track Habits',
       icon: 'Repeat',
-      color: 'bg-red-500 hover:bg-red-600',
+      color: 'bg-error hover:bg-error/90',
     },
   ];
 

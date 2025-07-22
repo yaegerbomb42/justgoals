@@ -89,9 +89,9 @@ const ChainLink = ({
         >
           <div 
             className={`w-full h-full rounded-full blur-sm ${
-              color === 'emerald' ? 'bg-emerald-400/30' :
-              color === 'violet' ? 'bg-violet-400/30' :
-              color === 'amber' ? 'bg-amber-400/30' : 'bg-gray-400/30'
+              color === 'emerald' ? 'bg-success/30' :
+              color === 'violet' ? 'bg-secondary/30' :
+              color === 'amber' ? 'bg-warning/30' : 'bg-muted/30'
             }`}
           />
         </motion.div>

@@ -23,10 +23,10 @@ const TodoItem = ({
   };
 
   const getPriorityBadgeStyle = (priority) => {
-    if (!priority || priority < 3) return 'bg-gray-100 text-gray-600';
-    if (priority < 6) return 'bg-amber-100 text-amber-700';
-    if (priority < 8) return 'bg-orange-100 text-orange-700';
-    return 'bg-red-100 text-red-700';
+    if (!priority || priority < 3) return 'bg-surface-200 text-text-muted';
+    if (priority < 6) return 'bg-warning/20 text-warning';
+    if (priority < 8) return 'bg-warning/30 text-warning';
+    return 'bg-error/20 text-error';
   };
 
   const handleComplete = async () => {
@@ -127,7 +127,7 @@ const TodoItem = ({
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveEdit}
-                    className="px-3 py-1 bg-primary text-white rounded-md text-sm hover:bg-primary/80 transition-colors"
+                    className="px-3 py-1 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/80 transition-colors"
                   >
                     Save
                   </button>
@@ -156,7 +156,7 @@ const TodoItem = ({
                   
                   {todo.aiPrioritized && (
                     <motion.span 
-                      className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-2 py-1 rounded-full"
+                      className="flex items-center gap-1 text-secondary bg-secondary/10 px-2 py-1 rounded-full"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.2 }}
@@ -191,7 +191,7 @@ const TodoItem = ({
             <motion.button
               onClick={handleComplete}
               disabled={isCompleting}
-              className="p-2 text-green-500 hover:bg-green-500/10 rounded-lg transition-all duration-200 disabled:opacity-50"
+              className="p-2 text-success hover:bg-success/10 rounded-lg transition-all duration-200 disabled:opacity-50"
               title="Complete"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
@@ -204,7 +204,7 @@ const TodoItem = ({
             
             <motion.button
               onClick={() => onDelete(todo.id)}
-              className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+              className="p-2 text-error hover:bg-error/10 rounded-lg transition-all duration-200"
               title="Delete"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
@@ -224,7 +224,7 @@ const TodoItem = ({
           transition={{ delay: index * 0.05 + 0.3, duration: 0.5 }}
         >
           <motion.div
-            className={`h-full ${todo.priority >= 8 ? 'bg-red-500' : todo.priority >= 6 ? 'bg-orange-500' : todo.priority >= 3 ? 'bg-amber-500' : 'bg-gray-400'}`}
+            className={`h-full ${todo.priority >= 8 ? 'bg-error' : todo.priority >= 6 ? 'bg-warning' : todo.priority >= 3 ? 'bg-warning/70' : 'bg-muted'}`}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: todo.priority / 10 }}
             transition={{ delay: index * 0.05 + 0.5, duration: 0.8, ease: "easeOut" }}

@@ -93,6 +93,75 @@ const MealPreferences = ({ preferences }) => {
           <span>Macro Distribution</span>
         </h3>
         
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Protein */}
+            <div>
+              <label className="block text-sm font-medium text-green-600 mb-2">
+                Protein ({formData.macroTargets?.protein || 25}%)
+              </label>
+              <input
+                type="range"
+                min="10"
+                max="60"
+                value={formData.macroTargets?.protein || 25}
+                onChange={(e) => handleMacroChange('protein', e.target.value)}
+                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-green"
+              />
+              <div className="text-sm text-text-secondary mt-1">
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.protein || 25) / 100) / 4)}g
+              </div>
+            </div>
+
+            {/* Carbs */}
+            <div>
+              <label className="block text-sm font-medium text-yellow-600 mb-2">
+                Carbs ({formData.macroTargets?.carbs || 45}%)
+              </label>
+              <input
+                type="range"
+                min="20"
+                max="70"
+                value={formData.macroTargets?.carbs || 45}
+                onChange={(e) => handleMacroChange('carbs', e.target.value)}
+                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-yellow"
+              />
+              <div className="text-sm text-text-secondary mt-1">
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.carbs || 45) / 100) / 4)}g
+              </div>
+            </div>
+
+            {/* Fat */}
+            <div>
+              <label className="block text-sm font-medium text-blue-600 mb-2">
+                Fat ({formData.macroTargets?.fat || 30}%)
+              </label>
+              <input
+                type="range"
+                min="15"
+                max="50"
+                value={formData.macroTargets?.fat || 30}
+                onChange={(e) => handleMacroChange('fat', e.target.value)}
+                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-blue"
+              />
+              <div className="text-sm text-text-secondary mt-1">
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.fat || 30) / 100) / 9)}g
+              </div>
+            </div>
+          </div>
+
+          {/* Macro Total Warning */}
+          {macroTotal !== 100 && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Icon name="AlertTriangle" className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm text-yellow-700">
+                  Macro percentages total {macroTotal}%. They should add up to 100%.
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
         <MacroSlider
           macroTargets={formData.macroTargets || { protein: 25, carbs: 45, fat: 30 }}
           dailyCalories={formData.dailyCalories || 2000}
@@ -159,7 +228,7 @@ const MealPreferences = ({ preferences }) => {
               max="6"
               value={formData.preferredMealCount || 3}
               onChange={(e) => handleInputChange('preferredMealCount', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-text-secondary mt-1">
               <span>2</span>

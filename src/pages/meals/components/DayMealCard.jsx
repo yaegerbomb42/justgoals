@@ -29,10 +29,10 @@ const DayMealCard = ({ meal, date, onMarkCompleted }) => {
 
   const getMealTypeColor = (type) => {
     switch (type?.toLowerCase()) {
-      case 'breakfast': return 'text-yellow-500';
-      case 'lunch': return 'text-orange-500';
-      case 'dinner': return 'text-purple-500';
-      case 'snack': return 'text-green-500';
+      case 'breakfast': return 'text-warning';
+      case 'lunch': return 'text-warning';
+      case 'dinner': return 'text-secondary';
+      case 'snack': return 'text-success';
       default: return 'text-text-secondary';
     }
   };
@@ -42,7 +42,7 @@ const DayMealCard = ({ meal, date, onMarkCompleted }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className={`bg-surface border border-border rounded-xl p-4 transition-all duration-200 hover:shadow-md ${
-        isCompleted ? 'bg-green-50 border-green-200' : ''
+        isCompleted ? 'bg-success/10 border-success/50' : ''
       }`}
     >
       {/* Header */}
@@ -62,8 +62,8 @@ const DayMealCard = ({ meal, date, onMarkCompleted }) => {
           onClick={handleToggleCompleted}
           className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
             isCompleted
-              ? 'bg-green-500 border-green-500 text-white'
-              : 'border-gray-300 hover:border-primary hover:text-primary'
+              ? 'bg-success border-success text-success-foreground'
+              : 'border-border hover:border-primary hover:text-primary'
           }`}
         >
           {isCompleted && <Icon name="Check" className="w-3 h-3" />}
@@ -78,15 +78,15 @@ const DayMealCard = ({ meal, date, onMarkCompleted }) => {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-text-secondary">Protein:</span>
-          <span className="font-medium text-green-600">{meal.macros?.protein || 0}g</span>
+          <span className="font-medium text-success">{meal.macros?.protein || 0}g</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-text-secondary">Carbs:</span>
-          <span className="font-medium text-yellow-600">{meal.macros?.carbs || 0}g</span>
+          <span className="font-medium text-warning">{meal.macros?.carbs || 0}g</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-text-secondary">Fat:</span>
-          <span className="font-medium text-blue-600">{meal.macros?.fat || 0}g</span>
+          <span className="font-medium text-primary">{meal.macros?.fat || 0}g</span>
         </div>
       </div>
 
