@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import Icon from '../../components/ui/Icon';
+import ProfileSection from './components/ProfileSection';
 import ApiKeySection from './components/ApiKeySection';
 import NotificationSection from './components/NotificationSection';
 import AppearanceSection from './components/AppearanceSection';
@@ -11,10 +12,11 @@ import MealPreferencesSection from './components/MealPreferencesSection';
 
 const SettingsPage = () => {
   const { settings } = useSettings();
-  const [activeSection, setActiveSection] = useState('api');
+  const [activeSection, setActiveSection] = useState('profile');
   const isMobile = settings?.mobile?.detected;
 
   const sections = [
+    { id: 'profile', label: 'Profile', icon: 'User' },
     { id: 'api', label: 'API Keys', icon: 'Key' },
     { id: 'notifications', label: 'Notifications', icon: 'Bell' },
     { id: 'appearance', label: 'Appearance', icon: 'Palette' },
@@ -26,6 +28,8 @@ const SettingsPage = () => {
 
   const renderSection = () => {
     switch (activeSection) {
+      case 'profile':
+        return <ProfileSection />;
       case 'notifications':
         return <NotificationSection />;
       case 'api':
@@ -41,7 +45,7 @@ const SettingsPage = () => {
       case 'data':
         return <DataManagementSection />;
       default:
-        return <NotificationSection />;
+        return <ProfileSection />;
     }
   };
 

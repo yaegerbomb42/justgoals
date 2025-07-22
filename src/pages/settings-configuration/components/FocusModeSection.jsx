@@ -170,21 +170,35 @@ const FocusModeSection = () => {
 
         {/* Sound Volume */}
         {localSettings.ambientSounds && (
-          <div className="p-3 bg-surface-700 rounded-lg border border-border">
-            <label className="block text-sm font-medium text-text-primary mb-2">
-              Sound Volume: {Math.round((localSettings.soundVolume || 0.5) * 100)}%
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={localSettings.soundVolume || 0.5}
-              onChange={(e) => handleSettingChange('soundVolume', parseFloat(e.target.value))}
-              className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
-              aria-label="Sound Volume"
-            />
-          </div>
+          <>
+            <div className="p-3 bg-surface-700 rounded-lg border border-border">
+              <label className="block text-sm font-medium text-text-primary mb-2">
+                Sound Volume: {Math.round((localSettings.soundVolume || 0.5) * 100)}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={localSettings.soundVolume || 0.5}
+                onChange={(e) => handleSettingChange('soundVolume', parseFloat(e.target.value))}
+                className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
+                aria-label="Sound Volume"
+              />
+            </div>
+            
+            {/* Sound Availability Notice */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <Icon name="Info" className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-amber-800">
+                    <strong>Note:</strong> Ambient sounds are available in development mode. In production builds, sound functionality may be limited due to hosting constraints.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Background Effects */}

@@ -31,6 +31,11 @@ export const SettingsProvider = ({ children }) => {
     fontSize: 'medium',
     compactMode: false,
     
+    // Profile
+    profile: {
+      displayName: '',
+    },
+    
     // Focus Mode
     focusMode: {
       defaultDuration: 25,

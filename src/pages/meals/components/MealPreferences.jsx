@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useMeals } from '../../../context/MealsContext';
 import Icon from '../../../components/ui/Icon';
+import MacroSlider from '../../../components/ui/MacroSlider';
 
 const MealPreferences = ({ preferences }) => {
   const { updateMealPreferences } = useMeals();
@@ -19,20 +20,11 @@ const MealPreferences = ({ preferences }) => {
     }));
   };
 
-  const handleMacroChange = (macro, value) => {
-    const numValue = parseInt(value) || 0;
-    const otherMacros = Object.keys(formData.macroTargets).filter(key => key !== macro);
-    const otherTotal = otherMacros.reduce((sum, key) => sum + formData.macroTargets[key], 0);
-    
-    if (numValue + otherTotal <= 100) {
-      setFormData(prev => ({
-        ...prev,
-        macroTargets: {
-          ...prev.macroTargets,
-          [macro]: numValue
-        }
-      }));
-    }
+  const handleMacroChange = (newMacroTargets) => {
+    setFormData(prev => ({
+      ...prev,
+      macroTargets: newMacroTargets
+    }));
   };
 
   const handleArrayChange = (field, value) => {
@@ -53,8 +45,6 @@ const MealPreferences = ({ preferences }) => {
       setIsSaving(false);
     }
   };
-
-  const macroTotal = Object.values(formData.macroTargets || {}).reduce((sum, val) => sum + val, 0);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -100,7 +90,7 @@ const MealPreferences = ({ preferences }) => {
       <div className="bg-surface border border-border rounded-xl p-6">
         <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center space-x-2">
           <Icon name="PieChart" className="w-5 h-5 text-primary" />
-          <span>Macro Targets</span>
+          <span>Macro Distribution</span>
         </h3>
         
         <div className="space-y-4">
@@ -172,6 +162,11 @@ const MealPreferences = ({ preferences }) => {
             </div>
           )}
         </div>
+        <MacroSlider
+          macroTargets={formData.macroTargets || { protein: 25, carbs: 45, fat: 30 }}
+          dailyCalories={formData.dailyCalories || 2000}
+          onChange={handleMacroChange}
+        />
       </div>
 
       {/* Dietary Preferences */}

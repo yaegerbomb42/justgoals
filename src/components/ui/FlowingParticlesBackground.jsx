@@ -268,9 +268,9 @@ const FlowingParticlesBackground = () => {
         left: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: -1,
+        zIndex: 1000,
         pointerEvents: 'none',
-        opacity: 0.8,
+        opacity: 0.7,
       }}
     />
   );

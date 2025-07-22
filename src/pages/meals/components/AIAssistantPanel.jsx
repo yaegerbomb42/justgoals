@@ -257,7 +257,11 @@ Respond naturally first, then add the action.`;
         targetCalories: planData.targetCalories || mealData?.preferences?.dailyCalories || 2000,
         mealsPerDay: planData.mealsPerDay || 3,
         days: planData.days || [],
-        macroTargets: planData.macroTargets || mealData?.preferences?.macroTargets,
+        macroTargets: planData.macroTargets || mealData?.preferences?.macroTargets || {
+          protein: 25,
+          carbs: 45,
+          fat: 30
+        },
         generatedBy: 'ai',
         createdAt: new Date().toISOString(),
       };

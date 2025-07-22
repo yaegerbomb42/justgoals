@@ -158,50 +158,19 @@ const DataManagementSection = ({
       </div>
 
       <div className="space-y-6">
-        {/* Auto Backup */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
+        {/* Auto Backup Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <Icon name="Info" className="w-5 h-5 text-blue-600 mt-0.5" />
             <div>
-              <label className="text-sm font-body-medium text-text-primary">
-                Automatic Backup
-              </label>
-              <p className="text-xs text-text-secondary">
-                Automatically backup your data to local storage
+              <h4 className="text-sm font-medium text-blue-900 mb-1">
+                Automatic Backups Enabled
+              </h4>
+              <p className="text-sm text-blue-700">
+                Your data is automatically backed up to your browser's local storage and synchronized with our servers when you're signed in. No additional configuration needed.
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoBackup}
-                onChange={(e) => handleAutoBackupChange(e.target.checked)}
-                className="sr-only peer"
-                role="switch"
-                aria-checked={autoBackup}
-                aria-label="Enable Automatic Backup"
-              />
-              <div className="relative w-11 h-6 bg-surface-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
           </div>
-
-          {autoBackup && (
-            <div>
-              <label className="block text-sm font-body-medium text-text-primary mb-2">
-                Backup Frequency
-              </label>
-              <select
-                value={backupFrequency}
-                onChange={(e) => handleBackupFrequencyChange(e.target.value)}
-                className="w-full px-3 py-2 bg-surface-800 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                aria-label="Backup Frequency"
-              >
-                {backupFrequencyOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         {/* Data Export/Import */}
