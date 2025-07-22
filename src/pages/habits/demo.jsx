@@ -9,6 +9,8 @@ import habitService from '../../services/habitService';
 const HabitsPageDemo = () => {
   const [habits, setHabits] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingHabit, setEditingHabit] = useState(null);
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'compact'
@@ -19,6 +21,23 @@ const HabitsPageDemo = () => {
   // Load demo habits or create some sample data
   useEffect(() => {
     loadHabits();
+    
+    // Set up midnight reset functionality
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    const midnightTimeout = setTimeout(() => {
+      handleMidnightReset();
+      
+      // Set up daily interval for future midnight resets
+      setInterval(handleMidnightReset, 24 * 60 * 60 * 1000);
+    }, timeUntilMidnight);
+    
+    return () => clearTimeout(midnightTimeout);
   }, []);
 
   const loadHabits = () => {
@@ -183,6 +202,79 @@ const HabitsPageDemo = () => {
     }
   };
 
+  const handleEditHabit = (habit) => {
+    setEditingHabit(habit);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateHabit = async (habitData) => {
+    if (!editingHabit) return;
+    
+    try {
+      const updatedHabit = await habitService.updateHabit(demoUser.id, editingHabit.id, habitData);
+      setHabits(prev => prev.map(h => h.id === editingHabit.id ? updatedHabit : h));
+      setShowEditModal(false);
+      setEditingHabit(null);
+    } catch (error) {
+      console.error('Failed to update habit:', error);
+    }
+  };
+
+  const handleDeleteHabit = async (habitId) => {
+    if (!confirm('Are you sure you want to delete this habit?')) return;
+    
+    try {
+      await habitService.deleteHabit(demoUser.id, habitId);
+      setHabits(prev => prev.filter(h => h.id !== habitId));
+    } catch (error) {
+      console.error('Failed to delete habit:', error);
+    }
+  };
+
+  const handleMidnightReset = async () => {
+    console.log('Midnight reset triggered');
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      const updatedHabits = habits.map(habit => {
+        // Mark yesterday's incomplete habits as failed
+        const updatedTreeNodes = habit.treeNodes.map(node => {
+          if (node.date === yesterdayStr && node.status === 'active') {
+            const completed = node.checks?.length || 0;
+            const target = habit.targetChecks || 1;
+            if (completed < target) {
+              return { ...node, status: 'failed' };
+            }
+          }
+          return node;
+        });
+        
+        // Add today's node if it doesn't exist
+        const todayNodeExists = updatedTreeNodes.some(node => node.date === today);
+        if (!todayNodeExists) {
+          updatedTreeNodes.push({
+            id: Date.now() + Math.random(),
+            date: today,
+            checks: [],
+            status: 'active',
+            parentId: null,
+            createdAt: new Date().toISOString()
+          });
+        }
+        
+        return { ...habit, treeNodes: updatedTreeNodes };
+      });
+      
+      setHabits(updatedHabits);
+      habitService.saveToLocalStorage(updatedHabits);
+    } catch (error) {
+      console.error('Failed to perform midnight reset:', error);
+    }
+  };
+
   const getHabitProgress = (habit) => {
     const today = new Date().toISOString().split('T')[0];
     const activeNode = habit.treeNodes?.find(node => 
@@ -274,6 +366,8 @@ const HabitsPageDemo = () => {
         <HabitsTreeVisualization 
           habits={habits}
           onCheckIn={handleCheckIn}
+          onEditHabit={handleEditHabit}
+          onDeleteHabit={handleDeleteHabit}
         />
 
         {/* Individual Habit Cards (Compact View) */}
@@ -355,6 +449,20 @@ const HabitsPageDemo = () => {
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddHabit}
+        />
+      )}
+
+      {/* Edit Habit Modal */}
+      {showEditModal && editingHabit && (
+        <AddHabitModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingHabit(null);
+          }}
+          onAdd={handleUpdateHabit}
+          initialData={editingHabit}
+          mode="edit"
         />
       )}
     </div>

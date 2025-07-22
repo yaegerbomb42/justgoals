@@ -4,15 +4,36 @@ import Icon from './AppIcon';
 import Button from './ui/Button';
 import EmojiPicker from './EmojiPicker';
 
-const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
-  const [habitTitle, setHabitTitle] = useState('');
-  const [habitDescription, setHabitDescription] = useState('');
-  const [selectedEmoji, setSelectedEmoji] = useState('🎯');
-  const [targetChecks, setTargetChecks] = useState(1);
-  const [allowMultipleChecks, setAllowMultipleChecks] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('general');
+const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'create' }) => {
+  const [habitTitle, setHabitTitle] = useState(initialData?.title || '');
+  const [habitDescription, setHabitDescription] = useState(initialData?.description || '');
+  const [selectedEmoji, setSelectedEmoji] = useState(initialData?.emoji || '🎯');
+  const [targetChecks, setTargetChecks] = useState(initialData?.targetChecks || 1);
+  const [allowMultipleChecks, setAllowMultipleChecks] = useState(initialData?.allowMultipleChecks || false);
+  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || 'general');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      if (initialData && mode === 'edit') {
+        setHabitTitle(initialData.title || '');
+        setHabitDescription(initialData.description || '');
+        setSelectedEmoji(initialData.emoji || '🎯');
+        setTargetChecks(initialData.targetChecks || 1);
+        setAllowMultipleChecks(initialData.allowMultipleChecks || false);
+        setSelectedCategory(initialData.category || 'general');
+      } else {
+        setHabitTitle('');
+        setHabitDescription('');
+        setSelectedEmoji('🎯');
+        setTargetChecks(1);
+        setAllowMultipleChecks(false);
+        setSelectedCategory('general');
+      }
+    }
+  }, [isOpen, initialData, mode]);
 
   const categories = [
     { id: 'general', name: 'General', icon: '🎯' },
@@ -112,7 +133,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-heading-bold text-text-primary">
-              Create New Habit
+              {mode === 'edit' ? 'Edit Habit' : 'Create New Habit'}
             </h3>
             <button
               onClick={handleClose}
@@ -239,31 +260,33 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
               </div>
             </div>
 
-            {/* Suggestions */}
-            <div>
-              <label className="block text-sm font-body-medium text-text-primary mb-3">
-                Popular Habit Suggestions
-              </label>
-              <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                {habitSuggestions.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="flex items-center gap-3 px-3 py-2 bg-surface-600 hover:bg-surface-500 rounded-lg transition-colors text-left"
-                  >
-                    <span className="text-xl">{suggestion.emoji}</span>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-text-primary">{suggestion.title}</div>
-                      <div className="text-xs text-text-secondary">{suggestion.description}</div>
-                    </div>
-                    <div className="text-xs text-text-secondary">
-                      {suggestion.targetChecks} goal{suggestion.targetChecks > 1 ? 's' : ''}
-                    </div>
-                  </button>
-                ))}
+            {/* Suggestions - only show in create mode */}
+            {mode === 'create' && (
+              <div>
+                <label className="block text-sm font-body-medium text-text-primary mb-3">
+                  Popular Habit Suggestions
+                </label>
+                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                  {habitSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="flex items-center gap-3 px-3 py-2 bg-surface-600 hover:bg-surface-500 rounded-lg transition-colors text-left"
+                    >
+                      <span className="text-xl">{suggestion.emoji}</span>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-text-primary">{suggestion.title}</div>
+                        <div className="text-xs text-text-secondary">{suggestion.description}</div>
+                      </div>
+                      <div className="text-xs text-text-secondary">
+                        {suggestion.targetChecks} goal{suggestion.targetChecks > 1 ? 's' : ''}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Submit Buttons */}
             <div className="flex items-center justify-end space-x-3 pt-4 border-t border-border">
@@ -282,7 +305,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd }) => {
                 iconName="Plus"
                 iconPosition="left"
               >
-                Create Habit
+                {mode === 'edit' ? 'Update Habit' : 'Create Habit'}
               </Button>
             </div>
           </form>

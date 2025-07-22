@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon';
 import Button from './ui/Button';
 
-const HabitsTreeVisualization = ({ habits, onCheckIn, onDeleteHabit }) => {
+const HabitsTreeVisualization = ({ habits, onCheckIn, onDeleteHabit, onEditHabit }) => {
   // Create unified tree structure from habits
   const treeData = useMemo(() => {
     if (!habits || habits.length === 0) return { timelineNodes: [], habitBranches: {} };
@@ -33,7 +33,8 @@ const HabitsTreeVisualization = ({ habits, onCheckIn, onDeleteHabit }) => {
     const habitBranches = {};
     const colors = [
       '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', 
-      '#EF4444', '#06B6D4', '#84CC16', '#F97316'
+      '#EF4444', '#06B6D4', '#84CC16', '#F97316',
+      '#EC4899', '#6366F1', '#14B8A6', '#F59E0B'
     ];
 
     habits.forEach((habit, index) => {
@@ -72,12 +73,44 @@ const HabitsTreeVisualization = ({ habits, onCheckIn, onDeleteHabit }) => {
     return node.status || 'active';
   };
 
+  const getStreakInfo = (habit) => {
+    if (!habit.nodes || habit.nodes.length === 0) return { current: 0, longest: 0 };
+    
+    const completedNodes = habit.nodes
+      .filter(node => node.status === 'completed')
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    let currentStreak = 0;
+    for (const node of completedNodes) {
+      const checks = node.checks || [];
+      const targetChecks = habit.targetChecks || 1;
+      if (checks.length >= targetChecks) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+    
+    return { current: currentStreak, longest: currentStreak }; // Simplified
+  };
+
   if (!habits || habits.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="w-24 h-24 mx-auto mb-4 bg-surface-700 rounded-full flex items-center justify-center">
-          <Icon name="GitBranch" className="w-12 h-12 text-text-secondary" />
-        </div>
+        <motion.div 
+          className="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-surface-700 to-surface-800 rounded-full flex items-center justify-center shadow-lg"
+          animate={{ 
+            scale: [1, 1.05, 1],
+            rotate: [0, 5, -5, 0]
+          }}
+          transition={{ 
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          <Icon name="GitBranch" className="w-12 h-12 text-primary" />
+        </motion.div>
         <h3 className="text-xl font-semibold text-text-primary mb-2">No Habits Tree Yet</h3>
         <p className="text-text-secondary">
           Create your first habit to start growing your habit tree
@@ -87,203 +120,357 @@ const HabitsTreeVisualization = ({ habits, onCheckIn, onDeleteHabit }) => {
   }
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-6">
+    <motion.div 
+      className="bg-gradient-to-br from-surface to-surface-700 border border-border rounded-xl p-6 shadow-lg"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-text-primary mb-1">Habits Tree</h2>
+          <h2 className="text-xl font-semibold text-text-primary mb-1 flex items-center">
+            <motion.div
+              className="w-2 h-2 bg-primary rounded-full mr-3"
+              animate={{ scale: [1, 1.5, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            Habits Tree
+          </h2>
           <p className="text-sm text-text-secondary">
             Your unified habit journey visualization
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-text-secondary">
-            {Object.keys(treeData.habitBranches).length} active habits
-          </span>
+        <div className="flex items-center space-x-4">
+          <div className="text-right">
+            <div className="text-lg font-bold text-primary">
+              {Object.keys(treeData.habitBranches).length}
+            </div>
+            <div className="text-xs text-text-secondary">active habits</div>
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-bold text-success">
+              {Object.values(treeData.habitBranches).reduce((sum, habit) => {
+                return sum + habit.nodes.filter(n => n.status === 'completed').length;
+              }, 0)}
+            </div>
+            <div className="text-xs text-text-secondary">completed days</div>
+          </div>
         </div>
       </div>
 
       {/* Tree Visualization */}
       <div className="relative">
-        {/* Main timeline trunk */}
-        <div className="absolute left-8 top-0 bottom-0 w-1 bg-border rounded-full opacity-50"></div>
+        {/* Main timeline trunk with gradient */}
+        <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-secondary to-primary/50 rounded-full shadow-sm"></div>
         
-        {treeData.timelineNodes.map((timelineNode, timelineIndex) => (
-          <div key={timelineNode.id} className="relative mb-8">
-            {/* Timeline node */}
-            <div className="flex items-center mb-4">
-              <div className="relative z-10 w-6 h-6 bg-primary border-4 border-surface rounded-full flex items-center justify-center">
-                {isToday(timelineNode.date) && (
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                )}
-              </div>
-              <div className="ml-4">
-                <div className="text-sm font-medium text-text-primary">
-                  {new Date(timelineNode.date).toLocaleDateString()}
+        <AnimatePresence>
+          {treeData.timelineNodes.map((timelineNode, timelineIndex) => (
+            <motion.div 
+              key={timelineNode.id} 
+              className="relative mb-8"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: timelineIndex * 0.1 }}
+            >
+              {/* Timeline node */}
+              <div className="flex items-center mb-4">
+                <motion.div 
+                  className={`relative z-10 w-6 h-6 border-4 border-surface rounded-full flex items-center justify-center shadow-lg ${
+                    isToday(timelineNode.date) 
+                      ? 'bg-gradient-to-r from-primary to-secondary' 
+                      : 'bg-gradient-to-r from-surface-600 to-surface-700'
+                  }`}
+                  whileHover={{ scale: 1.2 }}
+                  animate={isToday(timelineNode.date) ? { 
+                    boxShadow: [
+                      '0 0 0 0 rgba(59, 130, 246, 0.4)',
+                      '0 0 0 10px rgba(59, 130, 246, 0)',
+                      '0 0 0 0 rgba(59, 130, 246, 0)'
+                    ]
+                  } : {}}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
                   {isToday(timelineNode.date) && (
-                    <span className="ml-2 text-xs text-primary font-bold">TODAY</span>
+                    <motion.div 
+                      className="w-2 h-2 bg-white rounded-full"
+                      animate={{ scale: [0.8, 1.2, 0.8] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    />
+                  )}
+                </motion.div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-text-primary">
+                    {new Date(timelineNode.date).toLocaleDateString()}
+                    {isToday(timelineNode.date) && (
+                      <motion.span 
+                        className="ml-2 text-xs text-primary font-bold"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      >
+                        TODAY
+                      </motion.span>
+                    )}
+                  </div>
+                  {timelineNode.habitsStarted.length > 0 && (
+                    <div className="text-xs text-text-secondary">
+                      {timelineNode.habitsStarted.length} habit{timelineNode.habitsStarted.length > 1 ? 's' : ''} started
+                    </div>
                   )}
                 </div>
-                {timelineNode.habitsStarted.length > 0 && (
-                  <div className="text-xs text-text-secondary">
-                    {timelineNode.habitsStarted.length} habit{timelineNode.habitsStarted.length > 1 ? 's' : ''} started
-                  </div>
-                )}
               </div>
-            </div>
 
-            {/* Habit branches for this date */}
-            <div className="ml-12 space-y-3">
-              {Object.values(treeData.habitBranches).map((habit, habitIndex) => {
-                const hasNodeForDate = habit.nodes.some(n => n.date === timelineNode.date);
-                if (!hasNodeForDate) return null;
+              {/* Habit branches for this date */}
+              <div className="ml-12 space-y-3">
+                {Object.values(treeData.habitBranches).map((habit, habitIndex) => {
+                  const hasNodeForDate = habit.nodes.some(n => n.date === timelineNode.date);
+                  if (!hasNodeForDate) return null;
 
-                const progress = getHabitProgress(habit, timelineNode.date);
-                const status = getHabitStatusForDate(habit, timelineNode.date);
-                const isHabitToday = isToday(timelineNode.date);
+                  const progress = getHabitProgress(habit, timelineNode.date);
+                  const status = getHabitStatusForDate(habit, timelineNode.date);
+                  const isHabitToday = isToday(timelineNode.date);
+                  const streakInfo = getStreakInfo(habit);
 
-                return (
-                  <motion.div
-                    key={`${habit.id}-${timelineNode.date}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="relative"
-                  >
-                    {/* Branch line */}
-                    <div 
-                      className="absolute -left-8 top-4 w-8 h-0.5 rounded-full"
-                      style={{ backgroundColor: habit.color }}
-                    ></div>
-
-                    {/* Habit node */}
-                    <div 
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        isHabitToday 
-                          ? 'bg-surface-600 border-opacity-60 shadow-lg' 
-                          : status === 'completed'
-                            ? 'bg-success/10 border-success/30'
-                            : status === 'failed'
-                              ? 'bg-error/10 border-error/30'
-                              : 'bg-surface-700 border-border'
-                      }`}
-                      style={{ 
-                        borderColor: isHabitToday ? habit.color : undefined,
-                        boxShadow: isHabitToday ? `0 0 20px ${habit.color}20` : undefined
-                      }}
+                  return (
+                    <motion.div
+                      key={`${habit.id}-${timelineNode.date}`}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: habitIndex * 0.1 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="relative group"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                            style={{ backgroundColor: habit.color }}
-                          >
-                            {habit.emoji}
-                          </div>
-                          <div>
-                            <div className="font-medium text-text-primary text-sm">
-                              {habit.title}
-                            </div>
-                            <div className="text-xs text-text-secondary">
-                              {progress.completed}/{progress.total} completed
-                            </div>
-                          </div>
-                        </div>
+                      {/* Animated branch line */}
+                      <motion.div 
+                        className="absolute -left-8 top-4 w-8 h-0.5 rounded-full shadow-sm"
+                        style={{ backgroundColor: habit.color }}
+                        initial={{ width: 0 }}
+                        animate={{ width: 32 }}
+                        transition={{ delay: habitIndex * 0.1 + 0.2 }}
+                      />
 
-                        <div className="flex items-center space-x-3">
-                          {/* Progress bar */}
-                          <div className="w-20">
-                            <div className="w-full bg-surface-800 rounded-full h-1.5">
-                              <div
-                                className="h-1.5 rounded-full transition-all"
-                                style={{ 
-                                  width: `${progress.percentage}%`,
-                                  backgroundColor: progress.percentage >= 100 ? '#10B981' : habit.color
-                                }}
-                              />
-                            </div>
-                            <div className="text-xs text-center mt-1 text-text-secondary">
-                              {progress.percentage}%
-                            </div>
-                          </div>
-
-                          {/* Status indicator */}
-                          {status === 'completed' && (
-                            <Icon name="CheckCircle" className="w-5 h-5 text-success" />
-                          )}
-                          {status === 'failed' && (
-                            <Icon name="X" className="w-5 h-5 text-error" />
-                          )}
-                          
-                          {/* Check-in button for today */}
-                          {isHabitToday && status === 'active' && progress.percentage < 100 && (
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                const node = habit.nodes.find(n => n.date === timelineNode.date);
-                                if (node && onCheckIn) {
-                                  onCheckIn(habit.id, node.id);
-                                }
-                              }}
+                      {/* Habit node */}
+                      <motion.div 
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          isHabitToday 
+                            ? 'bg-gradient-to-r from-surface-600 to-surface-700 border-opacity-60 shadow-lg' 
+                            : status === 'completed'
+                              ? 'bg-gradient-to-r from-success/10 to-success/5 border-success/30'
+                              : status === 'failed'
+                                ? 'bg-gradient-to-r from-error/10 to-error/5 border-error/30'
+                                : 'bg-gradient-to-r from-surface-700 to-surface-800 border-border'
+                        }`}
+                        style={{ 
+                          borderColor: isHabitToday ? habit.color : undefined,
+                          boxShadow: isHabitToday ? `0 0 20px ${habit.color}20` : undefined
+                        }}
+                        whileHover={{ 
+                          boxShadow: `0 0 30px ${habit.color}30`
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <motion.div 
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg"
                               style={{ backgroundColor: habit.color }}
-                              className="text-white border-0 hover:opacity-80"
+                              whileHover={{ scale: 1.1, rotate: 5 }}
                             >
-                              <Icon name="Plus" size={12} />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Extra actions for today */}
-                      {isHabitToday && (
-                        <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between">
-                          <div className="text-xs text-text-secondary">
-                            {habit.description}
+                              {habit.emoji}
+                            </motion.div>
+                            <div>
+                              <div className="font-medium text-text-primary text-sm flex items-center">
+                                {habit.title}
+                                {streakInfo.current > 0 && (
+                                  <motion.div 
+                                    className="ml-2 px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-full flex items-center"
+                                    animate={{ scale: [1, 1.05, 1] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                  >
+                                    <Icon name="Flame" size={10} className="mr-1" />
+                                    {streakInfo.current}
+                                  </motion.div>
+                                )}
+                              </div>
+                              <div className="text-xs text-text-secondary">
+                                {progress.completed}/{progress.total} completed
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            {habit.allowMultipleChecks && progress.percentage >= 100 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  const node = habit.nodes.find(n => n.date === timelineNode.date);
-                                  if (node && onCheckIn) {
-                                    onCheckIn(habit.id, node.id, 'extra');
-                                  }
-                                }}
-                                className="text-xs"
+
+                          <div className="flex items-center space-x-3">
+                            {/* Animated progress bar */}
+                            <div className="w-20">
+                              <div className="w-full bg-surface-800 rounded-full h-1.5 overflow-hidden">
+                                <motion.div
+                                  className="h-1.5 rounded-full transition-all"
+                                  style={{ backgroundColor: progress.percentage >= 100 ? '#10B981' : habit.color }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${progress.percentage}%` }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                />
+                              </div>
+                              <div className="text-xs text-center mt-1 text-text-secondary">
+                                {progress.percentage}%
+                              </div>
+                            </div>
+
+                            {/* Status indicators with animations */}
+                            {status === 'completed' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                whileHover={{ scale: 1.2 }}
                               >
-                                + Extra
-                              </Button>
+                                <Icon name="CheckCircle" className="w-5 h-5 text-success" />
+                              </motion.div>
+                            )}
+                            {status === 'failed' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                whileHover={{ scale: 1.2, rotate: 180 }}
+                                className="relative"
+                              >
+                                <Icon name="X" className="w-5 h-5 text-error" />
+                                <motion.div
+                                  className="absolute -inset-1 bg-error/20 rounded-full"
+                                  animate={{ 
+                                    scale: [1, 1.5, 1],
+                                    opacity: [0.3, 0, 0.3]
+                                  }}
+                                  transition={{ duration: 2, repeat: Infinity }}
+                                />
+                              </motion.div>
+                            )}
+                            
+                            {/* Check-in button for today */}
+                            {isHabitToday && status === 'active' && progress.percentage < 100 && (
+                              <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    const node = habit.nodes.find(n => n.date === timelineNode.date);
+                                    if (node && onCheckIn) {
+                                      onCheckIn(habit.id, node.id);
+                                    }
+                                  }}
+                                  style={{ backgroundColor: habit.color }}
+                                  className="text-white border-0 hover:opacity-80 shadow-lg"
+                                >
+                                  <Icon name="Plus" size={12} />
+                                </Button>
+                              </motion.div>
+                            )}
+
+                            {/* Habit management menu */}
+                            {isHabitToday && (
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <motion.div
+                                  className="flex items-center space-x-1"
+                                  initial={{ x: 10 }}
+                                  animate={{ x: 0 }}
+                                >
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => onEditHabit && onEditHabit(habit)}
+                                    className="w-6 h-6 p-0"
+                                  >
+                                    <Icon name="Edit" size={12} />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => onDeleteHabit && onDeleteHabit(habit.id)}
+                                    className="w-6 h-6 p-0 text-error hover:text-error"
+                                  >
+                                    <Icon name="Trash2" size={12} />
+                                  </Button>
+                                </motion.div>
+                              </div>
                             )}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+
+                        {/* Extra actions for today */}
+                        {isHabitToday && (
+                          <motion.div 
+                            className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            transition={{ delay: 0.3 }}
+                          >
+                            <div className="text-xs text-text-secondary">
+                              {habit.description}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {habit.allowMultipleChecks && progress.percentage >= 100 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const node = habit.nodes.find(n => n.date === timelineNode.date);
+                                    if (node && onCheckIn) {
+                                      onCheckIn(habit.id, node.id, 'extra');
+                                    }
+                                  }}
+                                  className="text-xs"
+                                >
+                                  + Extra
+                                </Button>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
-      {/* Legend */}
-      <div className="mt-6 pt-4 border-t border-border">
-        <div className="text-sm font-medium text-text-primary mb-3">Habits Legend</div>
+      {/* Enhanced Legend with animations */}
+      <motion.div 
+        className="mt-6 pt-4 border-t border-border"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <div className="text-sm font-medium text-text-primary mb-3 flex items-center">
+          <Icon name="Palette" size={16} className="mr-2 text-primary" />
+          Habits Legend
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {Object.values(treeData.habitBranches).map((habit) => (
-            <div key={habit.id} className="flex items-center space-x-2">
-              <div 
-                className="w-3 h-3 rounded-full"
+          {Object.values(treeData.habitBranches).map((habit, index) => (
+            <motion.div 
+              key={habit.id} 
+              className="flex items-center space-x-2 p-2 rounded-lg bg-surface-700/50 hover:bg-surface-600/50 transition-colors"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 + index * 0.1 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <motion.div 
+                className="w-3 h-3 rounded-full shadow-sm"
                 style={{ backgroundColor: habit.color }}
-              ></div>
+                animate={{ 
+                  boxShadow: [`0 0 0 0 ${habit.color}40`, `0 0 0 4px ${habit.color}20`, `0 0 0 0 ${habit.color}40`]
+                }}
+                transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
+              />
               <span className="text-xs text-text-secondary truncate">
                 {habit.emoji} {habit.title}
               </span>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
