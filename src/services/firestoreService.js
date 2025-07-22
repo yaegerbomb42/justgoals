@@ -962,9 +962,26 @@ class FirestoreService {
   async getTempTodos(userId) {
     try {
       const todosRef = collection(this.db, `users/${userId}/tempTodos`);
-      const q = query(todosRef, where('archived', '!=', true), orderBy('priority', 'desc'), orderBy('createdAt', 'desc'));
+      const q = query(
+        todosRef, 
+        where('archived', '!=', true), 
+        orderBy('createdAt', 'desc')
+      );
       const querySnapshot = await getDocs(q);
-      return querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const todos = querySnapshot.empty ? [] : querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Sort by priority locally (handle missing priority fields)
+      return todos.sort((a, b) => {
+        const priorityA = a.priority || 0;
+        const priorityB = b.priority || 0;
+        if (priorityA !== priorityB) {
+          return priorityB - priorityA; // Higher priority first
+        }
+        // If same priority, sort by creation date (newest first)
+        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
+        return dateB - dateA;
+      });
     } catch (error) {
       console.error('Error getting temp todos from Firestore:', error);
       return [];
@@ -1033,6 +1050,41 @@ class FirestoreService {
       return todosWithPriority;
     } catch (error) {
       console.error('Error batch updating temp todos priority in Firestore:', error);
+      throw error;
+    }
+  }
+
+  // Drift AI Memory Functions
+  async getDriftMemory(userId) {
+    try {
+      const docRef = doc(db, 'driftMemory', userId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting drift memory:', error);
+      throw error;
+    }
+  }
+
+  async saveDriftMemory(userId, memoryData) {
+    try {
+      const docRef = doc(db, 'driftMemory', userId);
+      await setDoc(docRef, memoryData, { merge: true });
+    } catch (error) {
+      console.error('Error saving drift memory:', error);
+      throw error;
+    }
+  }
+
+  async clearDriftMemory(userId) {
+    try {
+      const docRef = doc(db, 'driftMemory', userId);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error('Error clearing drift memory:', error);
       throw error;
     }
   }

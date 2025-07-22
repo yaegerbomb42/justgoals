@@ -123,15 +123,10 @@ const AmbientSoundPlayer = ({
         ref={audioRef}
         preload="metadata"
         onError={(e) => {
-          console.warn('Audio error:', e);
-          setSoundsAvailable(false);
+          console.warn('Audio error:', e.target.error);
+          // Don't show error message to user, just handle gracefully
         }}
       />
-      {!soundsAvailable && soundType !== 'none' && (
-        <div className="text-xs text-amber-600 p-2">
-          Ambient sounds unavailable in this environment
-        </div>
-      )}
     </div>
   );
 };

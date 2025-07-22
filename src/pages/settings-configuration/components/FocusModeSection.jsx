@@ -83,17 +83,22 @@ const FocusModeSection = () => {
         </div>
         
         {/* Custom Duration */}
-        <div className="flex items-center space-x-2">
-          <input
-            type="number"
-            placeholder="Custom minutes"
-            value={localSettings.defaultDuration || 25}
-            onChange={(e) => handleSettingChange('defaultDuration', parseInt(e.target.value) || 25)}
-            min="1"
-            max="180"
-            className="flex-1 px-3 py-2 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <span className="text-text-secondary text-sm">minutes</span>
+        <div className="bg-surface-700 border border-border rounded-lg p-3">
+          <label className="block text-sm font-medium text-text-primary mb-2">
+            Custom Duration
+          </label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              placeholder="Enter minutes"
+              value={localSettings.defaultDuration || 25}
+              onChange={(e) => handleSettingChange('defaultDuration', parseInt(e.target.value) || 25)}
+              min="1"
+              max="180"
+              className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+            <span className="text-text-secondary text-sm font-medium">minutes</span>
+          </div>
         </div>
       </div>
 
@@ -101,9 +106,9 @@ const FocusModeSection = () => {
       <div className="space-y-4">
         <h4 className="font-medium text-text-primary">Break Settings</h4>
         
-        <div className="space-y-3">
+        <div className="bg-surface-700 border border-border rounded-lg p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <label className="text-sm font-medium text-text-primary">Short Break Duration</label>
               <p className="text-xs text-text-secondary">Duration of short breaks between sessions</p>
             </div>
@@ -114,14 +119,14 @@ const FocusModeSection = () => {
                 onChange={(e) => handleSettingChange('breakDuration', parseInt(e.target.value) || 5)}
                 min="1"
                 max="30"
-                className="w-16 px-2 py-1 bg-surface-600 border border-border rounded text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-16 px-2 py-2 bg-surface border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               />
-              <span className="text-text-secondary text-sm">min</span>
+              <span className="text-text-secondary text-sm font-medium">min</span>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <label className="text-sm font-medium text-text-primary">Long Break Duration</label>
               <p className="text-xs text-text-secondary">Duration of long breaks after multiple sessions</p>
             </div>
@@ -132,9 +137,9 @@ const FocusModeSection = () => {
                 onChange={(e) => handleSettingChange('longBreakDuration', parseInt(e.target.value) || 15)}
                 min="5"
                 max="60"
-                className="w-16 px-2 py-1 bg-surface-600 border border-border rounded text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-16 px-2 py-2 bg-surface border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               />
-              <span className="text-text-secondary text-sm">min</span>
+              <span className="text-text-secondary text-sm font-medium">min</span>
             </div>
           </div>
         </div>
@@ -170,35 +175,24 @@ const FocusModeSection = () => {
 
         {/* Sound Volume */}
         {localSettings.ambientSounds && (
-          <>
-            <div className="p-3 bg-surface-700 rounded-lg border border-border">
-              <label className="block text-sm font-medium text-text-primary mb-2">
-                Sound Volume: {Math.round((localSettings.soundVolume || 0.5) * 100)}%
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={localSettings.soundVolume || 0.5}
-                onChange={(e) => handleSettingChange('soundVolume', parseFloat(e.target.value))}
-                className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
-                aria-label="Sound Volume"
-              />
-            </div>
-            
-            {/* Sound Availability Notice */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <div className="flex items-start space-x-2">
-                <Icon name="Info" className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs text-amber-800">
-                    <strong>Note:</strong> Ambient sounds are available in development mode. In production builds, sound functionality may be limited due to hosting constraints.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </>
+          <div className="p-3 bg-surface-700 rounded-lg border border-border">
+            <label className="block text-sm font-medium text-text-primary mb-2">
+              Sound Volume: {Math.round((localSettings.soundVolume || 0.5) * 100)}%
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={localSettings.soundVolume || 0.5}
+              onChange={(e) => handleSettingChange('soundVolume', parseFloat(e.target.value))}
+              className="w-full h-2 bg-surface rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+              style={{
+                background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${(localSettings.soundVolume || 0.5) * 100}%, var(--color-surface) ${(localSettings.soundVolume || 0.5) * 100}%, var(--color-surface) 100%)`
+              }}
+              aria-label="Sound Volume"
+            />
+          </div>
         )}
 
         {/* Background Effects */}

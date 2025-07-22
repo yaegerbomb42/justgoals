@@ -365,16 +365,16 @@ const FocusMode = () => {
       />
       
       {/* Background Effects */}
-      {localSessionSettings.background === 'flowing-particles' && (
+      {focusSettings.backgroundEffects && localSessionSettings.background === 'flowing-particles' && (
         <FlowingParticlesBackground />
       )}
-      {localSessionSettings.background === 'abstract-waves' && (
+      {focusSettings.backgroundEffects && localSessionSettings.background === 'abstract-waves' && (
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 animate-pulse"></div>
           <div className="absolute inset-0 bg-gradient-to-l from-accent/20 via-primary/20 to-secondary/20 animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
       )}
-      {localSessionSettings.background === 'confetti' && (
+      {focusSettings.backgroundEffects && localSessionSettings.background === 'confetti' && (
         <div className="absolute inset-0 opacity-20">
           {[...Array(20)].map((_, i) => (
             <div
@@ -392,7 +392,7 @@ const FocusMode = () => {
       )}
       
       {/* Background Pattern */}
-      {localSessionSettings.background === 'pattern' && (
+      {focusSettings.backgroundEffects && localSessionSettings.background === 'pattern' && (
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10"></div>
           <div className="absolute inset-0" style={{

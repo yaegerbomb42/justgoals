@@ -6,6 +6,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { usePlanData } from '../../context/PlanDataContext';
 import { useAchievements } from '../../context/AchievementContext';
 import { geminiService } from '../../services/geminiService';
+import firestoreService from '../../services/firestoreService';
 import Icon from '../../components/ui/Icon';
 import MessageBubble from './components/MessageBubble';
 import MessageInput from './components/MessageInput';
@@ -31,30 +32,64 @@ const DriftChat = () => {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
-  // Load conversation history from localStorage
+  // Load conversation history from both localStorage and Firestore
   useEffect(() => {
-    const savedHistory = localStorage.getItem(`drift-conversation-${user?.uid}`);
-    if (savedHistory) {
+    const loadConversationHistory = async () => {
+      if (!user?.uid) return;
+
       try {
-        const parsed = JSON.parse(savedHistory);
-        setMessages(parsed.messages || []);
-        setConversationHistory(parsed.conversationHistory || []);
+        // Try to load from Firestore first for better persistence
+        const driftMemory = await firestoreService.getDriftMemory(user.uid);
+        if (driftMemory && driftMemory.messages && driftMemory.messages.length > 0) {
+          setMessages(driftMemory.messages);
+          setConversationHistory(driftMemory.conversationHistory || []);
+          return;
+        }
       } catch (error) {
-        console.error('Error loading conversation history:', error);
+        console.error('Error loading from Firestore:', error);
       }
-    }
+
+      // Fallback to localStorage
+      const savedHistory = localStorage.getItem(`drift-conversation-${user.uid}`);
+      if (savedHistory) {
+        try {
+          const parsed = JSON.parse(savedHistory);
+          setMessages(parsed.messages || []);
+          setConversationHistory(parsed.conversationHistory || []);
+        } catch (error) {
+          console.error('Error loading conversation history:', error);
+        }
+      }
+    };
+
+    loadConversationHistory();
   }, [user?.uid]);
 
-  // Save conversation history to localStorage
+  // Save conversation history to both localStorage and Firestore
   useEffect(() => {
-    if (user?.uid && messages.length > 0) {
+    const saveConversationHistory = async () => {
+      if (!user?.uid || messages.length === 0) return;
+
       const historyData = {
         messages,
         conversationHistory,
         timestamp: Date.now(),
       };
-      localStorage.setItem(`drift-conversation-${user?.uid}`, JSON.stringify(historyData));
-    }
+
+      // Save to localStorage for immediate access
+      localStorage.setItem(`drift-conversation-${user.uid}`, JSON.stringify(historyData));
+
+      // Save to Firestore for persistence across devices
+      try {
+        await firestoreService.saveDriftMemory(user.uid, historyData);
+      } catch (error) {
+        console.error('Error saving to Firestore:', error);
+      }
+    };
+
+    // Debounce the save operation
+    const timer = setTimeout(saveConversationHistory, 1000);
+    return () => clearTimeout(timer);
   }, [messages, conversationHistory, user?.uid]);
 
   // Update context with current app state
