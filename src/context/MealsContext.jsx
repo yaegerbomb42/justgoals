@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import inAppNotificationService from '../services/inAppNotificationService';
 import firestoreService from '../services/firestoreService';
 
 const MealsContext = createContext();
@@ -78,9 +79,27 @@ export const MealsProvider = ({ children }) => {
         }
         return [...prev, savedMeal];
       });
+      
+      // Show success notification
+      inAppNotificationService.showSuccess(`${mealData.name || 'Meal'} saved successfully!`, {
+        actions: [
+          {
+            label: 'View Meals',
+            primary: true,
+            callback: () => {
+              window.location.href = '/meals';
+            }
+          }
+        ]
+      });
+      
       return savedMeal;
     } catch (err) {
       console.error('Error saving meal:', err);
+      
+      // Show error notification
+      inAppNotificationService.showError('Failed to save meal. Please check your connection and try again.');
+      
       throw err;
     }
   };
@@ -140,6 +159,21 @@ export const MealsProvider = ({ children }) => {
       // Reload meal plans to reflect completion status
       const updatedPlans = await firestoreService.getMealPlans(user.id);
       setMealPlans(updatedPlans || []);
+      
+      // Show success notification for meal completion
+      if (completed) {
+        inAppNotificationService.showSuccess('Meal logged successfully!', {
+          actions: [
+            {
+              label: 'View Meals',
+              primary: true,
+              callback: () => {
+                window.location.href = '/meals';
+              }
+            }
+          ]
+        });
+      }
     } catch (err) {
       console.error('Error marking meal completion:', err);
       throw err;

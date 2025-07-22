@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import notificationService from '../services/notificationService';
+import inAppNotificationService from '../services/inAppNotificationService';
 
 export const useNotifications = () => {
   const { settings } = useSettings();
@@ -37,7 +38,19 @@ export const useNotifications = () => {
 
       // Schedule new morning notification
       const timeoutId = setTimeout(() => {
+        // Send background notification
         notificationService.sendMorningMotivation(settings, []);
+        
+        // Send in-app notification
+        const motivationMessages = [
+          "Good morning! 🌅 Time to crush your goals today!",
+          "Rise and shine! ✨ Your goals are waiting for you.",
+          "Morning! 🌞 Let's make today count towards your dreams.",
+          "Good morning! 🚀 Ready to make progress on your goals?",
+          "Wake up and conquer! 💪 Today is your day to shine."
+        ];
+        const randomMessage = motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
+        inAppNotificationService.showDailyMotivation(randomMessage, []);
         
         // Schedule next day's notification
         scheduleMorningMotivation();
@@ -81,7 +94,11 @@ export const useNotifications = () => {
 
       // Schedule new evening notification
       const timeoutId = setTimeout(() => {
+        // Send background notification
         notificationService.sendEveningReflection(settings, []);
+        
+        // Send in-app notification
+        inAppNotificationService.showJournalReminder('reflection');
         
         // Schedule next day's notification
         scheduleEveningReflection();
@@ -157,19 +174,35 @@ export const useNotifications = () => {
   };
 
   const sendStreakAlert = (goal, currentStreak, daysToBreak) => {
+    // Send background notification
     notificationService.sendStreakProtectionAlert(settings, goal, currentStreak, daysToBreak);
+    
+    // Send in-app notification
+    inAppNotificationService.showStreakAlert(goal, currentStreak, daysToBreak);
   };
 
   const sendFocusReminder = (goal) => {
+    // Send background notification
     notificationService.sendFocusReminder(settings, goal);
+    
+    // Send in-app notification
+    inAppNotificationService.showFocusReminder(goal, new Date());
   };
 
   const sendGoalDeadlineAlert = (goal, daysLeft) => {
+    // Send background notification
     notificationService.sendGoalDeadlineAlert(settings, goal, daysLeft);
+    
+    // Send in-app notification
+    inAppNotificationService.showGoalDeadline(goal, daysLeft);
   };
 
   const sendAchievementCelebration = (achievement) => {
+    // Send background notification
     notificationService.sendAchievementCelebration(settings, achievement);
+    
+    // Send in-app notification
+    inAppNotificationService.showAchievement(achievement);
   };
 
   return {
