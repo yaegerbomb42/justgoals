@@ -1,17 +1,89 @@
 import React, { useState } from 'react';
 import { useSettings } from '../../../context/SettingsContext';
+import { useNotificationContext } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 import Icon from '../../../components/ui/Icon';
 import emailNotificationService from '../../../services/emailNotificationService';
 import smsNotificationService from '../../../services/smsNotificationService';
 import discordNotificationService from '../../../services/discordNotificationService';
 import ntfyNotificationService from '../../../services/ntfyNotificationService';
+import inAppNotificationService from '../../../services/inAppNotificationService';
 
 const NotificationSection = () => {
   const { settings, updateNotificationSettings } = useSettings();
+  const notificationContext = useNotificationContext();
   const { user } = useAuth();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [testStatus, setTestStatus] = useState({});
+
+  // In-app notification settings - use default values if context not available
+  const inAppSettings = notificationContext?.settings || {
+    enabled: true,
+    position: 'top-left',
+    animation: 'slide',
+    maxConcurrent: 3,
+    defaultTimeout: 5000
+  };
+
+  // Handle in-app notification settings
+  const handleInAppSettingChange = (key, value) => {
+    if (notificationContext?.updateSettings) {
+      notificationContext.updateSettings({ [key]: value });
+    }
+  };
+
+  const handleTestInAppNotification = (type) => {
+    setTestStatus(prev => ({ ...prev, [`inapp-${type}`]: 'sending' }));
+    
+    try {
+      switch (type) {
+        case 'success':
+          inAppNotificationService.showSuccess('Test success notification!');
+          break;
+        case 'warning':
+          inAppNotificationService.showWarning('Test warning notification!');
+          break;
+        case 'error':
+          inAppNotificationService.showError('Test error notification!');
+          break;
+        case 'achievement':
+          inAppNotificationService.showAchievement({
+            id: 'test',
+            title: 'Test Achievement',
+            description: 'You successfully tested the notification system!'
+          });
+          break;
+        case 'habit':
+          inAppNotificationService.showHabitReminder({
+            id: 'test',
+            title: 'Test Habit'
+          });
+          break;
+        case 'goal':
+          inAppNotificationService.showGoalDeadline({
+            id: 'test',
+            title: 'Test Goal'
+          }, 2);
+          break;
+        default:
+          inAppNotificationService.showTest();
+      }
+      
+      setTestStatus(prev => ({ 
+        ...prev, 
+        [`inapp-${type}`]: 'success' 
+      }));
+      
+      // Clear status after 3 seconds
+      setTimeout(() => {
+        setTestStatus(prev => ({ ...prev, [`inapp-${type}`]: null }));
+      }, 3000);
+      
+    } catch (error) {
+      console.error(`Test in-app ${type} notification failed:`, error);
+      setTestStatus(prev => ({ ...prev, [`inapp-${type}`]: 'error' }));
+    }
+  };
 
   const handleToggle = (key) => {
     updateNotificationSettings({
@@ -207,9 +279,133 @@ const NotificationSection = () => {
         </div>
       </div>
 
-      {/* Notification Channels */}
-      <div className="space-y-4" role="group" aria-label="Notification Channels">
-        <h4 className="font-medium text-text-primary">Notification Channels</h4>
+      {/* In-App Notification Settings */}
+      <div className="space-y-4" role="group" aria-label="In-App Notification Settings">
+        <h4 className="font-medium text-text-primary">In-App Notifications</h4>
+        <p className="text-sm text-text-secondary">Configure toast notifications that appear within the app</p>
+        
+        {/* In-App Notifications Toggle */}
+        <div className="bg-surface-700 rounded-lg p-4 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Icon name="Monitor" className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <h5 className="font-medium text-text-primary">Enable In-App Notifications</h5>
+                <p className="text-sm text-text-secondary">Show toast notifications in the app</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleInAppSettingChange('enabled', !inAppSettings.enabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                inAppSettings.enabled ? 'bg-primary' : 'bg-surface-600'
+              }`}
+              role="switch"
+              aria-checked={inAppSettings.enabled}
+              aria-label="Enable In-App Notifications"
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                  inAppSettings.enabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {inAppSettings.enabled && (
+            <div className="space-y-4">
+              {/* Position Setting */}
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Position</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'top-left', label: 'Top Left' },
+                    { value: 'top-right', label: 'Top Right' },
+                    { value: 'bottom-left', label: 'Bottom Left' },
+                    { value: 'bottom-right', label: 'Bottom Right' }
+                  ].map((position) => (
+                    <button
+                      key={position.value}
+                      onClick={() => handleInAppSettingChange('position', position.value)}
+                      className={`p-2 rounded-lg border transition-colors text-sm ${
+                        inAppSettings.position === position.value
+                          ? 'bg-primary/20 border-primary text-primary'
+                          : 'bg-surface-800 border-border text-text-secondary hover:bg-surface-700'
+                      }`}
+                    >
+                      {position.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Animation Setting */}
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Animation Style</label>
+                <div className="flex space-x-2">
+                  {[
+                    { value: 'slide', label: 'Slide' },
+                    { value: 'fade', label: 'Fade' },
+                    { value: 'bounce', label: 'Bounce' }
+                  ].map((animation) => (
+                    <button
+                      key={animation.value}
+                      onClick={() => handleInAppSettingChange('animation', animation.value)}
+                      className={`px-3 py-2 rounded-lg border transition-colors text-sm ${
+                        inAppSettings.animation === animation.value
+                          ? 'bg-primary/20 border-primary text-primary'
+                          : 'bg-surface-800 border-border text-text-secondary hover:bg-surface-700'
+                      }`}
+                    >
+                      {animation.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Max Concurrent Notifications */}
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Max Concurrent: {inAppSettings.maxConcurrent}
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={inAppSettings.maxConcurrent}
+                  onChange={(e) => handleInAppSettingChange('maxConcurrent', parseInt(e.target.value))}
+                  className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+
+              {/* Test Buttons */}
+              <div className="pt-4 border-t border-border">
+                <h6 className="text-sm font-medium text-text-primary mb-3">Test Notifications</h6>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { type: 'success', label: 'Success' },
+                    { type: 'warning', label: 'Warning' },
+                    { type: 'error', label: 'Error' }
+                  ].map((test) => (
+                    <button
+                      key={test.type}
+                      onClick={() => handleTestInAppNotification(test.type)}
+                      className={`px-3 py-2 text-xs font-medium text-white rounded-lg transition-colors ${getTestButtonClass(`inapp-${test.type}`)}`}
+                    >
+                      {getTestButtonContent(`inapp-${test.type}`)} {test.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* External Notification Channels */}
+      <div className="space-y-4" role="group" aria-label="External Notification Channels">
+        <h4 className="font-medium text-text-primary">External Notification Channels</h4>
         {/* Channel Selection UI */}
         <div className="flex space-x-2 mb-2">
           {channelOptions.map(opt => (
