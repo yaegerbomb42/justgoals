@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import AddHabitModal from '../../components/AddHabitModal';
 import HabitsTreeVisualization from '../../components/HabitsTreeVisualization';
+import CreativeHabitsTree from '../../components/CreativeHabitsTree';
 import habitService from '../../services/habitService';
 
 const HabitsPage = () => {
@@ -16,7 +17,7 @@ const HabitsPage = () => {
   const [editingHabit, setEditingHabit] = useState(null);
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('tree'); // 'tree' or 'compact'
+  const [viewMode, setViewMode] = useState('creative'); // 'creative', 'tree', or 'compact'
   const [batchMode, setBatchMode] = useState(false);
   const [selectedHabits, setSelectedHabits] = useState(new Set());
 
@@ -67,6 +68,7 @@ const HabitsPage = () => {
           id: Date.now(),
           date: new Date().toISOString().split('T')[0],
           checks: [],
+          currentProgress: 0,
           status: 'active',
           parentId: null
         }]
@@ -80,11 +82,11 @@ const HabitsPage = () => {
     }
   };
 
-  const handleCheckIn = async (habitId, nodeId, checkType = 'default') => {
+  const handleCheckIn = async (habitId, nodeId, checkType = 'default', progressAmount = 1) => {
     if (!user?.id) return;
     
     try {
-      const updatedHabit = await habitService.addCheckIn(user.id, habitId, nodeId, checkType);
+      const updatedHabit = await habitService.addCheckIn(user.id, habitId, nodeId, checkType, progressAmount);
       setHabits(prev => prev.map(h => h.id === habitId ? updatedHabit : h));
       checkAchievements();
     } catch (error) {
@@ -216,6 +218,7 @@ const HabitsPage = () => {
             id: Date.now() + Math.random(),
             date: today,
             checks: [],
+            currentProgress: 0,
             status: 'active',
             parentId: null,
             createdAt: new Date().toISOString()
@@ -244,11 +247,17 @@ const HabitsPage = () => {
     
     if (!activeNode) return { completed: 0, total: habit.targetChecks || 1, percentage: 0 };
     
-    const completed = activeNode.checks?.length || 0;
-    const total = habit.targetChecks || 1;
-    const percentage = Math.round((completed / total) * 100);
-    
-    return { completed, total, percentage };
+    if (habit.trackingType === 'amount') {
+      const completed = activeNode.currentProgress || 0;
+      const total = habit.targetAmount || 1;
+      const percentage = Math.min(Math.round((completed / total) * 100), 100);
+      return { completed, total, percentage, unit: habit.unit };
+    } else {
+      const completed = activeNode.checks?.length || 0;
+      const total = habit.targetChecks || 1;
+      const percentage = Math.min(Math.round((completed / total) * 100), 100);
+      return { completed, total, percentage };
+    }
   };
 
   const getHabitStreak = (habit) => {
@@ -363,6 +372,14 @@ const HabitsPage = () => {
           <div className="flex items-center space-x-3">
             {/* View Mode Toggle */}
             <div className="flex items-center bg-surface border border-border rounded-lg p-1">
+              <Button
+                size="sm"
+                variant={viewMode === 'creative' ? 'default' : 'ghost'}
+                onClick={() => setViewMode('creative')}
+                className="px-3 py-1"
+              >
+                <Icon name="TreePine" size={16} />
+              </Button>
               <Button
                 size="sm"
                 variant={viewMode === 'tree' ? 'default' : 'ghost'}
@@ -494,8 +511,16 @@ const HabitsPage = () => {
               Create Your First Habit
             </Button>
           </div>
+        ) : viewMode === 'creative' ? (
+          /* Creative Tree Visualization */
+          <CreativeHabitsTree 
+            habits={habits}
+            onCheckIn={handleCheckIn}
+            onEditHabit={handleEditHabit}
+            onDeleteHabit={handleDeleteHabit}
+          />
         ) : viewMode === 'tree' ? (
-          /* Tree Visualization */
+          /* Original Tree Visualization */
           <HabitsTreeVisualization 
             habits={habits}
             onCheckIn={handleCheckIn}

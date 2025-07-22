@@ -77,7 +77,10 @@ class HabitService {
         description: habitData.description || '',
         category: habitData.category || 'general',
         frequency: habitData.frequency || 'daily',
+        trackingType: habitData.trackingType || 'check', // 'check', 'count', 'amount'
         targetChecks: habitData.targetChecks || 1,
+        targetAmount: habitData.targetAmount || null, // For amount-based habits
+        unit: habitData.unit || null, // e.g., 'steps', 'glasses', 'minutes'
         allowMultipleChecks: habitData.allowMultipleChecks || false,
         color: habitData.color || '#3B82F6',
         emoji: habitData.emoji || '🎯',
@@ -87,6 +90,7 @@ class HabitService {
           id: this.generateNodeId(),
           date: today,
           checks: [],
+          currentProgress: 0, // For amount-based tracking
           status: 'active',
           parentId: null,
           createdAt: new Date().toISOString()
@@ -116,8 +120,8 @@ class HabitService {
     }
   }
 
-  // Add a check-in to a habit node
-  async addCheckIn(userId, habitId, nodeId, checkType = 'default') {
+  // Add a check-in to a habit node with optional progress amount
+  async addCheckIn(userId, habitId, nodeId, checkType = 'default', progressAmount = 1) {
     try {
       const habits = await this.getHabits(userId);
       const habitIndex = habits.findIndex(h => h.id === habitId);
@@ -134,18 +138,33 @@ class HabitService {
       }
 
       const node = habit.treeNodes[nodeIndex];
-      const newCheck = {
-        id: Date.now(),
-        type: checkType,
-        timestamp: new Date().toISOString(),
-        completed: true
-      };
-
-      node.checks.push(newCheck);
       
-      // Check if node is completed
-      if (node.checks.length >= habit.targetChecks) {
-        node.status = 'completed';
+      // Handle different habit types
+      if (habit.trackingType === 'count' || habit.trackingType === 'amount') {
+        // For count/amount based habits, update the current progress
+        node.currentProgress = (node.currentProgress || 0) + progressAmount;
+        
+        // Check if target is reached
+        if (node.currentProgress >= (habit.targetAmount || habit.targetChecks || 1)) {
+          node.status = 'completed';
+        }
+      } else {
+        // Traditional check-based tracking
+        const newCheck = {
+          id: Date.now(),
+          type: checkType,
+          timestamp: new Date().toISOString(),
+          completed: true,
+          amount: progressAmount
+        };
+
+        node.checks = node.checks || [];
+        node.checks.push(newCheck);
+        
+        // Check if node is completed
+        if (node.checks.length >= (habit.targetChecks || 1)) {
+          node.status = 'completed';
+        }
       }
 
       // Update the habit

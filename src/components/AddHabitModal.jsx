@@ -8,7 +8,10 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
   const [habitTitle, setHabitTitle] = useState(initialData?.title || '');
   const [habitDescription, setHabitDescription] = useState(initialData?.description || '');
   const [selectedEmoji, setSelectedEmoji] = useState(initialData?.emoji || '🎯');
+  const [trackingType, setTrackingType] = useState(initialData?.trackingType || 'check');
   const [targetChecks, setTargetChecks] = useState(initialData?.targetChecks || 1);
+  const [targetAmount, setTargetAmount] = useState(initialData?.targetAmount || 1);
+  const [unit, setUnit] = useState(initialData?.unit || '');
   const [allowMultipleChecks, setAllowMultipleChecks] = useState(initialData?.allowMultipleChecks || false);
   const [selectedCategory, setSelectedCategory] = useState(initialData?.category || 'general');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -21,14 +24,20 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
         setHabitTitle(initialData.title || '');
         setHabitDescription(initialData.description || '');
         setSelectedEmoji(initialData.emoji || '🎯');
+        setTrackingType(initialData.trackingType || 'check');
         setTargetChecks(initialData.targetChecks || 1);
+        setTargetAmount(initialData.targetAmount || 1);
+        setUnit(initialData.unit || '');
         setAllowMultipleChecks(initialData.allowMultipleChecks || false);
         setSelectedCategory(initialData.category || 'general');
       } else {
         setHabitTitle('');
         setHabitDescription('');
         setSelectedEmoji('🎯');
+        setTrackingType('check');
         setTargetChecks(1);
+        setTargetAmount(1);
+        setUnit('');
         setAllowMultipleChecks(false);
         setSelectedCategory('general');
       }
@@ -46,18 +55,18 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
     { id: 'home', name: 'Home & Life', icon: '🏠' }
   ];
 
-  // Habit suggestions with multiple check-ins
+  // Habit suggestions with multiple check-ins and tracking types
   const habitSuggestions = [
-    { title: 'Drink water', description: 'Stay hydrated throughout the day', emoji: '💧', targetChecks: 8, allowMultiple: true, category: 'health' },
-    { title: 'Take breaks', description: 'Step away from screen every hour', emoji: '☕', targetChecks: 8, allowMultiple: true, category: 'health' },
-    { title: 'Practice gratitude', description: 'Write down things you\'re thankful for', emoji: '🙏', targetChecks: 3, allowMultiple: true, category: 'general' },
-    { title: 'Read', description: 'Read for personal development', emoji: '📖', targetChecks: 1, allowMultiple: false, category: 'learning' },
-    { title: 'Exercise', description: 'Get your body moving', emoji: '🏃‍♂️', targetChecks: 1, allowMultiple: false, category: 'health' },
-    { title: 'Meditate', description: 'Practice mindfulness and meditation', emoji: '🧘‍♂️', targetChecks: 1, allowMultiple: false, category: 'health' },
-    { title: 'Journal', description: 'Write about your day', emoji: '📔', targetChecks: 1, allowMultiple: false, category: 'creative' },
-    { title: 'Call family', description: 'Stay connected with loved ones', emoji: '📞', targetChecks: 1, allowMultiple: false, category: 'social' },
-    { title: 'Learn something new', description: 'Spend time learning a new skill', emoji: '🎓', targetChecks: 1, allowMultiple: false, category: 'learning' },
-    { title: 'Clean workspace', description: 'Keep your environment organized', emoji: '🧹', targetChecks: 1, allowMultiple: false, category: 'productivity' }
+    { title: 'Drink water', description: 'Stay hydrated throughout the day', emoji: '💧', trackingType: 'amount', targetAmount: 8, unit: 'glasses', category: 'health' },
+    { title: 'Walk 10k steps', description: 'Get your daily steps in', emoji: '🚶‍♂️', trackingType: 'amount', targetAmount: 10000, unit: 'steps', category: 'health' },
+    { title: 'Practice gratitude', description: 'Write down things you\'re thankful for', emoji: '🙏', trackingType: 'count', targetChecks: 3, category: 'general' },
+    { title: 'Read', description: 'Read for personal development', emoji: '📖', trackingType: 'amount', targetAmount: 30, unit: 'minutes', category: 'learning' },
+    { title: 'Exercise', description: 'Get your body moving', emoji: '🏃‍♂️', trackingType: 'check', targetChecks: 1, category: 'health' },
+    { title: 'Meditate', description: 'Practice mindfulness and meditation', emoji: '🧘‍♂️', trackingType: 'amount', targetAmount: 10, unit: 'minutes', category: 'health' },
+    { title: 'Journal', description: 'Write about your day', emoji: '📔', trackingType: 'check', targetChecks: 1, category: 'creative' },
+    { title: 'Call family', description: 'Stay connected with loved ones', emoji: '📞', trackingType: 'check', targetChecks: 1, category: 'social' },
+    { title: 'Learn something new', description: 'Spend time learning a new skill', emoji: '🎓', trackingType: 'amount', targetAmount: 30, unit: 'minutes', category: 'learning' },
+    { title: 'Push-ups', description: 'Build upper body strength', emoji: '💪', trackingType: 'amount', targetAmount: 20, unit: 'reps', category: 'health' }
   ];
 
   const handleSubmit = async (e) => {
@@ -70,7 +79,10 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
         title: habitTitle.trim(),
         description: habitDescription.trim(),
         emoji: selectedEmoji,
-        targetChecks: parseInt(targetChecks),
+        trackingType: trackingType,
+        targetChecks: trackingType === 'check' ? parseInt(targetChecks) : 1,
+        targetAmount: trackingType === 'amount' ? parseInt(targetAmount) : null,
+        unit: trackingType === 'amount' ? unit.trim() : null,
         allowMultipleChecks: allowMultipleChecks,
         category: selectedCategory
       };
@@ -81,7 +93,10 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
       setHabitTitle('');
       setHabitDescription('');
       setSelectedEmoji('🎯');
+      setTrackingType('check');
       setTargetChecks(1);
+      setTargetAmount(1);
+      setUnit('');
       setAllowMultipleChecks(false);
       setSelectedCategory('general');
       onClose();
@@ -96,8 +111,13 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
     setHabitTitle(suggestion.title);
     setHabitDescription(suggestion.description);
     setSelectedEmoji(suggestion.emoji);
-    setTargetChecks(suggestion.targetChecks);
-    setAllowMultipleChecks(suggestion.allowMultiple);
+    setTrackingType(suggestion.trackingType);
+    if (suggestion.trackingType === 'amount') {
+      setTargetAmount(suggestion.targetAmount);
+      setUnit(suggestion.unit || '');
+    } else {
+      setTargetChecks(suggestion.targetChecks || 1);
+    }
     setSelectedCategory(suggestion.category);
   };
 
@@ -105,7 +125,10 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
     setHabitTitle('');
     setHabitDescription('');
     setSelectedEmoji('🎯');
+    setTrackingType('check');
     setTargetChecks(1);
+    setTargetAmount(1);
+    setUnit('');
     setAllowMultipleChecks(false);
     setSelectedCategory('general');
     setShowEmojiPicker(false);
@@ -224,23 +247,121 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
               </button>
             </div>
 
-            {/* Target Checks */}
+            {/* Tracking Type */}
             <div>
               <label className="block text-sm font-body-medium text-text-primary mb-2">
-                Target Daily Goals
+                Tracking Type
               </label>
-              <input
-                type="number"
-                min="1"
-                max="20"
-                value={targetChecks}
-                onChange={(e) => setTargetChecks(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-              <div className="text-xs text-text-secondary mt-1">
-                How many times should you complete this habit each day?
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTrackingType('check')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    trackingType === 'check'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-surface-600 hover:bg-surface-500'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-xl mb-1">✅</div>
+                    <div className="text-xs text-text-secondary">Simple Check</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrackingType('count')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    trackingType === 'count'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-surface-600 hover:bg-surface-500'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-xl mb-1">🔢</div>
+                    <div className="text-xs text-text-secondary">Multiple Checks</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrackingType('amount')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    trackingType === 'amount'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-surface-600 hover:bg-surface-500'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-xl mb-1">📊</div>
+                    <div className="text-xs text-text-secondary">Progress Amount</div>
+                  </div>
+                </button>
+              </div>
+              <div className="text-xs text-text-secondary mt-2">
+                {trackingType === 'check' && 'Simple daily completion (e.g., "Did I journal today?")'}
+                {trackingType === 'count' && 'Multiple completions with target (e.g., "3 gratitude entries")'}
+                {trackingType === 'amount' && 'Progress towards a target amount (e.g., "10,000 steps")'}
               </div>
             </div>
+
+            {/* Target Goals based on tracking type */}
+            {trackingType === 'check' ? (
+              <div>
+                <label className="block text-sm font-body-medium text-text-primary mb-2">
+                  Simple Daily Goal
+                </label>
+                <div className="p-3 bg-surface-600 border border-border rounded-lg text-text-secondary text-sm">
+                  ✅ Complete once per day
+                </div>
+              </div>
+            ) : trackingType === 'count' ? (
+              <div>
+                <label className="block text-sm font-body-medium text-text-primary mb-2">
+                  Target Daily Count
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={targetChecks}
+                  onChange={(e) => setTargetChecks(parseInt(e.target.value) || 1)}
+                  className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+                <div className="text-xs text-text-secondary mt-1">
+                  How many times should you complete this habit each day?
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-body-medium text-text-primary mb-2">
+                    Target Amount
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={targetAmount}
+                    onChange={(e) => setTargetAmount(parseInt(e.target.value) || 1)}
+                    className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-body-medium text-text-primary mb-2">
+                    Unit (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder="e.g., steps, glasses, minutes, pages"
+                    className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    maxLength={20}
+                  />
+                  <div className="text-xs text-text-secondary mt-1">
+                    What unit are you measuring? (e.g., steps, glasses of water, minutes)
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Allow Multiple Checks */}
             <div>
@@ -280,7 +401,10 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                         <div className="text-xs text-text-secondary">{suggestion.description}</div>
                       </div>
                       <div className="text-xs text-text-secondary">
-                        {suggestion.targetChecks} goal{suggestion.targetChecks > 1 ? 's' : ''}
+                        {suggestion.trackingType === 'amount' 
+                          ? `${suggestion.targetAmount} ${suggestion.unit || 'units'}`
+                          : `${suggestion.targetChecks || 1} goal${(suggestion.targetChecks || 1) > 1 ? 's' : ''}`
+                        }
                       </div>
                     </button>
                   ))}
