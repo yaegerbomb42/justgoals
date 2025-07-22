@@ -135,9 +135,9 @@ const NotificationSection = () => {
 
   const getTestButtonClass = (type) => {
     const status = testStatus[type];
-    if (status === 'sending') return 'bg-yellow-500 hover:bg-yellow-600';
-    if (status === 'success') return 'bg-green-500 hover:bg-green-600';
-    if (status === 'error') return 'bg-red-500 hover:bg-red-600';
+    if (status === 'sending') return 'bg-warning hover:bg-warning/90';
+    if (status === 'success') return 'bg-success hover:bg-success/90';
+    if (status === 'error') return 'bg-error hover:bg-error/90';
     return 'bg-primary hover:bg-primary/90';
   };
 
@@ -375,8 +375,8 @@ const NotificationSection = () => {
         {/* Morning Motivation */}
         <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-yellow-500/10 rounded-lg">
-              <Icon name="Sun" className="w-4 h-4 text-yellow-500" />
+            <div className="p-2 bg-warning/10 rounded-lg">
+              <Icon name="Sun" className="w-4 h-4 text-warning" />
             </div>
             <div>
               <h5 className="font-medium text-text-primary">Morning Motivation</h5>
@@ -388,7 +388,7 @@ const NotificationSection = () => {
             disabled={!settings.notifications.enabled}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
               settings.notifications.enabled && settings.notifications.morningMotivation 
-                ? 'bg-yellow-500' 
+                ? 'bg-warning' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             role="switch"
@@ -409,8 +409,8 @@ const NotificationSection = () => {
         {/* Evening Reflection */}
         <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Icon name="Moon" className="w-4 h-4 text-blue-500" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Icon name="Moon" className="w-4 h-4 text-primary" />
             </div>
             <div>
               <h5 className="font-medium text-text-primary">Evening Reflection</h5>
@@ -422,7 +422,7 @@ const NotificationSection = () => {
             disabled={!settings.notifications.enabled}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
               settings.notifications.enabled && settings.notifications.eveningReflection 
-                ? 'bg-blue-500' 
+                ? 'bg-primary' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             role="switch"
@@ -443,8 +443,8 @@ const NotificationSection = () => {
         {/* Streak Protection */}
         <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-red-500/10 rounded-lg">
-              <Icon name="Shield" className="w-4 h-4 text-red-500" />
+            <div className="p-2 bg-error/10 rounded-lg">
+              <Icon name="Shield" className="w-4 h-4 text-error" />
             </div>
             <div>
               <h5 className="font-medium text-text-primary">Streak Protection</h5>
@@ -456,7 +456,7 @@ const NotificationSection = () => {
             disabled={!settings.notifications.enabled}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
               settings.notifications.enabled && settings.notifications.streakProtection 
-                ? 'bg-red-500' 
+                ? 'bg-error' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             role="switch"
@@ -477,8 +477,8 @@ const NotificationSection = () => {
         {/* Focus Reminders */}
         <div className="flex items-center justify-between p-3 bg-surface-700 rounded-lg border border-border">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <Icon name="Zap" className="w-4 h-4 text-green-500" />
+            <div className="p-2 bg-success/10 rounded-lg">
+              <Icon name="Zap" className="w-4 h-4 text-success" />
             </div>
             <div>
               <h5 className="font-medium text-text-primary">Focus Reminders</h5>
@@ -490,7 +490,7 @@ const NotificationSection = () => {
             disabled={!settings.notifications.enabled}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
               settings.notifications.enabled && settings.notifications.focusReminders 
-                ? 'bg-green-500' 
+                ? 'bg-success' 
                 : 'bg-surface-600'
             } ${!settings.notifications.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             role="switch"

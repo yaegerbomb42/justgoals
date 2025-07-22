@@ -75,7 +75,7 @@ const Header = () => {
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Icon name="Target" className="w-5 h-5 text-white" />
+                <Icon name="Target" className="w-5 h-5 text-primary-foreground" />
               </div>
             </div>
             <h1 className={`font-heading-bold text-text-primary transition-all duration-200 ${
@@ -96,7 +96,7 @@ const Header = () => {
                     onClick={() => navigate(item.path)}
                     className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
                       isActive
-                        ? 'bg-primary text-white shadow-lg'
+                        ? 'bg-primary text-primary-foreground shadow-lg'
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
                     }`}
                   >
@@ -126,7 +126,7 @@ const Header = () => {
             >
               <Icon name="Award" className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-error text-error-foreground text-xs rounded-full flex items-center justify-center font-bold">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -146,7 +146,7 @@ const Header = () => {
             {/* Profile Icon & Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white font-bold border-2 border-primary-400 hover:shadow-lg transition-all duration-200 hover:scale-105"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-foreground font-bold border-2 border-primary hover:shadow-lg transition-all duration-200 hover:scale-105"
                 onClick={() => setProfileMenuOpen((v) => !v)}
                 title="Profile"
               >
@@ -163,7 +163,7 @@ const Header = () => {
                     {/* User Info Section */}
                     <div className="p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-border">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground font-bold text-lg">
                           {user?.displayName?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -180,7 +180,7 @@ const Header = () => {
                     {/* Menu Items */}
                     <div className="p-2">
                       <button
-                        className="w-full flex items-center space-x-3 px-3 py-2 text-left text-red-500 hover:bg-red-500/10 rounded-lg transition-colors duration-200"
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-left text-error hover:bg-error/10 rounded-lg transition-colors duration-200"
                         onClick={handleLogout}
                       >
                         <Icon name="LogOut" className="w-4 h-4" />
@@ -212,7 +212,7 @@ const Header = () => {
                       onClick={() => navigate(item.path)}
                       className={`flex items-center space-x-2 px-3 py-3 rounded-lg font-medium transition-all duration-200 ${
                         isActive
-                          ? 'bg-primary text-white shadow-lg'
+                          ? 'bg-primary text-primary-foreground shadow-lg'
                           : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
                       }`}
                     >
