@@ -23,7 +23,7 @@ class DiscordNotificationService {
 
     try {
       const payload = {
-        content,
+        content: message,
         username: 'JustGoals',
         avatar_url: 'https://justgoals.vercel.app/assets/images/app-icon.png',
         ...options
@@ -41,7 +41,7 @@ class DiscordNotificationService {
         console.log('Discord notification sent successfully');
         return true;
       } else {
-        console.error('Discord notification failed:', response.status);
+        console.error('Discord notification failed:', response.status, await response.text());
         return false;
       }
     } catch (error) {

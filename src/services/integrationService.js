@@ -167,6 +167,44 @@ class IntegrationService {
         await this.checkAchievements();
       }
     }, 2 * 60 * 1000); // Every 2 minutes
+
+    // Start midnight habit reset scheduler
+    this.scheduleMidnightHabitReset();
+  }
+
+  // Schedule habits to reset at midnight
+  scheduleMidnightHabitReset() {
+    const scheduleNextReset = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0); // Midnight
+
+      const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+
+      setTimeout(async () => {
+        try {
+          console.log('Midnight habit reset triggered');
+          
+          // Reset habits for all active users (in a real app, you'd get this from active sessions)
+          if (this.userId && this.services.habit) {
+            await this.services.habit.checkAndAutoManageChains(this.userId);
+            console.log(`Habits reset for user ${this.userId} at midnight`);
+          }
+          
+          // Schedule next day's reset
+          scheduleNextReset();
+        } catch (error) {
+          console.error('Error during midnight habit reset:', error);
+          // Still schedule next reset even if current one fails
+          scheduleNextReset();
+        }
+      }, timeUntilMidnight);
+
+      console.log(`Next habit reset scheduled in ${Math.round(timeUntilMidnight / 1000 / 60)} minutes`);
+    };
+
+    scheduleNextReset();
   }
 
   // Get user data with caching

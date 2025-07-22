@@ -66,6 +66,20 @@ const NotificationSection = () => {
     }
   };
 
+  const handleNtfyChange = (topic) => {
+    updateNotificationSettings({
+      ntfy: {
+        ...settings.notifications.ntfy,
+        topic,
+        enabled: !!topic
+      }
+    });
+    
+    if (topic) {
+      ntfyNotificationService.init(topic);
+    }
+  };
+
   const handleScheduleTimeChange = (notificationType, time) => {
     updateNotificationSettings({
       schedules: {
