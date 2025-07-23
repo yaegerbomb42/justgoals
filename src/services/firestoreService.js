@@ -1,5 +1,5 @@
 // firestoreService.js
-import { db } from './firebaseClient';
+import { firestore as db } from './firebaseClient';
 import { 
   collection, 
   doc, 
@@ -29,7 +29,7 @@ import {
 
 class FirestoreService {
   constructor() {
-    this.db = firestore;
+    this.db = db;
   }
 
   // Helper function to get user collection reference
