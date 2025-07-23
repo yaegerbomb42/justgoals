@@ -28,8 +28,10 @@ const SessionStats = ({
     
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
-    } else {
+    } else if (minutes > 0) {
       return `${minutes}m`;
+    } else {
+      return `${Math.floor(seconds)}s`;
     }
   };
 

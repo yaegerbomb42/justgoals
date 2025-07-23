@@ -14,6 +14,7 @@ const TodoItem = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [showDopamine, setShowDopamine] = useState(false);
 
   const getPriorityIcon = (priority) => {
     if (!priority || priority < 3) return 'Circle';
@@ -31,6 +32,8 @@ const TodoItem = ({
 
   const handleComplete = async () => {
     setIsCompleting(true);
+    setShowDopamine(true);
+    setTimeout(() => setShowDopamine(false), 600);
     await onComplete(todo.id);
   };
 
@@ -66,7 +69,8 @@ const TodoItem = ({
         opacity: isCompleting ? 0.5 : 1, 
         y: 0, 
         scale: isCompleting ? 0.95 : 1,
-        x: isCompleting ? -20 : 0
+        x: isCompleting ? -20 : 0,
+        backgroundColor: showDopamine ? '#22c55e' : undefined // Tailwind green-500
       }}
       exit={{ 
         opacity: 0, 
@@ -81,7 +85,7 @@ const TodoItem = ({
         damping: 30
       }}
       whileHover={{ scale: 1.02 }}
-      className="group bg-surface border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-all duration-200 hover:shadow-lg"
+      className={`group bg-surface border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-all duration-200 hover:shadow-lg ${showDopamine ? 'ring-4 ring-success/40' : ''}`}
     >
       <div className="p-4">
         <div className="flex items-start gap-4">
@@ -191,25 +195,24 @@ const TodoItem = ({
             <motion.button
               onClick={handleComplete}
               disabled={isCompleting}
-              className="p-2 text-success hover:bg-success/10 rounded-lg transition-all duration-200 disabled:opacity-50"
+              className="p-3 text-success hover:bg-success/20 rounded-xl transition-all duration-200 disabled:opacity-50 scale-110"
               title="Complete"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.98 }}
             >
               <Icon 
                 name={isCompleting ? "Loader2" : "Check"} 
-                className={`w-4 h-4 ${isCompleting ? 'animate-spin' : ''}`} 
+                className={`w-6 h-6 ${isCompleting ? 'animate-spin' : ''}`} 
               />
             </motion.button>
-            
             <motion.button
               onClick={() => onDelete(todo.id)}
-              className="p-2 text-error hover:bg-error/10 rounded-lg transition-all duration-200"
+              className="p-3 text-error hover:bg-error/20 rounded-xl transition-all duration-200 scale-110"
               title="Delete"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <Icon name="Trash2" className="w-4 h-4" />
+              <Icon name="Trash2" className="w-6 h-6" />
             </motion.button>
           </motion.div>
         </div>

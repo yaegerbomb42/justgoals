@@ -327,12 +327,39 @@ const FocusMode = () => {
 
     setGoalChatMessages(prev => [...prev, newMsg]);
     setChatInput('');
-    
-    // Save to localStorage
+
+    // Save to localStorage with error handling
     if (isAuthenticated && user) {
-      const chatKey = getGoalChatKey(selectedGoal.id, user.id);
-      const updatedChat = [...goalChatMessages, newMsg];
-      localStorage.setItem(chatKey, JSON.stringify(updatedChat));
+      try {
+        const chatKey = getGoalChatKey(selectedGoal.id, user.id);
+        const updatedChat = [...goalChatMessages, newMsg];
+        localStorage.setItem(chatKey, JSON.stringify(updatedChat));
+      } catch (error) {
+        console.error('Error saving chat messages:', error);
+        alert('Failed to save chat messages. Please try again later.');
+      }
+    }
+  };
+
+  const handleAmbientSoundPlayback = async (soundType) => {
+    if (!soundType || soundType === 'none') return;
+
+    const soundUrl = `/assets/sounds/${soundType}.mp3`;
+    const fileExists = await checkSoundFileExists(soundUrl);
+
+    if (!fileExists) {
+      console.error(`Sound file not found: ${soundUrl}`);
+      alert('Selected ambient sound is unavailable.');
+      return;
+    }
+
+    try {
+      const audio = new Audio(soundUrl);
+      audio.volume = focusSettings.soundVolume || 0.5;
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing ambient sound:', error);
+      alert('Failed to play ambient sound. Please try a different option.');
     }
   };
 

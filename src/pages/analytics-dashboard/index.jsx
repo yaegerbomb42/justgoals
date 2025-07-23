@@ -131,9 +131,19 @@ const AnalyticsDashboard = () => {
         <div className="bg-surface rounded-lg p-4 border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-text-secondary">Focus Hours</p>
+              <p className="text-sm text-text-secondary">Focus Minutes</p>
               <p className="text-2xl font-heading-bold text-accent">
-                {Math.round(safeAnalyticsData.habits?.focusSessions?.totalTime || 0)}
+                {(() => {
+                  try {
+                    const userId = user?.uid || user?.id;
+                    if (!userId) return 0;
+                    const focusStatsKey = `focus_session_stats_${userId}`;
+                    const focusStats = JSON.parse(localStorage.getItem(focusStatsKey) || '{}');
+                    return Math.round((focusStats.totalFocusTime || 0) / 60);
+                  } catch (e) {
+                    return Math.round(safeAnalyticsData.habits?.focusSessions?.totalTime || 0);
+                  }
+                })()}m
               </p>
             </div>
             <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">

@@ -16,6 +16,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
   const [selectedCategory, setSelectedCategory] = useState(initialData?.category || 'general');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // Reset form when modal opens
   React.useEffect(() => {
@@ -41,6 +42,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
         setAllowMultipleChecks(false);
         setSelectedCategory('general');
       }
+      setErrors({});
     }
   }, [isOpen, initialData, mode]);
 
@@ -69,9 +71,38 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
     { title: 'Push-ups', description: 'Build upper body strength', emoji: '💪', trackingType: 'amount', targetAmount: 20, unit: 'reps', category: 'health' }
   ];
 
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!habitTitle.trim()) {
+      newErrors.title = 'Habit title is required';
+    } else if (habitTitle.trim().length < 2) {
+      newErrors.title = 'Habit title must be at least 2 characters';
+    }
+    
+    if (trackingType === 'amount') {
+      if (!targetAmount || targetAmount < 1) {
+        newErrors.targetAmount = 'Target amount must be at least 1';
+      }
+      if (unit && unit.length > 20) {
+        newErrors.unit = 'Unit must be 20 characters or less';
+      }
+    } else {
+      if (!targetChecks || targetChecks < 1 || targetChecks > 20) {
+        newErrors.targetChecks = 'Target checks must be between 1 and 20';
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!habitTitle.trim()) return;
+    
+    if (!validateForm()) {
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -99,9 +130,11 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
       setUnit('');
       setAllowMultipleChecks(false);
       setSelectedCategory('general');
+      setErrors({});
       onClose();
     } catch (error) {
       console.error('Error adding habit:', error);
+      setErrors({ submit: 'Failed to create habit. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -176,12 +209,22 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
               <input
                 type="text"
                 value={habitTitle}
-                onChange={(e) => setHabitTitle(e.target.value)}
+                onChange={(e) => {
+                  setHabitTitle(e.target.value);
+                  if (errors.title) {
+                    setErrors(prev => ({ ...prev, title: null }));
+                  }
+                }}
                 placeholder="Enter your habit title..."
-                className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                  errors.title ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                }`}
                 required
                 maxLength={50}
               />
+              {errors.title && (
+                <p className="text-xs text-error mt-1">{errors.title}</p>
+              )}
               <div className="text-xs text-text-secondary mt-1">
                 {habitTitle.length}/50 characters
               </div>
@@ -323,9 +366,19 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                   min="1"
                   max="20"
                   value={targetChecks}
-                  onChange={(e) => setTargetChecks(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  onChange={(e) => {
+                    setTargetChecks(parseInt(e.target.value) || 1);
+                    if (errors.targetChecks) {
+                      setErrors(prev => ({ ...prev, targetChecks: null }));
+                    }
+                  }}
+                  className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                    errors.targetChecks ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                  }`}
                 />
+                {errors.targetChecks && (
+                  <p className="text-xs text-error mt-1">{errors.targetChecks}</p>
+                )}
                 <div className="text-xs text-text-secondary mt-1">
                   How many times should you complete this habit each day?
                 </div>
@@ -340,9 +393,19 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                     type="number"
                     min="1"
                     value={targetAmount}
-                    onChange={(e) => setTargetAmount(parseInt(e.target.value) || 1)}
-                    className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    onChange={(e) => {
+                      setTargetAmount(parseInt(e.target.value) || 1);
+                      if (errors.targetAmount) {
+                        setErrors(prev => ({ ...prev, targetAmount: null }));
+                      }
+                    }}
+                    className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                      errors.targetAmount ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                    }`}
                   />
+                  {errors.targetAmount && (
+                    <p className="text-xs text-error mt-1">{errors.targetAmount}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-body-medium text-text-primary mb-2">
@@ -351,11 +414,21 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                   <input
                     type="text"
                     value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
+                    onChange={(e) => {
+                      setUnit(e.target.value);
+                      if (errors.unit) {
+                        setErrors(prev => ({ ...prev, unit: null }));
+                      }
+                    }}
                     placeholder="e.g., steps, glasses, minutes, pages"
-                    className="w-full px-4 py-3 bg-surface-600 border border-border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                      errors.unit ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                    }`}
                     maxLength={20}
                   />
+                  {errors.unit && (
+                    <p className="text-xs text-error mt-1">{errors.unit}</p>
+                  )}
                   <div className="text-xs text-text-secondary mt-1">
                     What unit are you measuring? (e.g., steps, glasses of water, minutes)
                   </div>
@@ -414,6 +487,9 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
 
             {/* Submit Buttons */}
             <div className="flex items-center justify-end space-x-3 pt-4 border-t border-border">
+              {errors.submit && (
+                <p className="text-sm text-error flex-1">{errors.submit}</p>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -425,7 +501,7 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
               <Button
                 type="submit"
                 loading={isSubmitting}
-                disabled={!habitTitle.trim()}
+                disabled={isSubmitting || !habitTitle.trim()}
                 iconName="Plus"
                 iconPosition="left"
               >

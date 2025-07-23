@@ -105,12 +105,10 @@ const TemporaryTodosPage = () => {
   };
 
   const handleDeleteTodo = async (todoId) => {
-    if (window.confirm('Are you sure you want to delete this todo?')) {
-      try {
-        await deleteTodo(todoId);
-      } catch (error) {
-        console.error('Error deleting todo:', error);
-      }
+    try {
+      await deleteTodo(todoId);
+    } catch (error) {
+      console.error('Error deleting todo:', error);
     }
   };
 
@@ -124,6 +122,20 @@ const TemporaryTodosPage = () => {
   const handleCelebrationComplete = () => {
     setShowCelebration(false);
     setCompletedTodoText('');
+  };
+
+  const handleAiPrioritize = async () => {
+    if (!apiKey?.trim()) {
+      console.error('AI prioritization failed: Missing API key.');
+      return;
+    }
+
+    try {
+      await aiPrioritizeTodos();
+      console.log('AI prioritization completed successfully.');
+    } catch (error) {
+      console.error('Error during AI prioritization:', error);
+    }
   };
 
   if (!isAuthenticated) {

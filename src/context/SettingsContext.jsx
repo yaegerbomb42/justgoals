@@ -205,13 +205,33 @@ export const SettingsProvider = ({ children }) => {
   };
 
   const updateNotificationSettings = (updates) => {
-    setSettings(prev => ({
-      ...prev,
-      notifications: {
+    setSettings(prev => {
+      const newNotifications = {
         ...prev.notifications,
         ...updates,
-      },
-    }));
+      };
+      
+      // Save notification settings immediately to localStorage for reliability
+      const newSettings = {
+        ...prev,
+        notifications: newNotifications,
+      };
+      
+      try {
+        localStorage.setItem('justgoals-settings', JSON.stringify(newSettings));
+        
+        // Also save to Firestore if authenticated
+        if (isAuthenticated && user && user.id) {
+          firestoreService.saveAppSettings(user.id, newSettings).catch(error => {
+            console.warn('Failed to save notification settings to Firestore:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Failed to save notification settings to localStorage:', error);
+      }
+      
+      return newSettings;
+    });
   };
 
   const updateProgressMeterSettings = (updates) => {

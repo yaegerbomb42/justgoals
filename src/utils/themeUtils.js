@@ -569,6 +569,11 @@ export const applyThemeColors = (accentColor = 'indigo', theme = 'system') => {
   } else {
     document.body.classList.add('light');
   }
+  
+  // Force a repaint to ensure theme changes are applied immediately
+  document.body.style.visibility = 'hidden';
+  document.body.offsetHeight; // Trigger a reflow
+  document.body.style.visibility = 'visible';
 };
 
 /**

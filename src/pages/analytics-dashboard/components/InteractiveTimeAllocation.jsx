@@ -82,13 +82,38 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
     const focusTime = timeData.find(cat => cat.name === 'Deep Work')?.value || 0;
     const planningTime = timeData.find(cat => cat.name === 'Goal Planning')?.value || 0;
     
+    // Get actual focus session data from localStorage if available
+    let actualFocusMinutes = 0;
+    let actualSessionCount = 0;
+    let actualAverageSession = 1.5;
+    
+    try {
+      const userId = localStorage.getItem('currentUserId'); // Assuming this exists
+      if (userId) {
+        const focusStatsKey = `focus_session_stats_${userId}`;
+        const focusStats = JSON.parse(localStorage.getItem(focusStatsKey) || '{}');
+        
+        // Convert seconds to minutes for display
+        actualFocusMinutes = Math.round((focusStats.totalFocusTime || 0) / 60);
+        actualSessionCount = focusStats.sessionsToday || 0;
+        
+        if (actualSessionCount > 0) {
+          actualAverageSession = actualFocusMinutes / actualSessionCount / 60; // Convert to hours
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load focus session data for analytics:', e);
+    }
+    
     return {
       productivityRate: totalTime > 0 ? (productiveTime / totalTime) * 100 : 0,
       focusRatio: totalTime > 0 ? (focusTime / totalTime) * 100 : 0,
       planningRatio: totalTime > 0 ? (planningTime / totalTime) * 100 : 0,
-      totalHours: totalTime,
-      averageSessionLength: 1.5, // Mock average session length
-      contextSwitches: 12 // Mock context switches per day
+      totalHours: totalTime || actualFocusMinutes / 60, // Use actual data if available
+      totalFocusMinutes: actualFocusMinutes,
+      sessionCount: actualSessionCount,
+      averageSessionLength: actualAverageSession,
+      contextSwitches: 12 // This would need actual tracking
     };
   }, [timeData]);
 
@@ -372,17 +397,17 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
           },
           {
             icon: 'Target',
-            label: 'Focus Ratio',
-            value: `${efficiencyMetrics.focusRatio.toFixed(1)}%`,
+            label: 'Focus Minutes',
+            value: `${efficiencyMetrics.totalFocusMinutes}m`,
             color: 'text-primary',
-            description: 'Deep work vs total time'
+            description: 'Total focus time today'
           },
           {
             icon: 'Clock',
-            label: 'Avg Session',
-            value: `${efficiencyMetrics.averageSessionLength}h`,
+            label: 'Sessions Today',
+            value: efficiencyMetrics.sessionCount.toString(),
             color: 'text-accent',
-            description: 'Average work session length'
+            description: 'Number of focus sessions completed'
           },
           {
             icon: 'Shuffle',

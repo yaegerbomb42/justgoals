@@ -63,8 +63,20 @@ const ApiKeySection = () => {
   };
 
   const handleSave = async () => {
-    await geminiService.initialize(apiKey, model);
-    // No need to dispatch custom event, context will update
+    if (!apiKey?.trim()) {
+      setMessage('API key cannot be empty.');
+      setConnectionStatus('error');
+      return;
+    }
+
+    try {
+      await geminiService.initialize(apiKey, model);
+      setMessage('API key saved and Gemini initialized successfully!');
+      setConnectionStatus('success');
+    } catch (error) {
+      setMessage(`Failed to initialize Gemini: ${error.message}`);
+      setConnectionStatus('error');
+    }
   };
 
   const handleTestConnection = () => {

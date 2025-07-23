@@ -859,11 +859,22 @@ class AchievementService {
 
   // Get user's earned achievements
   getUserAchievements(userId) {
-    if (!userId) return [];
+    if (!userId) {
+      console.warn('getUserAchievements called with missing userId');
+      return [];
+    }
 
     try {
       const achievementsKey = `user_achievements_${userId}`;
-      return JSON.parse(localStorage.getItem(achievementsKey) || '[]');
+      const raw = localStorage.getItem(achievementsKey);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        console.error('Achievements data corrupted, resetting:', { raw });
+        localStorage.setItem(achievementsKey, '[]');
+        return [];
+      }
+      return parsed;
     } catch (error) {
       console.error('Error getting user achievements:', error);
       return [];
@@ -872,19 +883,37 @@ class AchievementService {
 
   // Award achievements to user
   awardAchievements(userId, achievements) {
-    if (!userId || !achievements.length) return;
+    if (!userId || !achievements.length) {
+      console.warn('awardAchievements called with missing userId or empty achievements:', { userId, achievements });
+      return;
+    }
 
     try {
       const achievementsKey = `user_achievements_${userId}`;
-      const existingAchievements = this.getUserAchievements(userId);
-      const updatedAchievements = [...existingAchievements, ...achievements];
-      
+      let existingAchievements = [];
+      try {
+        existingAchievements = this.getUserAchievements(userId);
+      } catch (e) {
+        console.error('Error loading existing achievements:', e);
+        existingAchievements = [];
+      }
+      // Prevent duplicate achievement IDs
+      const existingIds = new Set(existingAchievements.map(a => a.id));
+      const newUniqueAchievements = achievements.filter(a => !existingIds.has(a.id));
+      const updatedAchievements = [...existingAchievements, ...newUniqueAchievements];
+
       localStorage.setItem(achievementsKey, JSON.stringify(updatedAchievements));
-      
+
+      // Validate save
+      const verify = JSON.parse(localStorage.getItem(achievementsKey) || '[]');
+      if (!Array.isArray(verify) || verify.length < updatedAchievements.length) {
+        console.error('Achievement save verification failed:', { verify, updatedAchievements });
+      }
+
       // Update total points
-      this.updateUserPoints(userId, achievements);
-      
-      console.log(`Awarded ${achievements.length} new achievements to user ${userId}:`, achievements);
+      this.updateUserPoints(userId, newUniqueAchievements);
+
+      console.log(`Awarded ${newUniqueAchievements.length} new achievements to user ${userId}:`, newUniqueAchievements);
     } catch (error) {
       console.error('Error awarding achievements:', error);
     }
