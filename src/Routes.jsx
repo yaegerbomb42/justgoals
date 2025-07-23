@@ -19,6 +19,7 @@ import AnalyticsDashboard from "pages/analytics-dashboard";
 import Day from "pages/day";
 import AchievementsPage from "pages/achievements";
 import HabitsPage from "pages/habits";
+import HabitsPageDemo from "pages/habits/demo";
 import MealsPage from "pages/meals";
 import TemporaryTodosPage from "pages/temp-todos";
 import Oauth2Callback from './pages/oauth2callback';
@@ -67,6 +68,7 @@ const Routes = () => {
         <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
         <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
         <Route path="/habits" element={<ProtectedRoute><HabitsPage /></ProtectedRoute>} />
+        <Route path="/habits-demo" element={<HabitsPageDemo />} />
         <Route path="/meals" element={<ProtectedRoute><MealsPage /></ProtectedRoute>} />
         <Route path="/day" element={<ProtectedRoute><Day /></ProtectedRoute>} />
         <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
