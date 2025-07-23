@@ -28,6 +28,7 @@ const SessionSettings = ({
     { id: 'gradient', label: 'Gradient', preview: 'bg-gradient-to-br from-background to-surface' },
     { id: 'pattern', label: 'Subtle Pattern', preview: 'bg-background' },
     { id: 'flowing-particles', label: 'Flowing Particles', preview: 'bg-background' },
+    { id: 'creative', label: 'Creative Flow', preview: 'bg-background' },
     { id: 'abstract-waves', label: 'Abstract Waves', preview: 'bg-background' },
     { id: 'energy', label: 'Energy', preview: 'bg-background' },
     { id: 'confetti', label: 'Confetti', preview: 'bg-background' },

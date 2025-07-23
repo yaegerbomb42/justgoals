@@ -74,68 +74,197 @@ const MealPreferences = ({ preferences = {}, onError }) => {
 
   const handleInputChange = (field, value) => {
     try {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      // Special validation for certain fields
+      if (field === 'dailyCalories') {
+        const numValue = parseInt(value) || 0;
+        if (numValue < 0) {
+          if (onError) onError('Daily calories cannot be negative');
+          return;
+        }
+        if (numValue > 20000) {
+          if (onError) onError('Daily calories seems too high (maximum 20,000)');
+          return;
+        }
+        setFormData(prev => ({
+          ...prev,
+          [field]: numValue
+        }));
+      } else if (field === 'preferredMealCount') {
+        const numValue = parseInt(value) || 3;
+        if (numValue < 1 || numValue > 8) {
+          if (onError) onError('Meal count must be between 1-8');
+          return;
+        }
+        setFormData(prev => ({
+          ...prev,
+          [field]: numValue
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [field]: value
+        }));
+      }
+      
+      // Clear error if validation passes
+      if (onError) onError(null);
     } catch (error) {
       console.error('Error updating form data:', error);
-      if (onError) onError(error.message);
+      if (onError) onError('Error updating ' + field + ': ' + error.message);
     }
   };
 
-  const handleMacroChange = (newMacroTargets) => {
+  // Wrapper function for MacroSlider compatibility
+  const handleMacroSliderChange = (newMacroTargets) => {
     try {
+      // Validate the entire macro object
+      const protein = parseInt(newMacroTargets.protein) || 0;
+      const carbs = parseInt(newMacroTargets.carbs) || 0;
+      const fat = parseInt(newMacroTargets.fat) || 0;
+      const total = protein + carbs + fat;
+      
+      if (total > 100) {
+        if (onError) onError(`Macro total would be ${total}% (cannot exceed 100%)`);
+        return;
+      }
+      
       setFormData(prev => ({
         ...prev,
         macroTargets: newMacroTargets
       }));
+      
+      // Clear error if validation passes
+      if (onError && total <= 100) {
+        onError(null);
+      }
+    } catch (error) {
+      console.error('Error updating macro targets from slider:', error);
+      if (onError) onError('Error updating macro targets: ' + error.message);
+    }
+  };
+
+  const handleMacroChange = (macro, value) => {
+    try {
+      const numValue = parseInt(value) || 0;
+      
+      // Validate individual macro range
+      if (numValue < 0 || numValue > 100) {
+        if (onError) onError(`${macro} percentage must be between 0-100%`);
+        return;
+      }
+      
+      const newMacroTargets = {
+        ...formData.macroTargets,
+        [macro]: numValue
+      };
+      
+      // Calculate total and warn if over 100%
+      const total = (newMacroTargets.protein || 0) + (newMacroTargets.carbs || 0) + (newMacroTargets.fat || 0);
+      if (total > 100) {
+        if (onError) onError(`Macro total would be ${total}% (cannot exceed 100%)`);
+        return;
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        macroTargets: newMacroTargets
+      }));
+      
+      // Clear any previous error if validation passes
+      if (onError && total <= 100) {
+        onError(null);
+      }
     } catch (error) {
       console.error('Error updating macro targets:', error);
-      if (onError) onError(error.message);
+      if (onError) onError('Error updating macro targets: ' + error.message);
     }
   };
 
   const handleArrayChange = (field, value) => {
     try {
-      const array = value ? value.split(',').map(item => item.trim()).filter(item => item) : [];
+      if (!value || typeof value !== 'string') {
+        setFormData(prev => ({
+          ...prev,
+          [field]: []
+        }));
+        return;
+      }
+      
+      // Clean and validate array items
+      const array = value
+        .split(',')
+        .map(item => item.trim())
+        .filter(item => item && item.length > 0)
+        .filter(item => item.length <= 50) // Prevent extremely long entries
+        .slice(0, 20); // Limit to 20 items maximum
+      
       setFormData(prev => ({
         ...prev,
         [field]: array
       }));
     } catch (error) {
       console.error('Error updating array field:', error);
-      if (onError) onError(error.message);
+      if (onError) onError('Error updating ' + field + ': ' + error.message);
     }
   };
 
-    const handleSave = async () => {
-    // Comprehensive validation
+  const handleSave = async () => {
+    // Comprehensive validation with enhanced checks
     const validationErrors = [];
     
-    if (!formData.dailyCalories || formData.dailyCalories < 1000 || formData.dailyCalories > 10000) {
-      validationErrors.push('Daily calories must be between 1000-10000');
+    // Daily calories validation
+    if (!formData.dailyCalories || isNaN(formData.dailyCalories)) {
+      validationErrors.push('Daily calories must be a valid number');
+    } else if (formData.dailyCalories < 800 || formData.dailyCalories > 15000) {
+      validationErrors.push('Daily calories must be between 800-15000 (safe range)');
     }
     
-    if (formData.protein && (formData.protein < 0 || formData.protein > 100)) {
-      validationErrors.push('Protein percentage must be between 0-100%');
+    // Macro targets validation
+    const macros = formData.macroTargets || {};
+    const protein = parseInt(macros.protein) || 0;
+    const carbs = parseInt(macros.carbs) || 0;
+    const fat = parseInt(macros.fat) || 0;
+    
+    if (protein < 5 || protein > 60) {
+      validationErrors.push('Protein percentage must be between 5-60% (nutritionally safe range)');
     }
     
-    if (formData.carbs && (formData.carbs < 0 || formData.carbs > 100)) {
-      validationErrors.push('Carbs percentage must be between 0-100%');
+    if (carbs < 10 || carbs > 80) {
+      validationErrors.push('Carbs percentage must be between 10-80% (nutritionally safe range)');
     }
     
-    if (formData.fat && (formData.fat < 0 || formData.fat > 100)) {
-      validationErrors.push('Fat percentage must be between 0-100%');
+    if (fat < 10 || fat > 60) {
+      validationErrors.push('Fat percentage must be between 10-60% (nutritionally safe range)');
     }
     
-    const totalMacros = (formData.protein || 0) + (formData.carbs || 0) + (formData.fat || 0);
-    if (totalMacros > 100) {
-      validationErrors.push('Total macro percentages cannot exceed 100%');
+    // Check if macros add up to 100%
+    const totalMacros = protein + carbs + fat;
+    if (Math.abs(totalMacros - 100) > 1) { // Allow 1% tolerance for rounding
+      validationErrors.push(`Macro percentages must total 100% (currently ${totalMacros}%)`);
+    }
+    
+    // Validate meal count
+    if (formData.preferredMealCount && (formData.preferredMealCount < 1 || formData.preferredMealCount > 8)) {
+      validationErrors.push('Preferred meal count must be between 1-8');
+    }
+    
+    // Validate arrays are proper arrays
+    if (formData.dietaryRestrictions && !Array.isArray(formData.dietaryRestrictions)) {
+      validationErrors.push('Dietary restrictions data is corrupted');
+    }
+    
+    if (formData.allergens && !Array.isArray(formData.allergens)) {
+      validationErrors.push('Allergens data is corrupted');
+    }
+    
+    // Goal validation
+    const validGoals = ['lose', 'maintain', 'gain'];
+    if (formData.goal && !validGoals.includes(formData.goal)) {
+      validationErrors.push('Invalid goal selection');
     }
     
     if (validationErrors.length > 0) {
-      if (onError) onError(validationErrors.join('. '));
+      if (onError) onError(validationErrors.join(' • '));
       return;
     }
 
@@ -285,7 +414,7 @@ const MealPreferences = ({ preferences = {}, onError }) => {
         <MacroSlider
           macroTargets={formData.macroTargets || { protein: 25, carbs: 45, fat: 30 }}
           dailyCalories={formData.dailyCalories || 2000}
-          onChange={handleMacroChange}
+          onChange={handleMacroSliderChange}
         />
       </div>
 

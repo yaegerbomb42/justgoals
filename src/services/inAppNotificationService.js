@@ -18,7 +18,39 @@ class InAppNotificationService {
 
   // Check if service is ready
   isReady() {
+    // Try to auto-initialize if not already done
+    if (!this.isInitialized && typeof window !== 'undefined') {
+      this.tryAutoInit();
+    }
     return this.isInitialized && this.notificationContext;
+  }
+
+  // Auto-initialize if notification context is available globally
+  tryAutoInit() {
+    try {
+      // Check if there's a global notification context in React context
+      const contextEvent = new CustomEvent('request-notification-context');
+      let context = null;
+      
+      // Listen for the context response
+      const handleContextResponse = (event) => {
+        context = event.detail;
+        window.removeEventListener('notification-context-response', handleContextResponse);
+      };
+      
+      window.addEventListener('notification-context-response', handleContextResponse);
+      window.dispatchEvent(contextEvent);
+      
+      // Small delay to allow for response
+      setTimeout(() => {
+        if (context) {
+          this.init(context);
+          console.log('InAppNotificationService auto-initialized');
+        }
+      }, 10);
+    } catch (error) {
+      console.warn('Failed to auto-initialize in-app notifications:', error);
+    }
   }
 
   // Send drift progress notification

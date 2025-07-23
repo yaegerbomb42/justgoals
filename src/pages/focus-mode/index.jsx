@@ -371,6 +371,8 @@ const FocusMode = () => {
         return 'bg-background';
       case 'flowing-particles':
         return 'bg-background relative overflow-hidden';
+      case 'creative':
+        return 'bg-background relative overflow-hidden';
       case 'abstract-waves':
         return 'bg-background relative overflow-hidden';
       case 'energy':
@@ -394,17 +396,29 @@ const FocusMode = () => {
       />
       
       {/* Background Effects */}
-      {focusSettings.backgroundEffects && localSessionSettings.background === 'flowing-particles' && (
-        <FlowingParticlesBackground effect="particles" />
-      )}
-      {focusSettings.backgroundEffects && localSessionSettings.background === 'creative-flow' && (
-        <FlowingParticlesBackground effect="creative" />
-      )}
-      {focusSettings.backgroundEffects && localSessionSettings.background === 'abstract-waves' && (
-        <FlowingParticlesBackground effect="abstract" />
-      )}
-      {focusSettings.backgroundEffects && localSessionSettings.background === 'motivational-energy' && (
-        <FlowingParticlesBackground effect="motivational" />
+      {focusSettings.backgroundEffects && (
+        <>
+          {localSessionSettings.background === 'flowing-particles' && (
+            <div className="absolute inset-0 z-0">
+              <FlowingParticlesBackground effect="particles" />
+            </div>
+          )}
+          {localSessionSettings.background === 'creative' && (
+            <div className="absolute inset-0 z-0">
+              <FlowingParticlesBackground effect="creative" />
+            </div>
+          )}
+          {localSessionSettings.background === 'abstract-waves' && (
+            <div className="absolute inset-0 z-0">
+              <FlowingParticlesBackground effect="abstract" />
+            </div>
+          )}
+          {localSessionSettings.background === 'energy' && (
+            <div className="absolute inset-0 z-0">
+              <FlowingParticlesBackground effect="motivational" />
+            </div>
+          )}
+        </>
       )}
       {focusSettings.backgroundEffects && localSessionSettings.background === 'confetti' && (
         <div className="absolute inset-0 opacity-20">

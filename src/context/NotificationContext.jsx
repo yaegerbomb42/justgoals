@@ -273,6 +273,20 @@ export const NotificationProvider = ({ children }) => {
     showInfo
   };
 
+  // Listen for auto-initialization requests from inAppNotificationService
+  React.useEffect(() => {
+    const handleContextRequest = () => {
+      // Respond with the current notification context value
+      const responseEvent = new CustomEvent('notification-context-response', {
+        detail: value
+      });
+      window.dispatchEvent(responseEvent);
+    };
+
+    window.addEventListener('request-notification-context', handleContextRequest);
+    return () => window.removeEventListener('request-notification-context', handleContextRequest);
+  }, [value]);
+
   return (
     <NotificationContext.Provider value={value}>
       {children}

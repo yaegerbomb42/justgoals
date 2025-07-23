@@ -12,8 +12,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    const clientId = process.env.VITE_GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.VITE_GOOGLE_CLIENT_SECRET;
+    // Use correct environment variable names for server-side (without VITE_ prefix)
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.VITE_GOOGLE_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       console.error('OAuth credentials not configured:', { clientId: !!clientId, clientSecret: !!clientSecret });

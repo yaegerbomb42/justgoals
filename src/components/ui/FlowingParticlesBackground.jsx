@@ -2,27 +2,40 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const FlowingParticlesBackground = ({ effect: propEffect }) => {
   const [effect, setEffect] = useState(() => {
-    if (propEffect) return propEffect;
-    if (typeof document !== 'undefined') {
-      return document.body.getAttribute('data-bg-effect') || 'none';
+    try {
+      if (propEffect) return propEffect;
+      if (typeof document !== 'undefined') {
+        return document.body.getAttribute('data-bg-effect') || 'none';
+      }
+      return 'none';
+    } catch (error) {
+      console.warn('Error initializing FlowingParticlesBackground:', error);
+      return 'none';
     }
-    return 'none';
   });
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (propEffect) {
-      setEffect(propEffect);
-      return;
+    try {
+      if (propEffect) {
+        setEffect(propEffect);
+        return;
+      }
+      
+      if (typeof document === 'undefined') return;
+      
+      const observer = new MutationObserver(() => {
+        try {
+          setEffect(document.body.getAttribute('data-bg-effect') || 'none');
+        } catch (error) {
+          console.warn('Error updating background effect:', error);
+        }
+      });
+      observer.observe(document.body, { attributes: true, attributeFilter: ['data-bg-effect'] });
+      return () => observer.disconnect();
+    } catch (error) {
+      console.warn('Error setting up background effect observer:', error);
     }
-    
-    if (typeof document === 'undefined') return;
-    
-    const observer = new MutationObserver(() => {
-      setEffect(document.body.getAttribute('data-bg-effect') || 'none');
-    });
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-bg-effect'] });
-    return () => observer.disconnect();
   }, [propEffect]);
 
   useEffect(() => {
@@ -30,11 +43,12 @@ const FlowingParticlesBackground = ({ effect: propEffect }) => {
       return;
     }
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
     
     // Get effect-specific configurations
     const getEffectConfig = (effectType) => {
@@ -384,6 +398,10 @@ const FlowingParticlesBackground = ({ effect: propEffect }) => {
       }
       themeObserver.disconnect();
     };
+    } catch (error) {
+      console.warn('Error initializing background effect:', error);
+      return () => {}; // Empty cleanup function
+    }
   }, [effect]);
 
   if (!['particles', 'creative', 'abstract', 'motivational'].includes(effect)) {

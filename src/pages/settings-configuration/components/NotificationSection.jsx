@@ -8,6 +8,7 @@ import smsNotificationService from '../../../services/smsNotificationService';
 import discordNotificationService from '../../../services/discordNotificationService';
 import ntfyNotificationService from '../../../services/ntfyNotificationService';
 import inAppNotificationService from '../../../services/inAppNotificationService';
+import firestoreService from '../../../services/firestoreService';
 
 const NotificationSection = () => {
   const { settings, updateNotificationSettings } = useSettings();
@@ -124,17 +125,30 @@ const NotificationSection = () => {
     }
   };
 
-  const handleDiscordChange = (webhookUrl) => {
+  const handleDiscordChange = async (webhookUrl) => {
+    const discordSettings = {
+      ...settings.notifications.discord,
+      webhookUrl,
+      enabled: !!webhookUrl
+    };
+
     updateNotificationSettings({
-      discord: {
-        ...settings.notifications.discord,
-        webhookUrl,
-        enabled: !!webhookUrl
-      }
+      discord: discordSettings
     });
     
     if (webhookUrl) {
       discordNotificationService.init(webhookUrl);
+    }
+
+    // Persist Discord settings to Firebase
+    try {
+      await firestoreService.saveNotificationSettings(user?.uid, {
+        ...settings.notifications,
+        discord: discordSettings
+      });
+      console.log('Discord webhook settings saved to Firebase');
+    } catch (error) {
+      console.error('Failed to save Discord settings to Firebase:', error);
     }
   };
 
