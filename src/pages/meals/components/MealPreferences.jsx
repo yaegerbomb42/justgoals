@@ -109,17 +109,58 @@ const MealPreferences = ({ preferences = {}, onError }) => {
     }
   };
 
-  const handleSave = async () => {
+    const handleSave = async () => {
+    // Comprehensive validation
+    const validationErrors = [];
+    
+    if (!formData.dailyCalories || formData.dailyCalories < 1000 || formData.dailyCalories > 10000) {
+      validationErrors.push('Daily calories must be between 1000-10000');
+    }
+    
+    if (formData.protein && (formData.protein < 0 || formData.protein > 100)) {
+      validationErrors.push('Protein percentage must be between 0-100%');
+    }
+    
+    if (formData.carbs && (formData.carbs < 0 || formData.carbs > 100)) {
+      validationErrors.push('Carbs percentage must be between 0-100%');
+    }
+    
+    if (formData.fat && (formData.fat < 0 || formData.fat > 100)) {
+      validationErrors.push('Fat percentage must be between 0-100%');
+    }
+    
+    const totalMacros = (formData.protein || 0) + (formData.carbs || 0) + (formData.fat || 0);
+    if (totalMacros > 100) {
+      validationErrors.push('Total macro percentages cannot exceed 100%');
+    }
+    
+    if (validationErrors.length > 0) {
+      if (onError) onError(validationErrors.join('. '));
+      return;
+    }
+
     setIsSaving(true);
     try {
-      if (updateMealPreferences && typeof updateMealPreferences === 'function') {
-        await updateMealPreferences(formData);
-      } else {
-        throw new Error('updateMealPreferences function not available');
-      }
+      // Ensure all data is properly formatted before saving
+      const sanitizedData = {
+        ...formData,
+        dailyCalories: parseInt(formData.dailyCalories) || 2000,
+        protein: parseInt(formData.protein) || 0,
+        carbs: parseInt(formData.carbs) || 0,
+        fat: parseInt(formData.fat) || 0,
+        dietaryRestrictions: Array.isArray(formData.dietaryRestrictions) ? formData.dietaryRestrictions : [],
+        allergies: Array.isArray(formData.allergies) ? formData.allergies : [],
+        dislikedFoods: Array.isArray(formData.dislikedFoods) ? formData.dislikedFoods : [],
+        cuisinePreferences: Array.isArray(formData.cuisinePreferences) ? formData.cuisinePreferences : [],
+        updatedAt: new Date().toISOString()
+      };
+      
+      await updateMealPreferences(sanitizedData);
+      if (onSuccess) onSuccess('Meal preferences saved successfully!');
     } catch (error) {
-      console.error('Error saving preferences:', error);
-      if (onError) onError('Failed to save meal preferences: ' + error.message);
+      console.error('Error saving meal preferences:', error);
+      const errorMessage = error?.message || 'Unknown error occurred';
+      if (onError) onError(`Failed to save meal preferences: ${errorMessage}. Please try again.`);
     } finally {
       setIsSaving(false);
     }

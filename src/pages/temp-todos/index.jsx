@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTemporaryTodos } from '../../context/TemporaryTodosContext';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
+import { geminiService } from '../../services/geminiService';
 import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import TodoItem from '../../components/ui/TodoItem';
@@ -9,6 +11,7 @@ import CelebrationEffect from '../../components/ui/CelebrationEffect';
 
 const TemporaryTodosPage = () => {
   const { user, isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const {
     todos,
     archivedTodos,
@@ -32,7 +35,15 @@ const TemporaryTodosPage = () => {
   const [completedTodoText, setCompletedTodoText] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  
+  // AI Assistant state
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiInput, setAiInput] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  
   const inputRef = useRef(null);
+  const aiMessagesEndRef = useRef(null);
 
   // Quick suggestion prompts based on common todo patterns
   const quickSuggestions = [
@@ -125,6 +136,7 @@ const TemporaryTodosPage = () => {
   };
 
   const handleAiPrioritize = async () => {
+    const apiKey = settings?.geminiApiKey;
     if (!apiKey?.trim()) {
       console.error('AI prioritization failed: Missing API key.');
       return;
@@ -135,6 +147,114 @@ const TemporaryTodosPage = () => {
       console.log('AI prioritization completed successfully.');
     } catch (error) {
       console.error('Error during AI prioritization:', error);
+    }
+  };
+
+  // AI Assistant functions
+  const scrollToBottomAI = () => {
+    aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottomAI();
+  }, [aiMessages]);
+
+  const addAiMessage = (content, type = 'user') => {
+    const newMessage = {
+      id: Date.now(),
+      content,
+      type,
+      timestamp: new Date(),
+    };
+    setAiMessages(prev => [...prev, newMessage]);
+    return newMessage;
+  };
+
+  const handleAiSubmit = async () => {
+    if (!aiInput.trim() || isAiLoading) return;
+
+    const apiKey = settings?.geminiApiKey;
+    if (!apiKey?.trim()) {
+      addAiMessage('AI assistant requires a Gemini API key. Please set it in Settings.', 'system');
+      return;
+    }
+
+    const userMessage = aiInput.trim();
+    setAiInput('');
+    setIsAiLoading(true);
+
+    // Add user message
+    addAiMessage(userMessage, 'user');
+
+    try {
+      // Prepare context for AI
+      const context = {
+        user: {
+          name: user?.displayName || user?.email,
+          email: user?.email,
+        },
+        todos: {
+          active: todos.length,
+          completed: archivedTodos.length,
+          topPriority: todos.filter(t => (t.priority || 0) >= 7).length,
+          recentTodos: todos.slice(0, 5).map(t => ({ text: t.text, priority: t.priority }))
+        },
+        currentDate: new Date().toISOString(),
+      };
+
+      const prompt = `You are a helpful productivity assistant for a todo management app. Help the user manage their todos effectively.
+
+User Context:
+- User: ${context.user.name || 'User'}
+- Active todos: ${context.todos.active}
+- Completed todos: ${context.todos.completed}
+- High priority todos: ${context.todos.topPriority}
+- Recent todos: ${context.todos.recentTodos.map(t => `"${t.text}" (priority: ${t.priority || 0})`).join(', ')}
+
+User message: "${userMessage}"
+
+Provide helpful advice about:
+- Todo organization and prioritization
+- Time management strategies
+- Breaking down complex tasks
+- Productivity tips and techniques
+- Motivation and goal achievement
+
+If the user asks you to create todos, suggest 3-5 specific, actionable todos they could add.
+
+Keep responses conversational, practical, and encouraging. Focus on actionable advice.`;
+
+      const response = await geminiService.generateContent(prompt, apiKey);
+      
+      if (!response || response.trim().length === 0) {
+        throw new Error('Received empty response from AI');
+      }
+
+      // Add AI response
+      addAiMessage(response, 'assistant');
+
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      
+      let errorMessage = 'I encountered an error. Please try again.';
+      if (error.message.includes('API key')) {
+        errorMessage = 'Invalid API key. Please check your settings.';
+      } else if (error.message.includes('rate limit')) {
+        errorMessage = 'Too many requests. Please wait a moment and try again.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      }
+      
+      addAiMessage(errorMessage, 'system');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleAiKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAiSubmit();
     }
   };
 
@@ -176,6 +296,14 @@ const TemporaryTodosPage = () => {
               >
                 <Icon name="Archive" className="w-4 h-4" />
                 {showArchive ? 'Hide Archive' : 'Show Archive'}
+              </Button>
+              <Button
+                onClick={() => setShowAIAssistant(!showAIAssistant)}
+                variant="secondary"
+                className="flex items-center gap-2"
+              >
+                <Icon name="MessageCircle" className="w-4 h-4" />
+                AI Assistant
               </Button>
               <Button
                 onClick={aiPrioritizeTodos}
@@ -396,6 +524,140 @@ const TemporaryTodosPage = () => {
         show={showCelebration} 
         onComplete={handleCelebrationComplete}
       />
+
+      {/* AI Assistant Panel */}
+      <AnimatePresence>
+        {showAIAssistant && (
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className="fixed top-0 right-0 h-full w-96 bg-surface border-l border-border shadow-2xl z-50 flex flex-col"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                    <Icon name="MessageCircle" className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-text-primary">Todo Assistant</h3>
+                    <p className="text-sm text-text-secondary">AI-powered productivity help</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAIAssistant(false)}
+                  className="p-2 hover:bg-surface-700 rounded-lg transition-colors"
+                >
+                  <Icon name="X" className="w-4 h-4 text-text-secondary" />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {aiMessages.length === 0 ? (
+                <div className="text-center py-12">
+                  <Icon name="MessageCircle" className="w-12 h-12 mx-auto text-text-secondary mb-4" />
+                  <p className="text-text-secondary mb-4">
+                    I'm here to help you manage your todos more effectively!
+                  </p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setAiInput("How can I be more productive with my todos?")}
+                      className="w-full text-left p-2 text-sm bg-surface-700 hover:bg-surface-600 rounded-lg transition-colors"
+                    >
+                      How can I be more productive?
+                    </button>
+                    <button
+                      onClick={() => setAiInput("Help me prioritize my current todos")}
+                      className="w-full text-left p-2 text-sm bg-surface-700 hover:bg-surface-600 rounded-lg transition-colors"
+                    >
+                      Help me prioritize my todos
+                    </button>
+                    <button
+                      onClick={() => setAiInput("Suggest some todos for today")}
+                      className="w-full text-left p-2 text-sm bg-surface-700 hover:bg-surface-600 rounded-lg transition-colors"
+                    >
+                      Suggest some todos for today
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {aiMessages.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] px-3 py-2 rounded-lg ${
+                          message.type === 'user'
+                            ? 'bg-primary text-white'
+                            : message.type === 'system'
+                            ? 'bg-warning/20 text-warning border border-warning/30'
+                            : 'bg-surface-700 text-text-primary border border-border'
+                        }`}
+                      >
+                        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                        <div className="text-xs opacity-70 mt-1">
+                          {message.timestamp.toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {isAiLoading && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-surface-700 border border-border rounded-lg px-3 py-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                          <span className="text-sm text-text-secondary">AI is thinking...</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  <div ref={aiMessagesEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-border">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  onKeyPress={handleAiKeyPress}
+                  placeholder="Ask about todo management, productivity tips..."
+                  className="flex-1 px-3 py-2 bg-surface-700 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-text-primary placeholder-text-secondary"
+                  disabled={isAiLoading}
+                />
+                <button
+                  onClick={handleAiSubmit}
+                  disabled={isAiLoading || !aiInput.trim()}
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Icon name="Send" className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

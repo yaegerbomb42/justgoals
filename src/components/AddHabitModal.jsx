@@ -78,19 +78,33 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
       newErrors.title = 'Habit title is required';
     } else if (habitTitle.trim().length < 2) {
       newErrors.title = 'Habit title must be at least 2 characters';
+    } else if (habitTitle.trim().length > 50) {
+      newErrors.title = 'Habit title must be 50 characters or less';
     }
     
     if (trackingType === 'amount') {
-      if (!targetAmount || targetAmount < 1) {
-        newErrors.targetAmount = 'Target amount must be at least 1';
+      if (!targetAmount || targetAmount < 1 || targetAmount > 1000) {
+        newErrors.targetAmount = 'Target amount must be between 1 and 1000';
       }
       if (unit && unit.length > 20) {
         newErrors.unit = 'Unit must be 20 characters or less';
       }
-    } else {
+    } else if (trackingType === 'count') {
       if (!targetChecks || targetChecks < 1 || targetChecks > 20) {
         newErrors.targetChecks = 'Target checks must be between 1 and 20';
       }
+    }
+    
+    if (habitDescription && habitDescription.length > 200) {
+      newErrors.description = 'Description must be 200 characters or less';
+    }
+    
+    if (!selectedCategory) {
+      newErrors.category = 'Please select a category';
+    }
+    
+    if (!selectedEmoji) {
+      newErrors.emoji = 'Please select an emoji';
     }
     
     setErrors(newErrors);
@@ -216,14 +230,18 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                   }
                 }}
                 placeholder="Enter your habit title..."
-                className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                  errors.title ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
+                  errors.title ? 'border-error focus:border-error ring-error/20' : 'border-border focus:border-primary'
                 }`}
                 required
                 maxLength={50}
+                autoFocus
               />
               {errors.title && (
-                <p className="text-xs text-error mt-1">{errors.title}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Icon name="AlertCircle" className="w-3 h-3 text-error" />
+                  <p className="text-xs text-error">{errors.title}</p>
+                </div>
               )}
               <div className="text-xs text-text-secondary mt-1">
                 {habitTitle.length}/50 characters
@@ -277,17 +295,25 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
             {/* Emoji Selection */}
             <div>
               <label className="block text-sm font-body-medium text-text-primary mb-2">
-                Choose an Emoji
+                Choose an Emoji *
               </label>
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(true)}
-                className="flex items-center gap-3 px-4 py-3 bg-surface-600 border border-border rounded-lg hover:bg-surface-500 transition-colors"
+                className={`flex items-center gap-3 px-4 py-3 bg-surface-600 border rounded-lg hover:bg-surface-500 transition-colors w-full text-left ${
+                  errors.emoji ? 'border-error' : 'border-border hover:border-primary'
+                }`}
               >
                 <span className="text-3xl">{selectedEmoji}</span>
-                <span className="text-text-secondary">Click to change</span>
-                <Icon name="ChevronRight" size={16} className="text-text-secondary ml-auto" />
+                <span className="text-text-secondary flex-1">Click to change emoji</span>
+                <Icon name="ChevronRight" size={16} className="text-text-secondary" />
               </button>
+              {errors.emoji && (
+                <div className="flex items-center gap-1 mt-1">
+                  <Icon name="AlertCircle" className="w-3 h-3 text-error" />
+                  <p className="text-xs text-error">{errors.emoji}</p>
+                </div>
+              )}
             </div>
 
             {/* Tracking Type */}
