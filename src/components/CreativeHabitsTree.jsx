@@ -71,38 +71,43 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
 
     // Create habit nodes branching from date nodes
     habits.forEach((habit, habitIndex) => {
+      if (!habit || !habit.treeNodes || !Array.isArray(habit.treeNodes)) return;
+      
       const habitColor = habit.color || colors[habitIndex % colors.length];
       
-      if (habit.treeNodes) {
-        habit.treeNodes.forEach((node, nodeIndex) => {
-          const parentDateNode = nodes.find(n => 
-            (n.type === 'date' && n.date === node.date) || 
-            (n.type === 'root' && n.date === node.date)
-          );
+      habit.treeNodes.forEach((node, nodeIndex) => {
+        if (!node || !node.date) return;
+        
+        const parentDateNode = nodes.find(n => 
+          n && n.type === 'date' && n.date === node.date
+        );
+        
+        if (parentDateNode) {
+          const habitNodesForDate = habits.filter(h => 
+            h && h.treeNodes && Array.isArray(h.treeNodes) && 
+            h.treeNodes.some(hn => hn && hn.date === node.date)
+          ).length;
           
-          if (parentDateNode) {
-            const habitNodesForDate = habits.filter(h => 
-              h.treeNodes && h.treeNodes.some(hn => hn.date === node.date)
-            ).length;
-            
-            const angleStep = (Math.PI) / Math.max(habitNodesForDate, 1);
-            const startAngle = -Math.PI / 2 - (angleStep * (habitNodesForDate - 1)) / 2;
-            const angle = startAngle + habitIndex * angleStep;
-            const radius = 100;
-            
-            const habitNode = {
-              id: `habit-${habit.id}-${node.id}`,
-              type: 'habit',
-              habitId: habit.id,
-              nodeId: node.id,
-              habit: habit,
-              node: node,
-              date: node.date,
-              x: parentDateNode.x + Math.cos(angle) * radius,
-              y: parentDateNode.y + Math.sin(angle) * radius + 50,
-              level: parentDateNode.level + 1,
-              color: habitColor
-            };
+          const angleStep = (Math.PI) / Math.max(habitNodesForDate, 1);
+          const startAngle = -Math.PI / 2 - (angleStep * (habitNodesForDate - 1)) / 2;
+          const angle = startAngle + habitIndex * angleStep;
+          const radius = 100;
+          
+          const habitNode = {
+            id: `habit-${habit.id}-${node.id}`,
+            type: 'habit',
+            habitId: habit.id,
+            nodeId: node.id,
+            habit: habit,
+            node: node,
+            date: node.date,
+            x: parentDateNode.x + Math.cos(angle) * radius,
+            y: parentDateNode.y + Math.sin(angle) * radius + 50,
+            level: parentDateNode.level + 1,
+            color: habitColor
+          };
+          
+          if (habitNode && habitNode.id) {
             nodes.push(habitNode);
 
             // Create branch from date node to habit node
@@ -114,8 +119,8 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
               animated: node.status === 'active' && isToday(node.date)
             });
           }
-        });
-      }
+        }
+      });
     });
 
     return { nodes, branches };

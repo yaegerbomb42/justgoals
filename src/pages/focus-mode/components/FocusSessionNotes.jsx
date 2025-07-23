@@ -1,20 +1,103 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/ui/Icon';
 import firestoreService from '../../../services/firestoreService';
+import { geminiService } from '../../../services/geminiService';
 import { useAuth } from '../../../context/AuthContext';
+import { useSettings } from '../../../context/SettingsContext';
 
 const FocusSessionNotes = () => {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [sessionNotes, setSessionNotes] = useState('');
   const [isNotesVisible, setIsNotesVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const textareaRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
+
+  const addMessage = (content, type = 'user') => {
+    const newMessage = {
+      id: Date.now(),
+      content,
+      type,
+      timestamp: new Date(),
+    };
+    setChatMessages(prev => [...prev, newMessage]);
+    return newMessage;
+  };
+
+  const handleAiChat = async () => {
+    if (!sessionNotes.trim() || isAiLoading) return;
+
+    const apiKey = settings?.geminiApiKey;
+    if (!apiKey?.trim()) {
+      addMessage('AI assistant requires a Gemini API key. Please set it in Settings.', 'system');
+      return;
+    }
+
+    const userMessage = sessionNotes.trim();
+    setSessionNotes('');
+    setIsAiLoading(true);
+
+    // Add user message
+    addMessage(userMessage, 'user');
+
+    try {
+      const prompt = `You are a helpful focus assistant for someone in a focus/work session. Provide brief, encouraging, and practical responses to help them stay focused and productive.
+
+User's message: "${userMessage}"
+
+Respond with:
+- Quick tips for maintaining focus
+- Brief motivation or encouragement
+- Practical advice for productivity
+- Solutions to common focus challenges
+
+Keep responses concise (1-2 sentences) since they're in a focus session.`;
+
+      const response = await geminiService.generateContent(prompt, apiKey);
+      
+      if (!response || response.trim().length === 0) {
+        throw new Error('Received empty response from AI');
+      }
+
+      addMessage(response, 'assistant');
+
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      
+      let errorMessage = 'I encountered an error. Please try again.';
+      if (error.message.includes('API key')) {
+        errorMessage = 'Invalid API key. Please check your settings.';
+      } else if (error.message.includes('rate limit')) {
+        errorMessage = 'Too many requests. Please wait a moment and try again.';
+      }
+      
+      addMessage(errorMessage, 'system');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const handleNotesSubmit = async (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      await saveNote();
+      if (isAiMode) {
+        await handleAiChat();
+      } else {
+        await saveNote();
+      }
     }
   };
 
@@ -36,13 +119,14 @@ const FocusSessionNotes = () => {
       // Save to firestore under a special collection for session notes
       await firestoreService.saveData(`users/${user.uid}/sessionNotes`, noteData);
 
-      // Clear notes and hide
+      // Clear notes and add to chat history
+      addMessage(sessionNotes.trim(), 'note');
       setSessionNotes('');
-      setIsNotesVisible(false);
       
-      console.log('Focus session note saved to drift memory');
+      console.log('Focus session note saved');
     } catch (error) {
       console.error('Error saving focus session note:', error);
+      addMessage('Error saving note. Please try again.', 'system');
     } finally {
       setIsSaving(false);
     }

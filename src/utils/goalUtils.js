@@ -348,11 +348,11 @@ export const getDaysUntilDeadline = (deadline) => {
     // Create a new date object from the deadline string
     const deadlineDate = new Date(deadline + 'T23:59:59'); // End of deadline day
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
+    today.setHours(23, 59, 59, 999); // End of today to fix off-by-one error
     
     // Calculate difference in milliseconds and convert to days
     const diffTime = deadlineDate - today;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Use ceil instead of floor
     
     return diffDays;
   } catch (error) {

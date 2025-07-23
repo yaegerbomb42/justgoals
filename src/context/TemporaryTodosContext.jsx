@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { useSettings } from './SettingsContext';
 import firestoreService from '../services/firestoreService';
 import { geminiService } from '../services/geminiService';
 
@@ -15,6 +16,7 @@ export const useTemporaryTodos = () => {
 
 export const TemporaryTodosProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const [todos, setTodos] = useState([]);
   const [archivedTodos, setArchivedTodos] = useState([]);
   const [loading, setLoading] = useState(false);

@@ -13,11 +13,32 @@ const AmbientSoundPlayer = ({
   useEffect(() => {
     const checkSoundsAvailability = async () => {
       try {
-        // Test if a known sound file exists
-        const response = await fetch('/assets/sounds/rain.mp3', { method: 'HEAD' });
-        setSoundsAvailable(response.ok);
+        // Test multiple sound formats and sources
+        const testUrls = [
+          '/assets/sounds/rain.mp3',
+          './assets/sounds/rain.mp3',
+          'assets/sounds/rain.mp3'
+        ];
+        
+        let available = false;
+        for (const url of testUrls) {
+          try {
+            const response = await fetch(url, { method: 'HEAD' });
+            if (response.ok) {
+              available = true;
+              break;
+            }
+          } catch (e) {
+            // Continue to next URL
+          }
+        }
+        
+        if (!available) {
+          console.info('Ambient sounds not available in this environment - using fallback mode');
+        }
+        setSoundsAvailable(available);
       } catch (error) {
-        console.log('Ambient sounds not available in this environment');
+        console.info('Ambient sounds not available in this environment - using fallback mode');
         setSoundsAvailable(false);
       }
     };

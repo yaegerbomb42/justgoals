@@ -1081,7 +1081,7 @@ class FirestoreService {
   // Drift AI Memory Functions
   async getDriftMemory(userId) {
     try {
-      const docRef = doc(db, 'driftMemory', userId);
+      const docRef = doc(this.db, 'driftMemory', userId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         return docSnap.data();
@@ -1095,7 +1095,7 @@ class FirestoreService {
 
   async saveDriftMemory(userId, memoryData) {
     try {
-      const docRef = doc(db, 'driftMemory', userId);
+      const docRef = doc(this.db, 'driftMemory', userId);
       await setDoc(docRef, memoryData, { merge: true });
     } catch (error) {
       console.error('Error saving drift memory:', error);
@@ -1105,7 +1105,7 @@ class FirestoreService {
 
   async clearDriftMemory(userId) {
     try {
-      const docRef = doc(db, 'driftMemory', userId);
+      const docRef = doc(this.db, 'driftMemory', userId);
       await deleteDoc(docRef);
     } catch (error) {
       console.error('Error clearing drift memory:', error);

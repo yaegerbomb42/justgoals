@@ -63,7 +63,7 @@ const ProductivityTrends = ({ data }) => {
                 <span className="text-text-secondary">
                   {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
-                <span className="text-text-primary">{entry.value.toFixed(1)}h</span>
+                <span className="text-text-primary">{Math.round(entry.value * 60)}m</span>
               </div>
             ))}
           </div>

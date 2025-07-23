@@ -33,8 +33,14 @@ const TodoItem = ({
   const handleComplete = async () => {
     setIsCompleting(true);
     setShowDopamine(true);
-    setTimeout(() => setShowDopamine(false), 600);
-    await onComplete(todo.id);
+    
+    // Add dopamine effect before calling onComplete
+    setTimeout(async () => {
+      await onComplete(todo.id);
+      setIsCompleting(false);
+    }, 300); // Give time for animation to show
+    
+    setTimeout(() => setShowDopamine(false), 1200);
   };
 
   const handleEdit = () => {
@@ -99,7 +105,7 @@ const TodoItem = ({
                 name={getPriorityIcon(todo.priority)} 
                 className={`w-4 h-4 ${getPriorityColor(todo.priority)}`} 
               />
-              {todo.priority && (
+              {todo.priority && todo.priority > 0 && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
