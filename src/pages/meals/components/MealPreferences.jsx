@@ -46,6 +46,11 @@ const MealPreferences = ({ preferences = {}, onError }) => {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Calculate macro total for validation
+  const macroTotal = (formData.macroTargets?.protein || 0) + 
+                     (formData.macroTargets?.carbs || 0) + 
+                     (formData.macroTargets?.fat || 0);
+
   useEffect(() => {
     try {
       if (preferences && typeof preferences === 'object') {
