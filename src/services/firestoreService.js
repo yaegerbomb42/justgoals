@@ -1,6 +1,31 @@
 // firestoreService.js
-import { firestore } from './firebaseClient';
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, orderBy, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebaseClient';
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  addDoc, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot, 
+  serverTimestamp,
+  writeBatch,
+  arrayUnion,
+  arrayRemove,
+  runTransaction
+} from 'firebase/firestore';
+
+import { 
+  setLocalStorageItem, 
+  getLocalStorageItem, 
+  removeLocalStorageItem, 
+  flushLocalStorage 
+} from '../utils/localStorageBatch';
 
 class FirestoreService {
   constructor() {
@@ -503,34 +528,38 @@ class FirestoreService {
     }
 
     try {
-      console.log(`Starting sync to localStorage for user ${userId}...`);
+      console.log(`Starting optimized sync to localStorage for user ${userId}...`);
 
-      // Sync goals
-      const goals = await this.getGoals(userId);
-      localStorage.setItem(`goals_data_${userId}`, JSON.stringify(goals));
+      // Batch all localStorage operations for better performance
+      const syncOperations = [
+        { key: `goals_data_${userId}`, getter: () => this.getGoals(userId) },
+        { key: `milestones_data_${userId}`, getter: () => this.getMilestones(userId) },
+        { key: `journal_entries_${userId}`, getter: () => this.getJournalEntries(userId) },
+        { key: `focus_session_stats_${userId}`, getter: () => this.getFocusSessionStats(userId) },
+        { key: `focus_session_history_${userId}`, getter: () => this.getFocusSessionHistory(userId) },
+        { key: `app_settings_${userId}`, getter: () => this.getAppSettings(userId) }
+      ];
 
-      // Sync milestones
-      const milestones = await this.getMilestones(userId);
-      localStorage.setItem(`milestones_data_${userId}`, JSON.stringify(milestones));
+      // Execute all operations concurrently
+      const results = await Promise.allSettled(
+        syncOperations.map(async (op) => {
+          const data = await op.getter();
+          setLocalStorageItem(op.key, data);
+          return { key: op.key, success: true };
+        })
+      );
 
-      // Sync journal entries
-      const entries = await this.getJournalEntries(userId);
-      localStorage.setItem(`journal_entries_${userId}`, JSON.stringify(entries));
+      // Check for any failures
+      const failures = results.filter(result => result.status === 'rejected');
+      if (failures.length > 0) {
+        console.warn(`Some sync operations failed for user ${userId}:`, failures);
+      }
 
-      // Sync focus session stats
-      const focusStats = await this.getFocusSessionStats(userId);
-      localStorage.setItem(`focus_session_stats_${userId}`, JSON.stringify(focusStats));
+      // Force flush all batched writes
+      flushLocalStorage();
 
-      // Sync focus session history
-      const focusHistory = await this.getFocusSessionHistory(userId);
-      localStorage.setItem(`focus_session_history_${userId}`, JSON.stringify(focusHistory));
-
-      // Sync app settings
-      const appSettings = await this.getAppSettings(userId);
-      localStorage.setItem(`app_settings_${userId}`, JSON.stringify(appSettings));
-
-      console.log(`Sync to localStorage completed for user ${userId}`);
-      return true;
+      console.log(`Optimized sync to localStorage completed for user ${userId}`);
+      return failures.length === 0;
     } catch (error) {
       if (error.code === 'permission-denied') {
         console.error('Firestore permission denied during syncToLocalStorage:', error);
@@ -541,11 +570,11 @@ class FirestoreService {
     }
   }
 
-  // Merge and sync user data between Firestore and localStorage
+  // Merge and sync user data between Firestore and localStorage with optimized operations
   async robustSyncUserData(userId) {
     if (!userId) throw new Error('User ID is required for sync');
     try {
-      // 1. Load all data from Firestore
+      // 1. Load all data from Firestore concurrently
       const [goals, milestones, focusStats, focusHistory, journalEntries, appSettings] = await Promise.all([
         this.getGoals(userId),
         this.getMilestones(userId),
@@ -554,13 +583,15 @@ class FirestoreService {
         this.getJournalEntries(userId),
         this.getAppSettings(userId)
       ]);
-      // 2. Load all data from localStorage
-      const localGoals = JSON.parse(localStorage.getItem(`goals_data_${userId}`) || '[]');
-      const localMilestones = JSON.parse(localStorage.getItem(`milestones_data_${userId}`) || '[]');
-      const localFocusStats = JSON.parse(localStorage.getItem(`focus_session_stats_${userId}`) || '{}');
-      const localFocusHistory = JSON.parse(localStorage.getItem(`focus_session_history_${userId}`) || '[]');
-      const localJournalEntries = JSON.parse(localStorage.getItem(`journal_entries_${userId}`) || '[]');
-      const localAppSettings = JSON.parse(localStorage.getItem(`app_settings_${userId}`) || '{}');
+      
+      // 2. Load all data from localStorage using batched operations
+      const localGoals = getLocalStorageItem(`goals_data_${userId}`, []);
+      const localMilestones = getLocalStorageItem(`milestones_data_${userId}`, []);
+      const localFocusStats = getLocalStorageItem(`focus_session_stats_${userId}`, {});
+      const localFocusHistory = getLocalStorageItem(`focus_session_history_${userId}`, []);
+      const localJournalEntries = getLocalStorageItem(`journal_entries_${userId}`, []);
+      const localAppSettings = getLocalStorageItem(`app_settings_${userId}`, {});
+      
       // 3. Merge logic (favor most recent or highest value)
       const mergedGoals = goals.length >= localGoals.length ? goals : localGoals;
       const mergedMilestones = milestones.length >= localMilestones.length ? milestones : localMilestones;
@@ -568,15 +599,21 @@ class FirestoreService {
       const mergedFocusHistory = focusHistory.length >= localFocusHistory.length ? focusHistory : localFocusHistory;
       const mergedJournalEntries = journalEntries.length >= localJournalEntries.length ? journalEntries : localJournalEntries;
       const mergedAppSettings = (appSettings.updatedAt && (!localAppSettings.updatedAt || appSettings.updatedAt > localAppSettings.updatedAt)) ? appSettings : localAppSettings;
+      
       // 4. Save merged data to Firestore (if local is newer or has more data)
       // (Implement save methods for each type as needed)
-      // 5. Update localStorage with merged data
-      localStorage.setItem(`goals_data_${userId}`, JSON.stringify(mergedGoals));
-      localStorage.setItem(`milestones_data_${userId}`, JSON.stringify(mergedMilestones));
-      localStorage.setItem(`focus_session_stats_${userId}`, JSON.stringify(mergedFocusStats));
-      localStorage.setItem(`focus_session_history_${userId}`, JSON.stringify(mergedFocusHistory));
-      localStorage.setItem(`journal_entries_${userId}`, JSON.stringify(mergedJournalEntries));
-      localStorage.setItem(`app_settings_${userId}`, JSON.stringify(mergedAppSettings));
+      
+      // 5. Update localStorage with merged data using batched operations
+      setLocalStorageItem(`goals_data_${userId}`, mergedGoals);
+      setLocalStorageItem(`milestones_data_${userId}`, mergedMilestones);
+      setLocalStorageItem(`focus_session_stats_${userId}`, mergedFocusStats);
+      setLocalStorageItem(`focus_session_history_${userId}`, mergedFocusHistory);
+      setLocalStorageItem(`journal_entries_${userId}`, mergedJournalEntries);
+      setLocalStorageItem(`app_settings_${userId}`, mergedAppSettings);
+      
+      // Force flush all batched writes
+      flushLocalStorage();
+      
       return true;
     } catch (error) {
       console.error('Robust user data sync failed:', error);

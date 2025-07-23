@@ -4,6 +4,15 @@ import * as entityService from './entityManagementService';
 
 class AchievementService {
   constructor() {
+    // Cache for user data to prevent excessive localStorage reads
+    this.userDataCache = new Map();
+    this.cacheExpiry = new Map();
+    this.CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+    
+    // Debounce map for achievement checks
+    this.achievementCheckDebounce = new Map();
+    this.DEBOUNCE_DELAY = 1000; // 1 second
+    
     this.achievements = {
       // Goal-related achievements
       firstGoal: {
@@ -504,9 +513,42 @@ class AchievementService {
     };
   }
 
-  // Get user data for achievement checking
+  // Get user data for achievement checking with caching
   async getUserData(user) {
-    if (!user) return {
+    if (!user) return this.getDefaultUserData();
+    
+    const userId = user.uid || user.id;
+    const cacheKey = `userData_${userId}`;
+    
+    // Check cache first
+    if (this.isValidCache(cacheKey)) {
+      return this.userDataCache.get(cacheKey);
+    }
+    
+    try {
+      const userData = await this.fetchUserDataFromSources(user);
+      
+      // Cache the result
+      this.userDataCache.set(cacheKey, userData);
+      this.cacheExpiry.set(cacheKey, Date.now() + this.CACHE_TTL);
+      
+      return userData;
+    } catch (error) {
+      console.error('Error getting user data for achievements:', error);
+      return this.getDefaultUserData();
+    }
+  }
+
+  // Check if cached data is still valid
+  isValidCache(cacheKey) {
+    return this.userDataCache.has(cacheKey) && 
+           this.cacheExpiry.has(cacheKey) && 
+           Date.now() < this.cacheExpiry.get(cacheKey);
+  }
+
+  // Get default user data structure
+  getDefaultUserData() {
+    return {
       totalGoals: 0,
       completedGoals: 0,
       totalMilestones: 0,
@@ -531,132 +573,131 @@ class AchievementService {
       mealCompletionStreak: 0,
       proteinStreak: 0
     };
-    
-    try {
-      // Get goals data from entity service (properly integrated with Firestore/localStorage sync)
-      let goalsData = [];
-      try { 
-        goalsData = await entityService.getGoals(user) || [];
-      } catch (e) { 
-        console.warn('Failed to get goals from entity service, falling back to localStorage');
-        const goalsKey = `goals_data_${user.uid || user.id}`;
-        goalsData = JSON.parse(localStorage.getItem(goalsKey) || '[]');
-      }
-      
-      // Get milestones data from entity service  
-      let milestonesData = [];
-      try { 
-        milestonesData = await entityService.getMilestones(user) || [];
-      } catch (e) { 
-        console.warn('Failed to get milestones from entity service, falling back to localStorage');
-        const milestonesKey = `milestones_data_${user.uid || user.id}`;
-        milestonesData = JSON.parse(localStorage.getItem(milestonesKey) || '[]');
-      }
-      
-      // Get focus session data (matching focus mode keys)
-      const userId = user.uid || user.id;
-      const focusStatsKey = `focus_session_stats_${userId}`;
-      let focusStats = {};
-      try { focusStats = JSON.parse(localStorage.getItem(focusStatsKey) || '{}'); } catch (e) { focusStats = {}; }
-      
-      // Get focus history (try multiple key formats)
-      const focusHistoryKey = `focus_session_history_${userId}`;
-      const focusSessionsKey = `focus_session_sessions_${userId}`;
-      let focusHistory = [];
-      try { 
-        focusHistory = JSON.parse(localStorage.getItem(focusHistoryKey) || '[]');
-        // If empty, try the alternative key format
-        if (focusHistory.length === 0) {
-          focusHistory = JSON.parse(localStorage.getItem(focusSessionsKey) || '[]');
-        }
-      } catch (e) { 
-        focusHistory = []; 
-      }
-      
-      // Get journal entries
-      const journalKey = `journal_entries_${userId}`;
-      let journalEntries = [];
-      try { journalEntries = JSON.parse(localStorage.getItem(journalKey) || '[]'); } catch (e) { journalEntries = []; }
+  }
 
-      // Get meal-related data
-      const mealsKey = `meals_data_${userId}`;
-      let mealsData = [];
-      try { mealsData = JSON.parse(localStorage.getItem(mealsKey) || '[]'); } catch (e) { mealsData = []; }
-      
-      const mealPlansKey = `meal_plans_data_${userId}`;
-      let mealPlansData = [];
-      try { mealPlansData = JSON.parse(localStorage.getItem(mealPlansKey) || '[]'); } catch (e) { mealPlansData = []; }
-      
-      const mealCompletionsKey = `meal_completions_data_${userId}`;
-      let mealCompletionsData = [];
-      try { mealCompletionsData = JSON.parse(localStorage.getItem(mealCompletionsKey) || '[]'); } catch (e) { mealCompletionsData = []; }
-      
-      // Get daily activity streak (improved streak calculation)
-      const activityStreak = dailyActivityService.getStreak(userId);
-      const activityStats = dailyActivityService.getActivityStats(userId);
-      
-      // Calculate streak data
-      const streakData = this.calculateStreakData(milestonesData);
-      // Calculate special achievements data
-      const specialData = this.calculateSpecialData(milestonesData, focusHistory);
-      // Calculate meal statistics
-      const mealStats = this.calculateMealStats(mealsData, mealPlansData, mealCompletionsData);
-      // Calculate completed tasks (goals + milestones)
-      const completedTasks = (Array.isArray(goalsData) ? goalsData.filter(goal => goal.progress >= 100).length : 0) + (Array.isArray(milestonesData) ? milestonesData.filter(m => m.completed).length : 0);
-      
-      return {
-        totalGoals: Array.isArray(goalsData) ? goalsData.length : 0,
-        completedGoals: Array.isArray(goalsData) ? goalsData.filter(goal => goal.progress >= 100).length : 0,
-        totalMilestones: Array.isArray(milestonesData) ? milestonesData.length : 0,
-        completedMilestones: Array.isArray(milestonesData) ? milestonesData.filter(m => m.completed).length : 0,
-        totalFocusSessions: focusStats.sessionsToday || 0,
-        totalFocusTime: focusStats.totalFocusTime || 0,
-        // Use daily activity service for more accurate streak calculation
-        currentStreak: Math.max(activityStreak.currentStreak, streakData.currentStreak || 0),
-        longestStreak: Math.max(activityStreak.longestStreak, streakData.longestStreak || 0),
-        earlyBirdMilestones: specialData.earlyBird || 0,
-        nightOwlMilestones: specialData.nightOwl || 0,
-        weekendStreak: specialData.weekendStreak || 0,
-        consecutiveDays: Math.max(activityStats.totalDays, specialData.consecutiveDays || 0),
-        totalJournalEntries: Array.isArray(journalEntries) ? journalEntries.length : 0,
-        completedTasks,
-        // Meal-related data
-        totalMeals: mealStats.totalMeals || 0,
-        completedMeals: mealStats.completedMeals || 0,
-        totalMealPlans: mealStats.totalMealPlans || 0,
-        perfectMealDays: mealStats.perfectMealDays || 0,
-        macroStreak: mealStats.macroStreak || 0,
-        aiGeneratedMealPlans: mealStats.aiGeneratedMealPlans || 0,
-        mealCompletionStreak: mealStats.mealCompletionStreak || 0,
-        proteinStreak: mealStats.proteinStreak || 0
-      };
-    } catch (error) {
-      console.error('Error getting user data for achievements:', error);
-      return {
-        totalGoals: 0,
-        completedGoals: 0,
-        totalMilestones: 0,
-        completedMilestones: 0,
-        totalFocusSessions: 0,
-        totalFocusTime: 0,
-        currentStreak: 0,
-        earlyBirdMilestones: 0,
-        nightOwlMilestones: 0,
-        weekendStreak: 0,
-        consecutiveDays: 0,
-        totalJournalEntries: 0,
-        completedTasks: 0,
-        // Meal-related data
-        totalMeals: 0,
-        completedMeals: 0,
-        totalMealPlans: 0,
-        perfectMealDays: 0,
-        macroStreak: 0,
-        aiGeneratedMealPlans: 0,
-        mealCompletionStreak: 0,
-        proteinStreak: 0
-      };
+  // Optimized data fetching with batch localStorage operations
+  async fetchUserDataFromSources(user) {
+    const userId = user.uid || user.id;
+    
+    // Batch localStorage operations
+    const localStorageKeys = [
+      `goals_data_${userId}`,
+      `milestones_data_${userId}`,
+      `focus_session_stats_${userId}`,
+      `focus_session_history_${userId}`,
+      `focus_session_sessions_${userId}`,
+      `journal_entries_${userId}`,
+      `meals_data_${userId}`,
+      `meal_plans_data_${userId}`,
+      `meal_completions_data_${userId}`
+    ];
+    
+    const localStorageData = {};
+    localStorageKeys.forEach(key => {
+      try {
+        const data = localStorage.getItem(key);
+        localStorageData[key] = data ? JSON.parse(data) : (key.includes('stats') ? {} : []);
+      } catch (e) {
+        console.warn(`Failed to parse localStorage data for ${key}:`, e);
+        localStorageData[key] = key.includes('stats') ? {} : [];
+      }
+    });
+
+    // Get data from entity service with fallback
+    let goalsData = [];
+    let milestonesData = [];
+    
+    try { 
+      goalsData = await entityService.getGoals(user) || [];
+    } catch (e) { 
+      console.warn('Failed to get goals from entity service, using localStorage');
+      goalsData = localStorageData[`goals_data_${userId}`] || [];
     }
+    
+    try { 
+      milestonesData = await entityService.getMilestones(user) || [];
+    } catch (e) { 
+      console.warn('Failed to get milestones from entity service, using localStorage');
+      milestonesData = localStorageData[`milestones_data_${userId}`] || [];
+    }
+    
+    // Process focus session data
+    const focusStats = localStorageData[`focus_session_stats_${userId}`] || {};
+    let focusHistory = localStorageData[`focus_session_history_${userId}`] || [];
+    
+    // Try alternative key format if empty
+    if (focusHistory.length === 0) {
+      focusHistory = localStorageData[`focus_session_sessions_${userId}`] || [];
+    }
+    
+    // Get activity data efficiently
+    const activityStreak = dailyActivityService.getStreak(userId);
+    const activityStats = dailyActivityService.getActivityStats(userId);
+    
+    // Calculate derived data
+    const streakData = this.calculateStreakData(milestonesData);
+    const specialData = this.calculateSpecialData(milestonesData, focusHistory);
+    const mealStats = this.calculateMealStats(
+      localStorageData[`meals_data_${userId}`] || [],
+      localStorageData[`meal_plans_data_${userId}`] || [],
+      localStorageData[`meal_completions_data_${userId}`] || []
+    );
+    
+    const completedTasks = this.calculateCompletedTasks(goalsData, milestonesData);
+    
+    return {
+      totalGoals: this.safeArrayLength(goalsData),
+      completedGoals: this.safeArrayFilter(goalsData, goal => goal.progress >= 100).length,
+      totalMilestones: this.safeArrayLength(milestonesData),
+      completedMilestones: this.safeArrayFilter(milestonesData, m => m.completed).length,
+      totalFocusSessions: focusStats.sessionsToday || 0,
+      totalFocusTime: focusStats.totalFocusTime || 0,
+      currentStreak: Math.max(activityStreak.currentStreak, streakData.currentStreak || 0),
+      longestStreak: Math.max(activityStreak.longestStreak, streakData.longestStreak || 0),
+      earlyBirdMilestones: specialData.earlyBird || 0,
+      nightOwlMilestones: specialData.nightOwl || 0,
+      weekendStreak: specialData.weekendStreak || 0,
+      consecutiveDays: Math.max(activityStats.totalDays, specialData.consecutiveDays || 0),
+      totalJournalEntries: this.safeArrayLength(localStorageData[`journal_entries_${userId}`] || []),
+      completedTasks,
+      // Meal-related data
+      totalMeals: mealStats.totalMeals || 0,
+      completedMeals: mealStats.completedMeals || 0,
+      totalMealPlans: mealStats.totalMealPlans || 0,
+      perfectMealDays: mealStats.perfectMealDays || 0,
+      macroStreak: mealStats.macroStreak || 0,
+      aiGeneratedMealPlans: mealStats.aiGeneratedMealPlans || 0,
+      mealCompletionStreak: mealStats.mealCompletionStreak || 0,
+      proteinStreak: mealStats.proteinStreak || 0
+    };
+  }
+
+  // Safe array operations to prevent errors
+  safeArrayLength(arr) {
+    return Array.isArray(arr) ? arr.length : 0;
+  }
+
+  safeArrayFilter(arr, predicate) {
+    if (!Array.isArray(arr)) return [];
+    try {
+      return arr.filter(predicate);
+    } catch (e) {
+      console.warn('Error filtering array:', e);
+      return [];
+    }
+  }
+
+  calculateCompletedTasks(goalsData, milestonesData) {
+    const completedGoals = this.safeArrayFilter(goalsData, goal => goal.progress >= 100).length;
+    const completedMilestones = this.safeArrayFilter(milestonesData, m => m.completed).length;
+    return completedGoals + completedMilestones;
+  }
+
+  // Clear cache when user data updates
+  invalidateUserCache(userId) {
+    const cacheKey = `userData_${userId}`;
+    this.userDataCache.delete(cacheKey);
+    this.cacheExpiry.delete(cacheKey);
   }
 
   // Calculate streak data
@@ -825,8 +866,35 @@ class AchievementService {
     };
   }
 
-  // Check and award achievements
+  // Check and award achievements with debouncing to prevent race conditions
   async checkAchievements(user) {
+    if (!user) return [];
+    
+    const userId = user.uid || user.id;
+    
+    // Implement debouncing to prevent multiple concurrent checks
+    if (this.achievementCheckDebounce.has(userId)) {
+      clearTimeout(this.achievementCheckDebounce.get(userId));
+    }
+    
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(async () => {
+        try {
+          this.achievementCheckDebounce.delete(userId);
+          const result = await this.performAchievementCheck(user);
+          resolve(result);
+        } catch (error) {
+          console.error('Error in debounced achievement check:', error);
+          resolve([]);
+        }
+      }, this.DEBOUNCE_DELAY);
+      
+      this.achievementCheckDebounce.set(userId, timeoutId);
+    });
+  }
+
+  // Perform the actual achievement check
+  async performAchievementCheck(user) {
     const userData = await this.getUserData(user);
     if (!userData) return [];
 
@@ -841,17 +909,23 @@ class AchievementService {
       }
 
       // Check if user meets the condition
-      if (achievement.condition(userData)) {
-        newAchievements.push({
-          ...achievement,
-          awardedAt: new Date().toISOString()
-        });
+      try {
+        if (achievement.condition(userData)) {
+          newAchievements.push({
+            ...achievement,
+            awardedAt: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.warn(`Error checking condition for achievement ${achievement.id}:`, error);
       }
     });
 
     // Award new achievements
     if (newAchievements.length > 0) {
       this.awardAchievements(userId, newAchievements);
+      // Invalidate cache since user data has changed
+      this.invalidateUserCache(userId);
     }
 
     return newAchievements;

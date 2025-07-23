@@ -33,15 +33,21 @@ const HabitsPage = () => {
       tomorrow.setHours(0, 0, 0, 0);
       
       const timeUntilMidnight = tomorrow.getTime() - now.getTime();
+      let dailyInterval;
       
       const midnightTimeout = setTimeout(() => {
         handleMidnightReset();
         
         // Set up daily interval for future midnight resets
-        setInterval(handleMidnightReset, 24 * 60 * 60 * 1000);
+        dailyInterval = setInterval(handleMidnightReset, 24 * 60 * 60 * 1000);
       }, timeUntilMidnight);
       
-      return () => clearTimeout(midnightTimeout);
+      return () => {
+        clearTimeout(midnightTimeout);
+        if (dailyInterval) {
+          clearInterval(dailyInterval);
+        }
+      };
     }
   }, [isAuthenticated, user]);
 
