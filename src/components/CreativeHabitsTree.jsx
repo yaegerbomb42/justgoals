@@ -2,11 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon';
 import Button from './ui/Button';
+import ProgressEntryModal from './ProgressEntryModal';
 
 const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onProgressUpdate }) => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [progressAmount, setProgressAmount] = useState('');
+  const [showAdvancedProgress, setShowAdvancedProgress] = useState(false);
 
   // Generate tree structure with creative positioning
   const treeStructure = useMemo(() => {
@@ -19,6 +21,11 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
       '#EF4444', '#06B6D4', '#84CC16', '#F97316',
       '#EC4899', '#6366F1', '#14B8A6', '#F59E0B'
     ];
+
+    // Helper function for date comparison
+    const isToday = (date) => {
+      return date === new Date().toISOString().split('T')[0];
+    };
 
     // Create root node (today)
     const today = new Date().toISOString().split('T')[0];
@@ -35,36 +42,43 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
     // Get all dates across all habits and sort them
     const allDates = new Set();
     habits.forEach(habit => {
-      if (habit.treeNodes) {
-        habit.treeNodes.forEach(node => allDates.add(node.date));
+      if (habit.treeNodes && Array.isArray(habit.treeNodes)) {
+        habit.treeNodes.forEach(node => {
+          if (node && node.date) {
+            allDates.add(node.date);
+          }
+        });
       }
     });
-    const sortedDates = Array.from(allDates).sort();
+    const sortedDates = Array.from(allDates).sort().reverse(); // Most recent first
 
     // Create date nodes in a creative tree layout
     sortedDates.forEach((date, dateIndex) => {
-      if (date !== today) {
-        const isEven = dateIndex % 2 === 0;
-        const branchOffset = Math.floor(dateIndex / 2) + 1;
-        
-        const dateNode = {
-          id: `date-${date}`,
-          type: 'date',
-          date: date,
-          x: isEven 
-            ? 400 - (120 + branchOffset * 60)  // Left side
-            : 400 + (120 + branchOffset * 60), // Right side
-          y: 160 + dateIndex * 70,
-          level: dateIndex + 1
-        };
-        nodes.push(dateNode);
+      const isEven = dateIndex % 2 === 0;
+      const branchOffset = Math.floor(dateIndex / 2) + 1;
+      
+      const dateNode = {
+        id: `date-${date}`,
+        type: 'date',
+        date: date,
+        x: isEven 
+          ? 400 - (120 + branchOffset * 60)  // Left side
+          : 400 + (120 + branchOffset * 60), // Right side
+        y: 160 + dateIndex * 80,
+        level: dateIndex + 1,
+        isToday: date === today
+      };
+      nodes.push(dateNode);
 
-        // Create branch from root to date node
+      // Create branch from root to date node (only for today) or from previous date
+      const fromNode = dateIndex === 0 ? rootNode : nodes.find(n => n.type === 'date' && n.date === sortedDates[dateIndex - 1]);
+      if (fromNode) {
         branches.push({
-          id: `branch-root-${date}`,
-          from: rootNode,
+          id: `branch-${fromNode.id}-${date}`,
+          from: fromNode,
           to: dateNode,
-          color: '#64748B'
+          color: date === today ? '#3B82F6' : '#64748B',
+          animated: date === today
         });
       }
     });
@@ -88,10 +102,10 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
             h.treeNodes.some(hn => hn && hn.date === node.date)
           ).length;
           
-          const angleStep = (Math.PI) / Math.max(habitNodesForDate, 1);
-          const startAngle = -Math.PI / 2 - (angleStep * (habitNodesForDate - 1)) / 2;
+          const angleStep = (Math.PI * 1.2) / Math.max(habitNodesForDate, 1);
+          const startAngle = -Math.PI * 0.6 - (angleStep * (habitNodesForDate - 1)) / 2;
           const angle = startAngle + habitIndex * angleStep;
-          const radius = 100;
+          const radius = 100 + (habitIndex % 2) * 20; // Vary radius slightly
           
           const habitNode = {
             id: `habit-${habit.id}-${node.id}`,
@@ -116,7 +130,8 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
               from: parentDateNode,
               to: habitNode,
               color: habitColor,
-              animated: node.status === 'active' && isToday(node.date)
+              animated: node.status === 'active' && isToday(node.date),
+              opacity: node.status === 'failed' ? 0.5 : 1
             });
           }
         }
@@ -131,6 +146,8 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
   };
 
   const getHabitProgress = (habit, node) => {
+    if (!habit || !node) return { current: 0, target: 1, percentage: 0, unit: '' };
+    
     if (habit.trackingType === 'amount') {
       const current = node.currentProgress || 0;
       const target = habit.targetAmount || 1;
@@ -159,9 +176,17 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
         setShowProgressModal(true);
         setProgressAmount('');
       } else {
-        // Simple check-in
+        // Simple check-in for non-amount habits
         onCheckIn(node.habitId, node.nodeId);
       }
+    }
+  };
+
+  const handleNodeRightClick = (e, node) => {
+    e.preventDefault();
+    if (node.type === 'habit') {
+      setSelectedNode(node);
+      setShowAdvancedProgress(true);
     }
   };
 
@@ -175,6 +200,25 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
         setProgressAmount('');
       }
     }
+  };
+
+  const handleAdvancedProgressClose = () => {
+    setShowAdvancedProgress(false);
+    setSelectedNode(null);
+  };
+
+  const handleAddProgress = (habitId, nodeId, type, amount) => {
+    onCheckIn(habitId, nodeId, type, amount);
+  };
+
+  const handleEditProgress = (habitId, nodeId, entryId, newAmount) => {
+    // This would need to be implemented in the habit service
+    console.log('Edit progress:', { habitId, nodeId, entryId, newAmount });
+  };
+
+  const handleDeleteProgress = (habitId, nodeId, entryId) => {
+    // This would need to be implemented in the habit service  
+    console.log('Delete progress:', { habitId, nodeId, entryId });
   };
 
   if (!habits || habits.length === 0) {
@@ -195,9 +239,19 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
           <Icon name="Trees" className="w-16 h-16 text-primary" />
         </motion.div>
         <h3 className="text-2xl font-semibold text-text-primary mb-3">Your Habit Forest Awaits</h3>
-        <p className="text-text-secondary max-w-md mx-auto">
+        <p className="text-text-secondary max-w-md mx-auto mb-6">
           Plant your first habit seed and watch your personal growth forest flourish with each daily commitment
         </p>
+        <div className="flex items-center justify-center gap-4 text-sm text-text-secondary">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-primary rounded-full"></div>
+            <span>Left click to add progress</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-secondary rounded-full"></div>
+            <span>Right click to manage progress</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -288,11 +342,12 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
               transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
               whileHover={{ scale: 1.1 }}
               onClick={() => handleNodeClick(node)}
+              onContextMenu={(e) => handleNodeRightClick(e, node)}
             >
             {node.type === 'root' && (
               <motion.div 
                 className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full shadow-lg flex items-center justify-center border-4 border-white/20"
-                animate={isToday(node.date) ? {
+                animate={node.isToday ? {
                   boxShadow: [
                     '0 0 0 0 rgba(59, 130, 246, 0.4)',
                     '0 0 0 20px rgba(59, 130, 246, 0)',
@@ -308,18 +363,30 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
             {node.type === 'date' && (
               <div className="text-center">
                 <motion.div 
-                  className="w-12 h-12 bg-gradient-to-br from-surface-600 to-surface-700 rounded-full shadow-lg flex items-center justify-center border-2 border-border mb-2"
+                  className={`w-12 h-12 bg-gradient-to-br rounded-full shadow-lg flex items-center justify-center border-2 mb-2 ${
+                    node.isToday 
+                      ? 'from-primary to-secondary border-primary shadow-primary/25' 
+                      : 'from-surface-600 to-surface-700 border-border'
+                  }`}
                   whileHover={{ 
                     scale: 1.2,
                     boxShadow: "0 8px 25px rgba(0,0,0,0.3)"
                   }}
+                  animate={node.isToday ? {
+                    scale: [1, 1.1, 1],
+                  } : {}}
+                  transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <span className="text-xs font-bold text-text-primary">
+                  <span className={`text-xs font-bold ${
+                    node.isToday ? 'text-white' : 'text-text-primary'
+                  }`}>
                     {new Date(node.date).getDate()}
                   </span>
                 </motion.div>
-                <div className="text-xs text-text-secondary whitespace-nowrap">
-                  {new Date(node.date).toLocaleDateString('en-US', { month: 'short' })}
+                <div className={`text-xs whitespace-nowrap ${
+                  node.isToday ? 'text-primary font-medium' : 'text-text-secondary'
+                }`}>
+                  {node.isToday ? 'Today' : new Date(node.date).toLocaleDateString('en-US', { month: 'short' })}
                 </div>
               </div>
             )}
@@ -336,19 +403,32 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                 >
                   {/* Habit node */}
                   <div 
-                    className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center border-3 transition-all ${
+                    className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center border-3 transition-all relative ${
                       node.node.status === 'completed' 
-                        ? 'border-success bg-success/20' 
+                        ? 'border-success bg-success/20 shadow-success/25' 
                         : node.node.status === 'failed'
-                          ? 'border-error bg-error/20'
-                          : 'border-white/30'
+                          ? 'border-error bg-error/20 opacity-75'
+                          : 'border-white/30 shadow-lg'
                     }`}
                     style={{ 
                       backgroundColor: node.color + '20',
-                      borderColor: node.node.status === 'active' ? node.color : undefined
+                      borderColor: node.node.status === 'active' ? node.color : 
+                                   node.node.status === 'completed' ? '#10B981' :
+                                   node.node.status === 'failed' ? '#EF4444' : node.color
                     }}
                   >
                     <span className="text-xl">{node.habit.emoji}</span>
+                    
+                    {/* Interactive indicator for today's habits */}
+                    {isToday(node.date) && node.node.status === 'active' && (
+                      <motion.div
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-white"
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      >
+                        <div className="w-full h-full bg-white rounded-full scale-50"></div>
+                      </motion.div>
+                    )}
                   </div>
 
                   {/* Progress indicator */}
@@ -358,6 +438,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                       <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-20">
                         <div className="text-xs font-medium text-text-primary mb-1 text-center">
                           {progress.current}/{progress.target}
+                          {progress.unit && ` ${progress.unit}`}
                         </div>
                         <div className="w-full bg-surface-800 rounded-full h-1.5 overflow-hidden">
                           <motion.div
@@ -378,7 +459,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                       <motion.div
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        className="w-6 h-6 bg-success rounded-full flex items-center justify-center"
+                        className="w-6 h-6 bg-success rounded-full flex items-center justify-center shadow-lg"
                       >
                         <Icon name="Check" className="w-3 h-3 text-white" />
                       </motion.div>
@@ -387,25 +468,52 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="w-6 h-6 bg-error rounded-full flex items-center justify-center"
+                        className="w-6 h-6 bg-error rounded-full flex items-center justify-center shadow-lg"
                       >
                         <Icon name="X" className="w-3 h-3 text-white" />
                       </motion.div>
                     )}
                   </div>
 
-                  {/* Hover tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-12 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                    <div className="bg-surface-700 border border-border rounded-lg p-3 shadow-xl min-w-[200px]">
-                      <div className="text-sm font-medium text-text-primary mb-1">
-                        {node.habit.title}
+                  {/* Enhanced hover tooltip */}
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-14 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 pointer-events-none">
+                    <div className="bg-surface-700 border border-border rounded-lg p-3 shadow-xl min-w-[220px] relative">
+                      {/* Tooltip arrow */}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-surface-700"></div>
+                      
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">{node.habit.emoji}</span>
+                        <div className="text-sm font-medium text-text-primary">
+                          {node.habit.title}
+                        </div>
                       </div>
-                      <div className="text-xs text-text-secondary mb-2">
-                        {node.habit.description}
+                      
+                      {node.habit.description && (
+                        <div className="text-xs text-text-secondary mb-2">
+                          {node.habit.description}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-text-secondary">
+                          {node.habit.trackingType === 'amount' ? 'Amount tracking' : 
+                           node.habit.trackingType === 'count' ? 'Count tracking' : 'Simple check'}
+                        </span>
+                        <span className="text-text-secondary">
+                          {new Date(node.date).toLocaleDateString()}
+                        </span>
                       </div>
-                      {isToday(node.date) && node.node.status === 'active' && (
-                        <div className="text-xs text-primary font-medium">
-                          Click to update progress
+                      
+                      {isToday(node.date) && (
+                        <div className="mt-2 pt-2 border-t border-border">
+                          <div className="flex items-center gap-1 text-xs text-primary">
+                            <Icon name="MousePointer" className="w-3 h-3" />
+                            <span>Left click: Quick update</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-secondary mt-1">
+                            <Icon name="Settings" className="w-3 h-3" />
+                            <span>Right click: Manage progress</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -469,6 +577,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                   <Button
                     onClick={handleProgressSubmit}
                     disabled={!progressAmount || parseFloat(progressAmount) <= 0}
+                    className="bg-gradient-to-r from-primary to-secondary"
                   >
                     Add Progress
                   </Button>
@@ -476,6 +585,21 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Advanced Progress Management Modal */}
+      <AnimatePresence>
+        {showAdvancedProgress && selectedNode && (
+          <ProgressEntryModal
+            isOpen={showAdvancedProgress}
+            onClose={handleAdvancedProgressClose}
+            habit={selectedNode.habit}
+            node={selectedNode.node}
+            onAddProgress={handleAddProgress}
+            onEditProgress={handleEditProgress}
+            onDeleteProgress={handleDeleteProgress}
+          />
         )}
       </AnimatePresence>
       </div>

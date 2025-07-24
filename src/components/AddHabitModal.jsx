@@ -380,41 +380,85 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
               </div>
             </div>
 
-            {/* Target Goals based on tracking type */}
+            {/* Enhanced Target Goals with Smart Input Forms */}
             {trackingType === 'check' ? (
               <div>
                 <label className="block text-sm font-body-medium text-text-primary mb-2">
                   Simple Daily Goal
                 </label>
-                <div className="p-3 bg-surface-600 border border-border rounded-lg text-text-secondary text-sm">
-                  ✅ Complete once per day
+                <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <Icon name="Check" className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-emerald-700 dark:text-emerald-300 font-medium">One-time completion</p>
+                      <p className="text-emerald-600 dark:text-emerald-400 text-sm">Perfect for binary habits like "meditate" or "exercise"</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : trackingType === 'count' ? (
-              <div>
-                <label className="block text-sm font-body-medium text-text-primary mb-2">
-                  Target Daily Count
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={targetChecks}
-                  onChange={(e) => {
-                    setTargetChecks(parseInt(e.target.value) || 1);
-                    if (errors.targetChecks) {
-                      setErrors(prev => ({ ...prev, targetChecks: null }));
-                    }
-                  }}
-                  className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                    errors.targetChecks ? 'border-error focus:border-error' : 'border-border focus:border-primary'
-                  }`}
-                />
-                {errors.targetChecks && (
-                  <p className="text-xs text-error mt-1">{errors.targetChecks}</p>
-                )}
-                <div className="text-xs text-text-secondary mt-1">
-                  How many times should you complete this habit each day?
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-body-medium text-text-primary mb-2">
+                    Target Daily Count
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={targetChecks}
+                      onChange={(e) => {
+                        setTargetChecks(parseInt(e.target.value) || 1);
+                        if (errors.targetChecks) {
+                          setErrors(prev => ({ ...prev, targetChecks: null }));
+                        }
+                      }}
+                      className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
+                        errors.targetChecks ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                      }`}
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary">
+                      times
+                    </div>
+                  </div>
+                  {errors.targetChecks && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Icon name="AlertCircle" className="w-3 h-3 text-error" />
+                      <p className="text-xs text-error">{errors.targetChecks}</p>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <Icon name="Info" className="w-4 h-4 text-text-secondary" />
+                    <span className="text-xs text-text-secondary">
+                      How many times should you complete this habit each day?
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Quick preset buttons for count */}
+                <div>
+                  <label className="block text-sm font-body-medium text-text-secondary mb-2">
+                    Quick presets:
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 3, 5, 10].map(count => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setTargetChecks(count)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          targetChecks === count
+                            ? 'bg-primary text-white shadow-lg'
+                            : 'bg-surface-600 text-text-secondary hover:bg-surface-500 hover:text-text-primary'
+                        }`}
+                      >
+                        {count}x
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -423,50 +467,121 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                   <label className="block text-sm font-body-medium text-text-primary mb-2">
                     Target Amount
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={targetAmount}
-                    onChange={(e) => {
-                      setTargetAmount(parseInt(e.target.value) || 1);
-                      if (errors.targetAmount) {
-                        setErrors(prev => ({ ...prev, targetAmount: null }));
-                      }
-                    }}
-                    className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                      errors.targetAmount ? 'border-error focus:border-error' : 'border-border focus:border-primary'
-                    }`}
-                  />
-                  {errors.targetAmount && (
-                    <p className="text-xs text-error mt-1">{errors.targetAmount}</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={targetAmount}
+                      onChange={(e) => {
+                        setTargetAmount(parseInt(e.target.value) || 1);
+                        if (errors.targetAmount) {
+                          setErrors(prev => ({ ...prev, targetAmount: null }));
+                        }
+                      }}
+                      className={`flex-1 px-4 py-3 bg-surface-600 border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
+                        errors.targetAmount ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                      }`}
+                      placeholder="Enter amount..."
+                    />
+                    <input
+                      type="text"
+                      value={unit}
+                      onChange={(e) => {
+                        setUnit(e.target.value);
+                        if (errors.unit) {
+                          setErrors(prev => ({ ...prev, unit: null }));
+                        }
+                      }}
+                      placeholder="unit"
+                      className={`w-24 px-3 py-3 bg-surface-600 border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
+                        errors.unit ? 'border-error focus:border-error' : 'border-border focus:border-primary'
+                      }`}
+                      maxLength={20}
+                    />
+                  </div>
+                  {(errors.targetAmount || errors.unit) && (
+                    <div className="mt-1 space-y-1">
+                      {errors.targetAmount && (
+                        <div className="flex items-center gap-1">
+                          <Icon name="AlertCircle" className="w-3 h-3 text-error" />
+                          <p className="text-xs text-error">{errors.targetAmount}</p>
+                        </div>
+                      )}
+                      {errors.unit && (
+                        <div className="flex items-center gap-1">
+                          <Icon name="AlertCircle" className="w-3 h-3 text-error" />
+                          <p className="text-xs text-error">{errors.unit}</p>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </div>
-                <div>
-                  <label className="block text-sm font-body-medium text-text-primary mb-2">
-                    Unit (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={unit}
-                    onChange={(e) => {
-                      setUnit(e.target.value);
-                      if (errors.unit) {
-                        setErrors(prev => ({ ...prev, unit: null }));
-                      }
-                    }}
-                    placeholder="e.g., steps, glasses, minutes, pages"
-                    className={`w-full px-4 py-3 bg-surface-600 border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                      errors.unit ? 'border-error focus:border-error' : 'border-border focus:border-primary'
-                    }`}
-                    maxLength={20}
-                  />
-                  {errors.unit && (
-                    <p className="text-xs text-error mt-1">{errors.unit}</p>
-                  )}
-                  <div className="text-xs text-text-secondary mt-1">
-                    What unit are you measuring? (e.g., steps, glasses of water, minutes)
+                  <div className="flex items-center gap-2 mt-2">
+                    <Icon name="Target" className="w-4 h-4 text-text-secondary" />
+                    <span className="text-xs text-text-secondary">
+                      How much do you want to achieve? (e.g., 10000 steps, 8 glasses, 30 minutes)
+                    </span>
                   </div>
                 </div>
+
+                {/* Smart unit suggestions */}
+                <div>
+                  <label className="block text-sm font-body-medium text-text-secondary mb-2">
+                    Common units:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {['steps', 'glasses', 'minutes', 'pages', 'reps', 'hours', 'calories', 'miles'].map(unitOption => (
+                      <button
+                        key={unitOption}
+                        type="button"
+                        onClick={() => setUnit(unitOption)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                          unit === unitOption
+                            ? 'bg-primary text-white shadow-lg'
+                            : 'bg-surface-600 text-text-secondary hover:bg-surface-500 hover:text-text-primary'
+                        }`}
+                      >
+                        {unitOption}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Smart presets based on unit */}
+                {unit && (
+                  <div>
+                    <label className="block text-sm font-body-medium text-text-secondary mb-2">
+                      Suggested targets for {unit}:
+                    </label>
+                    <div className="flex gap-2">
+                      {(() => {
+                        const presets = {
+                          steps: [5000, 8000, 10000, 15000],
+                          glasses: [4, 6, 8, 10],
+                          minutes: [10, 15, 30, 60],
+                          pages: [5, 10, 20, 50],
+                          reps: [10, 20, 50, 100],
+                          hours: [1, 2, 4, 8],
+                          calories: [300, 500, 800, 1200],
+                          miles: [1, 3, 5, 10]
+                        };
+                        return (presets[unit] || []).map(amount => (
+                          <button
+                            key={amount}
+                            type="button"
+                            onClick={() => setTargetAmount(amount)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                              targetAmount === amount
+                                ? 'bg-primary text-white shadow-lg'
+                                : 'bg-surface-600 text-text-secondary hover:bg-surface-500 hover:text-text-primary'
+                            }`}
+                          >
+                            {amount.toLocaleString()}
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -488,33 +603,65 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
               </div>
             </div>
 
-            {/* Suggestions - only show in create mode */}
+            {/* AI-Powered Habit Suggestions - Enhanced */}
             {mode === 'create' && (
-              <div>
-                <label className="block text-sm font-body-medium text-text-primary mb-3">
-                  Popular Habit Suggestions
-                </label>
-                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                  {habitSuggestions.map((suggestion, index) => (
-                    <button
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-body-medium text-text-primary">
+                    Popular Habit Suggestions
+                  </label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      // TODO: Integrate with Drift AI for personalized suggestions
+                      console.log('Request AI-powered habit suggestions');
+                    }}
+                    className="text-xs"
+                  >
+                    <Icon name="Sparkles" size={12} className="mr-1" />
+                    Get AI Suggestions
+                  </Button>
+                </div>
+                
+                {/* Category-based suggestions */}
+                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
+                  {habitSuggestions
+                    .filter(suggestion => !selectedCategory || selectedCategory === 'general' || suggestion.category === selectedCategory)
+                    .map((suggestion, index) => (
+                    <motion.button
                       key={index}
                       type="button"
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="flex items-center gap-3 px-3 py-2 bg-surface-600 hover:bg-surface-500 rounded-lg transition-colors text-left"
+                      className="flex items-center gap-3 px-3 py-3 bg-surface-600 hover:bg-surface-500 rounded-lg transition-all text-left border border-transparent hover:border-primary/30"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
                       <span className="text-xl">{suggestion.emoji}</span>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-text-primary">{suggestion.title}</div>
-                        <div className="text-xs text-text-secondary">{suggestion.description}</div>
+                        <div className="text-xs text-text-secondary truncate">{suggestion.description}</div>
                       </div>
-                      <div className="text-xs text-text-secondary">
+                      <div className="text-xs text-text-secondary bg-surface-700 px-2 py-1 rounded-full">
                         {suggestion.trackingType === 'amount' 
                           ? `${suggestion.targetAmount} ${suggestion.unit || 'units'}`
-                          : `${suggestion.targetChecks || 1} goal${(suggestion.targetChecks || 1) > 1 ? 's' : ''}`
+                          : `${suggestion.targetChecks || 1}x`
                         }
                       </div>
-                    </button>
+                    </motion.button>
                   ))}
+                </div>
+
+                {/* AI Suggestion Notice */}
+                <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 rounded-lg">
+                  <Icon name="Info" className="w-4 h-4 text-primary" />
+                  <div className="text-xs text-text-secondary">
+                    <span className="font-medium text-primary">Pro Tip:</span> Click "Get AI Suggestions" for personalized habit recommendations based on your goals and preferences.
+                  </div>
                 </div>
               </div>
             )}
