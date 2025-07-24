@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button';
 import AddHabitModal from '../../components/AddHabitModal';
 import HabitsTreeVisualization from '../../components/HabitsTreeVisualization';
 import CreativeHabitsTree from '../../components/CreativeHabitsTree';
+import HabitsAIAssistant from './components/AIAssistantPanel';
 import habitService from '../../services/habitService';
 
 const HabitsPage = () => {
@@ -20,6 +21,7 @@ const HabitsPage = () => {
   const [viewMode, setViewMode] = useState('creative'); // 'creative', 'tree', or 'compact'
   const [batchMode, setBatchMode] = useState(false);
   const [selectedHabits, setSelectedHabits] = useState(new Set());
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   // Load user habits with midnight reset functionality
   useEffect(() => {
@@ -420,6 +422,15 @@ const HabitsPage = () => {
             )}
             
             <Button
+              onClick={() => setShowAIAssistant(!showAIAssistant)}
+              variant="secondary"
+              size="sm"
+            >
+              <Icon name="Bot" size={16} className="mr-1" />
+              AI Assistant
+            </Button>
+            
+            <Button
               onClick={() => setShowAddModal(true)}
               iconName="Plus"
               iconPosition="left"
@@ -563,6 +574,16 @@ const HabitsPage = () => {
           mode="edit"
         />
       )}
+
+      {/* Habits AI Assistant */}
+      <HabitsAIAssistant
+        isExpanded={showAIAssistant}
+        onToggle={() => setShowAIAssistant(!showAIAssistant)}
+        habits={habits}
+        onCreateHabit={handleAddHabit}
+        onUpdateHabit={handleUpdateHabit}
+        onDeleteHabit={handleDeleteHabit}
+      />
     </div>
   );
 };

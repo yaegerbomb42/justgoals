@@ -16,7 +16,7 @@ const ProductivityHeatmap = ({ data = [] }) => {
     const maxValues = {
       productivity: Math.max(1, ...sorted.map(d => (d.goals || 0) + (d.focus || 0) + (d.habits || 0))),
       goals: Math.max(1, ...sorted.map(d => d.goals || 0)),
-      focus: Math.max(1, ...sorted.map(d => d.focus || 0)),
+      focus: Math.max(1, ...sorted.map(d => Math.round((d.focus || 0) * 60))), // Convert hours to minutes
       habits: Math.max(1, ...sorted.map(d => d.habits || 0)),
       milestones: Math.max(1, ...sorted.map(d => d.milestones || 0))
     };
@@ -67,6 +67,10 @@ const ProductivityHeatmap = ({ data = [] }) => {
       habits: {
         light: [168, 85, 247], // purple
         dark: [124, 58, 237]
+      },
+      focus: {
+        light: [251, 146, 60], // orange
+        dark: [234, 88, 12]
       }
     };
     
@@ -88,6 +92,7 @@ const ProductivityHeatmap = ({ data = [] }) => {
     switch (viewMode) {
       case 'goals': return day.goals || 0;
       case 'habits': return day.habits || 0;
+      case 'focus': return Math.round((day.focus || 0) * 60); // Convert hours to minutes for better display
       default: return day.totalActivity || 0;
     }
   };
@@ -95,9 +100,10 @@ const ProductivityHeatmap = ({ data = [] }) => {
   // Get tooltip text
   const getTooltip = (day) => {
     if (!day) return '';
+    const focusMinutes = Math.round((day.focus || 0) * 60);
     return `${day.date.toLocaleDateString()}\n` +
            `Goals: ${day.goals || 0} completed\n` +
-           `Focus: ${day.focus || 0} hours\n` +
+           `Focus: ${focusMinutes}min (${(day.focus || 0).toFixed(1)}h)\n` +
            `Habits: ${day.habits || 0} tracked\n` +
            `Milestones: ${day.milestones || 0} reached\n` +
            `Total Activity: ${day.totalActivity || 0}`;
@@ -122,7 +128,8 @@ const ProductivityHeatmap = ({ data = [] }) => {
         {[
           { id: 'productivity', label: 'Overall', icon: 'TrendingUp', color: 'blue' },
           { id: 'goals', label: 'Goals', icon: 'Target', color: 'green' },
-          { id: 'habits', label: 'Habits', icon: 'Repeat', color: 'purple' }
+          { id: 'habits', label: 'Habits', icon: 'Repeat', color: 'purple' },
+          { id: 'focus', label: 'Focus Time', icon: 'Clock', color: 'orange' }
         ].map((mode) => (
           <button
             key={mode.id}
@@ -178,7 +185,7 @@ const ProductivityHeatmap = ({ data = [] }) => {
                       {day && value > 0 && (
                         <div className="w-full h-full flex items-center justify-center">
                           <span className="text-xs text-white font-medium opacity-80">
-                            {value}
+                            {viewMode === 'focus' ? `${value}m` : value}
                           </span>
                         </div>
                       )}
@@ -224,9 +231,11 @@ const ProductivityHeatmap = ({ data = [] }) => {
               <span className="font-medium text-text-primary">{selectedDay.goals || 0}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Icon name="Clock" size={16} className="text-blue-500" />
+              <Icon name="Clock" size={16} className="text-orange-500" />
               <span className="text-text-secondary">Focus:</span>
-              <span className="font-medium text-text-primary">{selectedDay.focus || 0}h</span>
+              <span className="font-medium text-text-primary">
+                {Math.round((selectedDay.focus || 0) * 60)}min ({(selectedDay.focus || 0).toFixed(1)}h)
+              </span>
             </div>
             <div className="flex items-center space-x-2">
               <Icon name="Repeat" size={16} className="text-purple-500" />

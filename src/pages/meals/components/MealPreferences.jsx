@@ -45,11 +45,21 @@ const MealPreferences = ({ preferences = {}, onError }) => {
     }
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Calculate macro total for validation
-  const macroTotal = (formData.macroTargets?.protein || 0) + 
+  const macroTotal = Math.round((formData.macroTargets?.protein || 0) + 
                      (formData.macroTargets?.carbs || 0) + 
-                     (formData.macroTargets?.fat || 0);
+                     (formData.macroTargets?.fat || 0));
+
+  // Track changes to enable save button
+  useEffect(() => {
+    if (preferences && typeof preferences === 'object') {
+      const currentData = JSON.stringify(formData);
+      const originalData = JSON.stringify(preferences);
+      setHasUnsavedChanges(currentData !== originalData);
+    }
+  }, [formData, preferences]);
 
   useEffect(() => {
     try {
@@ -122,40 +132,45 @@ const MealPreferences = ({ preferences = {}, onError }) => {
   // Wrapper function for MacroSlider compatibility
   const handleMacroSliderChange = (newMacroTargets) => {
     try {
-      // Validate the entire macro object
-      const protein = parseInt(newMacroTargets.protein) || 0;
-      const carbs = parseInt(newMacroTargets.carbs) || 0;
-      const fat = parseInt(newMacroTargets.fat) || 0;
+      // Ensure all values are integers and properly bounded
+      const protein = Math.max(5, Math.min(80, Math.round(parseInt(newMacroTargets.protein) || 0)));
+      const carbs = Math.max(5, Math.min(80, Math.round(parseInt(newMacroTargets.carbs) || 0)));
+      const fat = Math.max(5, Math.min(80, Math.round(parseInt(newMacroTargets.fat) || 0)));
+      
+      const cleanedTargets = { protein, carbs, fat };
       const total = protein + carbs + fat;
       
-      if (total > 100) {
-        if (onError) onError(`Macro total would be ${total}% (cannot exceed 100%)`);
-        return;
+      // If total is close to 100 (within 3%), normalize to 100
+      if (Math.abs(total - 100) <= 3) {
+        const diff = 100 - total;
+        const largestMacro = Object.entries(cleanedTargets)
+          .reduce((a, b) => cleanedTargets[a[0]] > cleanedTargets[b[0]] ? a : b)[0];
+        cleanedTargets[largestMacro] += diff;
       }
       
       setFormData(prev => ({
         ...prev,
-        macroTargets: newMacroTargets
+        macroTargets: cleanedTargets
       }));
       
-      // Clear error if validation passes
-      if (onError && total <= 100) {
+      // Clear any error
+      if (onError) {
         onError(null);
       }
     } catch (error) {
       console.error('Error updating macro targets from slider:', error);
-      if (onError) onError('Error updating macro targets: ' + error.message);
+      // Don't show error to user for slider interactions
     }
   };
 
   const handleMacroChange = (macro, value) => {
     try {
-      const numValue = parseInt(value) || 0;
+      // Parse and ensure integer value
+      const numValue = Math.round(parseInt(value) || 0);
       
-      // Validate individual macro range
-      if (numValue < 0 || numValue > 100) {
-        if (onError) onError(`${macro} percentage must be between 0-100%`);
-        return;
+      // Validate individual macro range with more forgiving bounds
+      if (numValue < 5 || numValue > 80) {
+        console.warn(`${macro} percentage should be between 5-80%`);
       }
       
       const newMacroTargets = {
@@ -163,11 +178,30 @@ const MealPreferences = ({ preferences = {}, onError }) => {
         [macro]: numValue
       };
       
-      // Calculate total and warn if over 100%
+      // Calculate total - be more lenient with validation
       const total = (newMacroTargets.protein || 0) + (newMacroTargets.carbs || 0) + (newMacroTargets.fat || 0);
+      
+      // Auto-adjust other macros if total exceeds 100
       if (total > 100) {
-        if (onError) onError(`Macro total would be ${total}% (cannot exceed 100%)`);
-        return;
+        const excess = total - 100;
+        const otherMacros = Object.keys(newMacroTargets).filter(m => m !== macro);
+        
+        // Proportionally reduce other macros
+        otherMacros.forEach(otherMacro => {
+          const currentValue = newMacroTargets[otherMacro] || 0;
+          const reduction = Math.floor((currentValue / (total - numValue)) * excess);
+          newMacroTargets[otherMacro] = Math.max(5, currentValue - reduction);
+        });
+        
+        // Recalculate to ensure we're at 100 or close
+        const newTotal = Object.values(newMacroTargets).reduce((sum, val) => sum + val, 0);
+        if (newTotal !== 100) {
+          const diff = 100 - newTotal;
+          // Add/subtract the difference to the largest macro
+          const largestMacro = Object.entries(newMacroTargets)
+            .reduce((a, b) => newMacroTargets[a[0]] > newMacroTargets[b[0]] ? a : b)[0];
+          newMacroTargets[largestMacro] = Math.max(5, newMacroTargets[largestMacro] + diff);
+        }
       }
       
       setFormData(prev => ({
@@ -175,13 +209,13 @@ const MealPreferences = ({ preferences = {}, onError }) => {
         macroTargets: newMacroTargets
       }));
       
-      // Clear any previous error if validation passes
-      if (onError && total <= 100) {
+      // Clear any error since we auto-corrected
+      if (onError) {
         onError(null);
       }
     } catch (error) {
       console.error('Error updating macro targets:', error);
-      if (onError) onError('Error updating macro targets: ' + error.message);
+      // Don't show error to user, just log it
     }
   };
 
@@ -224,28 +258,28 @@ const MealPreferences = ({ preferences = {}, onError }) => {
       validationErrors.push('Daily calories must be between 800-15000 (safe range)');
     }
     
-    // Macro targets validation
+    // Macro targets validation with more lenient bounds
     const macros = formData.macroTargets || {};
-    const protein = parseInt(macros.protein) || 0;
-    const carbs = parseInt(macros.carbs) || 0;
-    const fat = parseInt(macros.fat) || 0;
+    const protein = Math.round(parseInt(macros.protein) || 0);
+    const carbs = Math.round(parseInt(macros.carbs) || 0);
+    const fat = Math.round(parseInt(macros.fat) || 0);
     
-    if (protein < 5 || protein > 60) {
-      validationErrors.push('Protein percentage must be between 5-60% (nutritionally safe range)');
+    if (protein < 5 || protein > 80) {
+      validationErrors.push('Protein percentage must be between 5-80% (nutritionally safe range)');
     }
     
-    if (carbs < 10 || carbs > 80) {
-      validationErrors.push('Carbs percentage must be between 10-80% (nutritionally safe range)');
+    if (carbs < 5 || carbs > 85) {
+      validationErrors.push('Carbs percentage must be between 5-85% (nutritionally safe range)');
     }
     
-    if (fat < 10 || fat > 60) {
-      validationErrors.push('Fat percentage must be between 10-60% (nutritionally safe range)');
+    if (fat < 5 || fat > 70) {
+      validationErrors.push('Fat percentage must be between 5-70% (nutritionally safe range)');
     }
     
-    // Check if macros add up to 100%
+    // Check if macros add up close to 100% (allow ±5% tolerance)
     const totalMacros = protein + carbs + fat;
-    if (Math.abs(totalMacros - 100) > 1) { // Allow 1% tolerance for rounding
-      validationErrors.push(`Macro percentages must total 100% (currently ${totalMacros}%)`);
+    if (Math.abs(totalMacros - 100) > 5) {
+      validationErrors.push(`Macro percentages total ${totalMacros}% - should be close to 100% (±5% tolerance)`);
     }
     
     // Validate meal count
@@ -352,69 +386,105 @@ const MealPreferences = ({ preferences = {}, onError }) => {
             {/* Protein */}
             <div>
               <label className="block text-sm font-medium text-green-600 mb-2">
-                Protein ({formData.macroTargets?.protein || 25}%)
+                Protein ({Math.round(formData.macroTargets?.protein || 25)}%)
               </label>
               <input
                 type="range"
                 min="10"
                 max="60"
-                value={formData.macroTargets?.protein || 25}
+                step="1"
+                value={Math.round(formData.macroTargets?.protein || 25)}
                 onChange={(e) => handleMacroChange('protein', e.target.value)}
-                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-green"
+                className="w-full h-3 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-green"
+                style={{
+                  background: `linear-gradient(to right, #10b981 0%, #10b981 ${((formData.macroTargets?.protein || 25) - 10) / 50 * 100}%, #e5e7eb ${((formData.macroTargets?.protein || 25) - 10) / 50 * 100}%, #e5e7eb 100%)`
+                }}
               />
               <div className="text-sm text-text-secondary mt-1">
-                {Math.round((formData.dailyCalories * (formData.macroTargets?.protein || 25) / 100) / 4)}g
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.protein || 25) / 100) / 4)}g protein
               </div>
             </div>
 
             {/* Carbs */}
             <div>
               <label className="block text-sm font-medium text-yellow-600 mb-2">
-                Carbs ({formData.macroTargets?.carbs || 45}%)
+                Carbs ({Math.round(formData.macroTargets?.carbs || 45)}%)
               </label>
               <input
                 type="range"
                 min="20"
                 max="70"
-                value={formData.macroTargets?.carbs || 45}
+                step="1"
+                value={Math.round(formData.macroTargets?.carbs || 45)}
                 onChange={(e) => handleMacroChange('carbs', e.target.value)}
-                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-yellow"
+                className="w-full h-3 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-yellow"
+                style={{
+                  background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${((formData.macroTargets?.carbs || 45) - 20) / 50 * 100}%, #e5e7eb ${((formData.macroTargets?.carbs || 45) - 20) / 50 * 100}%, #e5e7eb 100%)`
+                }}
               />
               <div className="text-sm text-text-secondary mt-1">
-                {Math.round((formData.dailyCalories * (formData.macroTargets?.carbs || 45) / 100) / 4)}g
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.carbs || 45) / 100) / 4)}g carbs
               </div>
             </div>
 
             {/* Fat */}
             <div>
               <label className="block text-sm font-medium text-blue-600 mb-2">
-                Fat ({formData.macroTargets?.fat || 30}%)
+                Fat ({Math.round(formData.macroTargets?.fat || 30)}%)
               </label>
               <input
                 type="range"
                 min="15"
                 max="50"
-                value={formData.macroTargets?.fat || 30}
+                step="1"
+                value={Math.round(formData.macroTargets?.fat || 30)}
                 onChange={(e) => handleMacroChange('fat', e.target.value)}
-                className="w-full h-2 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-blue"
+                className="w-full h-3 bg-surface-300 rounded-lg appearance-none cursor-pointer slider-blue"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((formData.macroTargets?.fat || 30) - 15) / 35 * 100}%, #e5e7eb ${((formData.macroTargets?.fat || 30) - 15) / 35 * 100}%, #e5e7eb 100%)`
+                }}
               />
               <div className="text-sm text-text-secondary mt-1">
-                {Math.round((formData.dailyCalories * (formData.macroTargets?.fat || 30) / 100) / 9)}g
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.fat || 30) / 100) / 9)}g fat
               </div>
             </div>
           </div>
 
-          {/* Macro Total Warning */}
-          {macroTotal !== 100 && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center space-x-2">
+          {/* Macro Total Info */}
+          <div className={`p-3 rounded-lg border ${
+            Math.abs(macroTotal - 100) <= 2 
+              ? 'bg-green-50 border-green-200' 
+              : Math.abs(macroTotal - 100) <= 5
+              ? 'bg-yellow-50 border-yellow-200'
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <div className="flex items-center space-x-2">
+              {Math.abs(macroTotal - 100) <= 2 ? (
+                <Icon name="CheckCircle" className="w-4 h-4 text-green-600" />
+              ) : Math.abs(macroTotal - 100) <= 5 ? (
                 <Icon name="AlertTriangle" className="w-4 h-4 text-yellow-600" />
-                <span className="text-sm text-yellow-700">
-                  Macro percentages total {macroTotal}%. They should add up to 100%.
-                </span>
-              </div>
+              ) : (
+                <Icon name="XCircle" className="w-4 h-4 text-red-600" />
+              )}
+              <span className={`text-sm ${
+                Math.abs(macroTotal - 100) <= 2 
+                  ? 'text-green-700' 
+                  : Math.abs(macroTotal - 100) <= 5
+                  ? 'text-yellow-700'
+                  : 'text-red-700'
+              }`}>
+                {Math.abs(macroTotal - 100) <= 2 
+                  ? `Perfect! Macro percentages total ${macroTotal}%` 
+                  : `Macro percentages total ${macroTotal}%. Target is 100% (±2% acceptable)`
+                }
+              </span>
             </div>
-          )}
+            {Math.abs(macroTotal - 100) > 2 && (
+              <div className="text-xs text-gray-600 mt-1">
+                Tip: Adjusting any macro will automatically balance the others to reach 100%
+              </div>
+            )}
+          </div>
         </div>
         <MacroSlider
           macroTargets={formData.macroTargets || { protein: 25, carbs: 45, fat: 30 }}
@@ -507,11 +577,18 @@ const MealPreferences = ({ preferences = {}, onError }) => {
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-3">
+        {hasUnsavedChanges && (
+          <div className="flex items-center text-sm text-orange-600">
+            <Icon name="AlertCircle" className="w-4 h-4 mr-1" />
+            You have unsaved changes
+          </div>
+        )}
         <button
           onClick={handleSave}
-          disabled={isSaving || macroTotal !== 100}
+          disabled={isSaving || (Math.abs(macroTotal - 100) > 10)}
           className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+          title={Math.abs(macroTotal - 100) > 10 ? `Macro total is ${macroTotal}% - please adjust to be closer to 100%` : ''}
         >
           {isSaving ? (
             <>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
-const MacroSlider = ({ macroTargets, onChange }) => {
+const MacroSlider = ({ macroTargets, dailyCalories = 2000, onChange }) => {
   const [isDragging, setIsDragging] = useState(null);
   const [localValues, setLocalValues] = useState(macroTargets);
   const sliderRef = useRef(null);
@@ -20,30 +20,53 @@ const MacroSlider = ({ macroTargets, onChange }) => {
 
     const rect = sliderRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    const percentage = Math.max(5, Math.min(95, (x / rect.width) * 100));
 
     if (isDragging === 'protein') {
-      const maxProtein = 100 - 10 - 10; // Leave minimum 10% for carbs and fat
-      const protein = Math.min(percentage, maxProtein);
+      const protein = Math.round(Math.min(percentage, 80)); // Max 80% protein
       const remaining = 100 - protein;
-      const carbsFatRatio = localValues.carbs / (localValues.carbs + localValues.fat) || 0.5;
+      const carbsFatRatio = localValues.carbs / (localValues.carbs + localValues.fat) || 0.6;
       
-      setLocalValues({
-        protein: Math.round(protein),
-        carbs: Math.round(remaining * carbsFatRatio),
-        fat: Math.round(remaining * (1 - carbsFatRatio))
-      });
+      const newValues = {
+        protein,
+        carbs: Math.round(Math.max(5, remaining * carbsFatRatio)),
+        fat: Math.round(Math.max(5, remaining * (1 - carbsFatRatio)))
+      };
+      
+      // Ensure total is exactly 100
+      const total = newValues.protein + newValues.carbs + newValues.fat;
+      if (total !== 100) {
+        const diff = 100 - total;
+        if (newValues.carbs >= newValues.fat) {
+          newValues.carbs += diff;
+        } else {
+          newValues.fat += diff;
+        }
+      }
+      
+      setLocalValues(newValues);
     } else if (isDragging === 'fat') {
       const proteinWidth = (localValues.protein / 100) * rect.width;
       const fatStart = proteinWidth;
       const fatWidth = x - fatStart;
-      const fatPercentage = Math.max(5, Math.min(90 - localValues.protein, (fatWidth / rect.width) * 100));
+      const maxFatWidth = rect.width - proteinWidth;
+      const fatPercentage = Math.round(Math.max(5, Math.min(70, (fatWidth / rect.width) * 100)));
       
-      setLocalValues({
+      const newValues = {
         protein: localValues.protein,
-        carbs: 100 - localValues.protein - fatPercentage,
-        fat: Math.round(fatPercentage)
-      });
+        fat: fatPercentage,
+        carbs: Math.round(Math.max(5, 100 - localValues.protein - fatPercentage))
+      };
+      
+      // Ensure total is exactly 100
+      const total = newValues.protein + newValues.carbs + newValues.fat;
+      if (total !== 100) {
+        const diff = 100 - total;
+        newValues.carbs += diff;
+        newValues.carbs = Math.max(5, newValues.carbs);
+      }
+      
+      setLocalValues(newValues);
     }
   };
 
@@ -80,7 +103,7 @@ const MacroSlider = ({ macroTargets, onChange }) => {
     );
   };
 
-  const grams = getGramsFromPercentage(localValues, 2000);
+  const grams = getGramsFromPercentage(localValues, dailyCalories);
 
   return (
     <div className="space-y-4">
@@ -175,7 +198,7 @@ const MacroSlider = ({ macroTargets, onChange }) => {
       </div>
 
       <div className="text-xs text-text-muted text-center">
-        Drag the white dividers to adjust macro distribution • Based on 2000 calories
+        Drag the white dividers to adjust macro distribution • Based on {dailyCalories} calories
       </div>
     </div>
   );

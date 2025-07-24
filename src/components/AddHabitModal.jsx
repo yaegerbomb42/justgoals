@@ -4,7 +4,11 @@ import Icon from './AppIcon';
 import Button from './ui/Button';
 import EmojiPicker from './EmojiPicker';
 
-const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'create' }) => {
+const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode =                  className={`p-3 rounded-lg border-2 transition-all ${
+                    selectedCategory === category.id
+                      ? 'border-primary bg-primary/20 ring-2 ring-primary/30'
+                      : 'border-border bg-surface-600 hover:bg-surface-500 hover:border-primary/50'
+                  }`}ate' }) => {
   const [habitTitle, setHabitTitle] = useState(initialData?.title || '');
   const [habitDescription, setHabitDescription] = useState(initialData?.description || '');
   const [selectedEmoji, setSelectedEmoji] = useState(initialData?.emoji || '🎯');
@@ -279,13 +283,15 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                     onClick={() => setSelectedCategory(category.id)}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       selectedCategory === category.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-surface-600 hover:bg-surface-500'
+                        ? 'border-primary bg-primary/20 ring-2 ring-primary/30'
+                        : 'border-border bg-surface-600 hover:bg-surface-500 hover:border-primary/50'
                     }`}
                   >
                     <div className="text-center">
                       <div className="text-xl mb-1">{category.icon}</div>
-                      <div className="text-xs text-text-secondary">{category.name}</div>
+                      <div className={`text-xs font-medium ${
+                        selectedCategory === category.id ? 'text-primary' : 'text-text-secondary'
+                      }`}>{category.name}</div>
                     </div>
                   </button>
                 ))}
@@ -327,13 +333,15 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                   onClick={() => setTrackingType('check')}
                   className={`p-3 rounded-lg border-2 transition-all ${
                     trackingType === 'check'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border bg-surface-600 hover:bg-surface-500'
+                      ? 'border-primary bg-primary/20 ring-2 ring-primary/30'
+                      : 'border-border bg-surface-600 hover:bg-surface-500 hover:border-primary/50'
                   }`}
                 >
                   <div className="text-center">
                     <div className="text-xl mb-1">✅</div>
-                    <div className="text-xs text-text-secondary">Simple Check</div>
+                    <div className={`text-xs font-medium ${
+                      trackingType === 'check' ? 'text-primary' : 'text-text-secondary'
+                    }`}>Simple Check</div>
                   </div>
                 </button>
                 <button
@@ -341,13 +349,15 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                   onClick={() => setTrackingType('count')}
                   className={`p-3 rounded-lg border-2 transition-all ${
                     trackingType === 'count'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border bg-surface-600 hover:bg-surface-500'
+                      ? 'border-primary bg-primary/20 ring-2 ring-primary/30'
+                      : 'border-border bg-surface-600 hover:bg-surface-500 hover:border-primary/50'
                   }`}
                 >
                   <div className="text-center">
                     <div className="text-xl mb-1">🔢</div>
-                    <div className="text-xs text-text-secondary">Multiple Checks</div>
+                    <div className={`text-xs font-medium ${
+                      trackingType === 'count' ? 'text-primary' : 'text-text-secondary'
+                    }`}>Multiple Checks</div>
                   </div>
                 </button>
                 <button
@@ -355,13 +365,15 @@ const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'cre
                   onClick={() => setTrackingType('amount')}
                   className={`p-3 rounded-lg border-2 transition-all ${
                     trackingType === 'amount'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border bg-surface-600 hover:bg-surface-500'
+                      ? 'border-primary bg-primary/20 ring-2 ring-primary/30'
+                      : 'border-border bg-surface-600 hover:bg-surface-500 hover:border-primary/50'
                   }`}
                 >
                   <div className="text-center">
                     <div className="text-xl mb-1">📊</div>
-                    <div className="text-xs text-text-secondary">Progress Amount</div>
+                    <div className={`text-xs font-medium ${
+                      trackingType === 'amount' ? 'text-primary' : 'text-text-secondary'
+                    }`}>Progress Amount</div>
                   </div>
                 </button>
               </div>
