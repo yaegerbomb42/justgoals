@@ -104,16 +104,22 @@ class GeminiService {
     try {
       const text = await this.generateContent(fullPrompt);
       
-      // Simple parsing - just return the text with minimal processing
+      // Parse actions from the response
+      const actions = this.parseActions(text);
+      
+      // Clean the message by removing action blocks
       const cleanMessage = text
         .replace(/===ACTION===[\s\S]*?===END_ACTION===/g, '')
         .replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '')
         .trim();
 
+      // Extract suggestions from the response
+      const suggestions = this.extractSuggestions(cleanMessage);
+
       return {
         message: cleanMessage || text || "I'm here to help! How can I assist you with your goals today?",
-        actions: [],
-        suggestions: [],
+        actions: actions,
+        suggestions: suggestions,
       };
     } catch (error) {
       console.error('Error generating response:', error);
@@ -132,15 +138,79 @@ User Context:
 - Current Goals: ${context?.currentGoals?.length || 0} active goals
 - Conversation History: ${context?.conversationHistory?.length || 0} previous messages
 
-Keep responses:
-- Conversational and friendly
-- Practical and actionable
-- Concise (2-3 sentences max)
-- Focused on helping with goals and productivity
+Available Actions:`;
 
-Be encouraging and supportive in your responses.`;
+    let actionsPrompt = "";
+    if (capabilities.canCreateGoals) {
+      actionsPrompt += `
+- CREATE GOAL: When user wants to create a goal, use: [ACTION]{"type": "create_goal", "data": {"title": "Goal Title", "description": "Goal Description", "category": "personal|health|career|education", "priority": "high|medium|low", "deadline": "YYYY-MM-DD"}}[/ACTION]`;
+    }
+    
+    if (capabilities.canCreateMilestones) {
+      actionsPrompt += `
+- CREATE MILESTONE: When user wants to add milestones, use: [ACTION]{"type": "create_milestone", "data": {"title": "Milestone Title", "description": "Description", "goalId": "goal_id", "deadline": "YYYY-MM-DD", "priority": "high|medium|low"}}[/ACTION]`;
+    }
+    
+    if (capabilities.canManageHabits) {
+      actionsPrompt += `
+- CREATE HABIT: When user wants to create habits, use: [ACTION]{"type": "create_habit", "data": {"title": "Habit Title", "description": "Description", "frequency": "daily|weekly", "category": "health|productivity|personal"}}[/ACTION]`;
+    }
+    
+    if (capabilities.canAddJournalEntries) {
+      actionsPrompt += `
+- ADD JOURNAL ENTRY: When user wants to journal, use: [ACTION]{"type": "add_journal_entry", "data": {"title": "Entry Title", "content": "Journal content", "mood": "happy|neutral|sad", "tags": ["tag1", "tag2"]}}[/ACTION]`;
+    }
 
-    return basePrompt;
+    actionsPrompt += `
+- NAVIGATE: To send user to specific page, use: [ACTION]{"type": "navigate_to", "data": {"path": "/goals-dashboard|/habits|/meals|/day|/analytics-dashboard"}}[/ACTION]`;
+
+    const instructionsPrompt = `
+Instructions:
+1. Keep responses conversational and friendly
+2. Be practical and actionable
+3. Use actions when appropriate to help users
+4. Provide specific, helpful advice
+5. Be encouraging and supportive
+6. When creating items for users, use the action format shown above
+7. Always explain what you're doing when taking actions
+
+Respond naturally first, then add appropriate actions if needed.`;
+
+    return basePrompt + actionsPrompt + instructionsPrompt;
+  }
+
+  parseActions(responseText) {
+    const actions = [];
+    
+    // Look for [ACTION] blocks
+    const actionMatches = responseText.match(/\[ACTION\](.*?)\[\/ACTION\]/gs);
+    if (actionMatches) {
+      for (const match of actionMatches) {
+        try {
+          const jsonStr = match.replace(/\[ACTION\]|\[\/ACTION\]/g, '').trim();
+          const actionData = JSON.parse(jsonStr);
+          actions.push(actionData);
+        } catch (parseError) {
+          console.warn('Could not parse action:', parseError);
+        }
+      }
+    }
+    
+    // Also look for legacy ===ACTION=== format
+    const legacyMatches = responseText.match(/===ACTION===\s*(\{[\s\S]*?\})\s*===END_ACTION===/g);
+    if (legacyMatches) {
+      for (const match of legacyMatches) {
+        try {
+          const jsonStr = match.replace(/===ACTION===|===END_ACTION===/g, '').trim();
+          const actionData = JSON.parse(jsonStr);
+          actions.push(actionData);
+        } catch (parseError) {
+          console.warn('Could not parse legacy action:', parseError);
+        }
+      }
+    }
+    
+    return actions;
   }
 
   parseResponse(responseText) {
