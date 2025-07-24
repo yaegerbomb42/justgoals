@@ -301,7 +301,7 @@ const Progress = () => {
                       iconName="Plus"
                       className="text-text-secondary hover:text-primary"
                     >
-                      Add
+                      Add Step
                     </Button>
                   </div>
                 </div>
@@ -327,7 +327,7 @@ const Progress = () => {
                       iconName="Plus"
                       iconPosition="left"
                     >
-                      Add Progress Mark
+                      Add Progress Step
                     </Button>
                   </div>
                 ) : (
@@ -416,7 +416,7 @@ const Progress = () => {
         goalContext={selectedGoal?.title}
       />
 
-      {/* Add Milestone Modal */}
+      {/* Add Progress Step Modal */}
       <AddMilestoneModal
         isOpen={isAddModalOpen}
         onClose={handleCloseModal}

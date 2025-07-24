@@ -132,7 +132,7 @@ const AddMilestoneModal = ({ isOpen, onClose, onAdd, onEdit, goals, editingMiles
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-lg font-heading-medium text-text-primary">
-            {editingMilestone ? 'Edit Milestone' : 'Add New Milestone'}
+            {editingMilestone ? 'Edit Progress Step' : 'Add New Progress Step'}
           </h2>
           <button
             onClick={handleClose}
@@ -263,7 +263,7 @@ const AddMilestoneModal = ({ isOpen, onClose, onAdd, onEdit, goals, editingMiles
               iconName={editingMilestone ? "Save" : "Plus"}
               iconPosition="left"
             >
-              {editingMilestone ? 'Save Changes' : 'Add Milestone'}
+              {editingMilestone ? 'Save Changes' : 'Add Progress Step'}
             </Button>
           </div>
         </form>
