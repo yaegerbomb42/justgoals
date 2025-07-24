@@ -4,11 +4,7 @@ import Icon from './AppIcon';
 import Button from './ui/Button';
 import EmojiPicker from './EmojiPicker';
 
-const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode =                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedCategory === category.id
-                      ? 'border-primary bg-primary/20 ring-2 ring-primary/30'
-                      : 'border-border bg-surface-600 hover:bg-surface-500 hover:border-primary/50'
-                  }`}ate' }) => {
+const AddHabitModal = ({ isOpen, onClose, onAdd, initialData = null, mode = 'create' }) => {
   const [habitTitle, setHabitTitle] = useState(initialData?.title || '');
   const [habitDescription, setHabitDescription] = useState(initialData?.description || '');
   const [selectedEmoji, setSelectedEmoji] = useState(initialData?.emoji || '🎯');
