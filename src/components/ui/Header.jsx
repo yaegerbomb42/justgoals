@@ -52,7 +52,7 @@ const Header = () => {
     { path: '/temp-todos', label: 'Todos', icon: 'ListTodo' },
     { path: '/day', label: 'Today', icon: 'Calendar' },
     { path: '/focus-mode', label: 'Focus', icon: 'Zap' },
-    { path: '/daily-milestones', label: 'Milestones', icon: 'CheckSquare' },
+    { path: '/progress', label: 'Progress', icon: 'TrendingUp' },
     { path: '/habits', label: 'Habits', icon: 'Repeat' },
     { path: '/meals', label: 'Meals', icon: 'UtensilsCrossed' },
     { path: '/journal', label: 'Journal', icon: 'BookOpen' },

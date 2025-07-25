@@ -10,6 +10,7 @@ import AiAssistantChatDrift from "pages/ai-assistant-chat-drift";
 import FocusMode from "pages/focus-mode";
 import SettingsConfiguration from "pages/settings-configuration";
 import DailyMilestones from "pages/daily-milestones";
+import Progress from "pages/progress";
 import GoalCreationManagement from "pages/goal-creation-management";
 import Journal from "pages/journal";
 import NotFound from "pages/NotFound";
@@ -63,7 +64,7 @@ const Routes = () => {
         <Route path="/ai-assistant-chat-drift" element={<ProtectedRoute><AiAssistantChatDrift /></ProtectedRoute>} />
         <Route path="/focus-mode" element={<ProtectedRoute><FocusMode /></ProtectedRoute>} />
         <Route path="/settings-configuration" element={<ProtectedRoute><SettingsConfiguration /></ProtectedRoute>} />
-        <Route path="/daily-milestones" element={<ProtectedRoute><DailyMilestones /></ProtectedRoute>} />
+        <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
         <Route path="/goal-creation-management" element={<ProtectedRoute><GoalCreationManagement /></ProtectedRoute>} />
         <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
         <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
