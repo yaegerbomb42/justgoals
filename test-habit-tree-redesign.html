@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tree Redesign Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .demo-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .tree-illustration {
+            background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
+        }
+        .garden-center {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 50%;
+            margin: 0 auto 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+            animation: pulse 3s infinite;
+        }
+        .habit-node {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px solid;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            font-size: 24px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            animation: float 4s ease-in-out infinite;
+        }
+        .habit-1 {
+            top: 80px;
+            left: 200px;
+            background: rgba(16, 185, 129, 0.3);
+            border-color: #10b981;
+            animation-delay: 0s;
+        }
+        .habit-2 {
+            top: 160px;
+            right: 150px;
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+            animation-delay: 1s;
+        }
+        .habit-3 {
+            bottom: 120px;
+            left: 120px;
+            background: rgba(245, 158, 11, 0.3);
+            border-color: #f59e0b;
+            animation-delay: 2s;
+        }
+        .habit-4 {
+            bottom: 80px;
+            right: 200px;
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8b5cf6;
+            animation-delay: 3s;
+        }
+        .streak-branch {
+            position: absolute;
+            width: 80px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            transform-origin: left center;
+        }
+        .streak-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            position: absolute;
+            right: -6px;
+            top: -5px;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .comparison-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .before {
+            border-left: 4px solid #ef4444;
+        }
+        .after {
+            border-left: 4px solid #10b981;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+        .feature-list li::before {
+            content: "✨";
+            margin-right: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Habit Tree Redesign</h1>
+            <p>Transforming the habits visualization from date-centric to habit-centric design</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>📊 New Design: Habit-Centric Tree Structure</h2>
+            <p>Each habit is now a main tree node, with branches representing streak days and completions.</p>
+            
+            <div class="tree-illustration">
+                <div class="garden-center">
+                    <span style="font-size: 32px;">🌟</span>
+                </div>
+                
+                <!-- Habit nodes positioned around center -->
+                <div class="habit-node habit-1">💪</div>
+                <div class="habit-node habit-2">📚</div>
+                <div class="habit-node habit-3">🧘</div>
+                <div class="habit-node habit-4">💧</div>
+                
+                <!-- Streak branches extending from habits -->
+                <div class="streak-branch" style="top: 105px; left: 260px; transform: rotate(45deg);">
+                    <div class="streak-dot"></div>
+                </div>
+                <div class="streak-branch" style="top: 185px; right: 90px; transform: rotate(-45deg);">
+                    <div class="streak-dot"></div>
+                </div>
+                <div class="streak-branch" style="bottom: 145px; left: 200px; transform: rotate(-30deg);">
+                    <div class="streak-dot"></div>
+                </div>
+                <div class="streak-branch" style="bottom: 105px; right: 120px; transform: rotate(30deg);">
+                    <div class="streak-dot"></div>
+                </div>
+                
+                <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center;">
+                    <p style="margin: 0; opacity: 0.8; font-size: 14px;">
+                        🏃‍♀️ Exercise • 📖 Reading • 🧘‍♀️ Meditation • 💧 Hydration
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🔄 Before vs After Comparison</h2>
+            <div class="comparison">
+                <div class="comparison-item before">
+                    <h3>❌ Previous Design (Date-Centric)</h3>
+                    <ul class="feature-list">
+                        <li>Date nodes were primary elements</li>
+                        <li>Habits branched off from dates</li>
+                        <li>Hard to see habit consistency</li>
+                        <li>Focus on calendar timeline</li>
+                        <li>Streaks not visually prominent</li>
+                    </ul>
+                </div>
+                <div class="comparison-item after">
+                    <h3>✅ New Design (Habit-Centric)</h3>
+                    <ul class="feature-list">
+                        <li>Habits are main tree nodes</li>
+                        <li>Streaks branch out from habits</li>
+                        <li>Clear visualization of consistency</li>
+                        <li>Focus on habit progress</li>
+                        <li>Streak counters prominently displayed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎨 Key Visual Improvements</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div class="comparison-item">
+                    <h4>🌟 Central Garden Hub</h4>
+                    <p>Beautiful central node representing the user's habit garden with animated pulse effects.</p>
+                </div>
+                <div class="comparison-item">
+                    <h4>🔥 Streak Indicators</h4>
+                    <p>Current streak numbers displayed prominently on each habit with animated badges.</p>
+                </div>
+                <div class="comparison-item">
+                    <h4>🌱 Growing Branches</h4>
+                    <p>Completed days appear as branches extending from habits, showing growth patterns.</p>
+                </div>
+                <div class="comparison-item">
+                    <h4>📊 Visual Progress</h4>
+                    <p>Thicker branches for longer streaks, color-coded status indicators, and enhanced tooltips.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 User Experience Benefits</h2>
+            <ul class="feature-list">
+                <li><strong>Better Habit Focus:</strong> Each habit gets its own space and visual identity</li>
+                <li><strong>Streak Motivation:</strong> Current streaks are immediately visible and celebrated</li>
+                <li><strong>Progress Patterns:</strong> Users can quickly see which habits are thriving vs struggling</li>
+                <li><strong>Garden Metaphor:</strong> Creates an engaging "growing your habit garden" experience</li>
+                <li><strong>Interactive Elements:</strong> Enhanced hover states and click interactions for better UX</li>
+                <li><strong>Today Focus:</strong> Special highlighting for today's activities while maintaining streak context</li>
+            </ul>
+        </div>
+
+        <div class="demo-section" style="text-align: center;">
+            <h2>🎯 Implementation Status</h2>
+            <p>✅ <strong>Complete:</strong> The habit tree has been redesigned according to @yaegerbomb42's feedback!</p>
+            <p style="opacity: 0.8; margin-top: 20px;">
+                The new design transforms the tree visualization to be habit-centric while maintaining the creative and modern aesthetic. Each habit now serves as a main tree node with streak branches extending outward, making progress and consistency much more visually apparent.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
