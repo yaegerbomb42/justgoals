@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 
 
-const QuickActions = ({ onCreateGoal, onOpenDrift }) => {
+const QuickActions = ({ onCreateGoal, onOpenDrift, onSmartPrioritize, hasGoals = false }) => {
   const quickActionItems = [
     {
       title: "Create New Goal",
@@ -34,6 +34,17 @@ const QuickActions = ({ onCreateGoal, onOpenDrift }) => {
       link: "/focus-mode"
     }
   ];
+
+  // Add smart prioritization if there are goals
+  if (hasGoals && onSmartPrioritize) {
+    quickActionItems.splice(2, 0, {
+      title: "Smart Priority AI",
+      description: "AI-powered goal prioritization",
+      icon: "Brain",
+      color: "#8B5CF6", // Purple color directly
+      action: onSmartPrioritize
+    });
+  }
 
   return (
     <div className="mb-8">

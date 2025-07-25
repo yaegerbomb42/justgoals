@@ -441,6 +441,230 @@ Keep it concise but impactful.`;
     }
   }
 
+  // Enhanced AI-powered goal prioritization using strategic importance analysis
+  async prioritizeGoals(goals, userContext = {}) {
+    if (!this.apiKey) {
+      throw new Error('Gemini service not initialized. Please set your API key.');
+    }
+
+    if (!Array.isArray(goals) || goals.length === 0) {
+      return goals;
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const daysInYear = 365;
+    const currentDayOfYear = Math.floor((now - new Date(currentYear, 0, 0)) / 86400000);
+
+    // Analyze goals for priority factors
+    const goalsForAI = goals.map((goal, index) => {
+      const deadline = goal.targetDate || goal.deadline;
+      const daysUntilDeadline = deadline ? 
+        Math.floor((new Date(deadline) - now) / 86400000) : null;
+      
+      // Calculate impact signals
+      const title = goal.title?.toLowerCase() || '';
+      const description = goal.description?.toLowerCase() || '';
+      const text = `${title} ${description}`;
+      
+      // Impact indicators
+      const careerKeywords = ['career', 'job', 'promotion', 'skill', 'learning', 'certification', 'degree', 'network'];
+      const healthKeywords = ['health', 'fitness', 'exercise', 'diet', 'medical', 'wellness', 'weight', 'mental'];
+      const financialKeywords = ['money', 'financial', 'save', 'invest', 'debt', 'income', 'budget', 'retire'];
+      const relationshipKeywords = ['family', 'relationship', 'social', 'friend', 'marriage', 'children', 'parent'];
+      const personalKeywords = ['personal', 'growth', 'happiness', 'hobby', 'passion', 'travel', 'experience'];
+      
+      const hasCareerImpact = careerKeywords.some(k => text.includes(k));
+      const hasHealthImpact = healthKeywords.some(k => text.includes(k));
+      const hasFinancialImpact = financialKeywords.some(k => text.includes(k));
+      const hasRelationshipImpact = relationshipKeywords.some(k => text.includes(k));
+      const hasPersonalImpact = personalKeywords.some(k => text.includes(k));
+      
+      // Time sensitivity indicators
+      const urgentKeywords = ['urgent', 'deadline', 'soon', 'immediate', 'critical', 'emergency'];
+      const hasTimeUrgency = urgentKeywords.some(k => text.includes(k));
+      
+      return {
+        originalIndex: index,
+        id: goal.id,
+        title: goal.title,
+        description: goal.description || 'No description',
+        category: goal.category || 'general',
+        currentPriority: goal.priority || 'medium',
+        progress: goal.progress || 0,
+        deadline: deadline,
+        daysUntilDeadline,
+        hasCareerImpact,
+        hasHealthImpact,
+        hasFinancialImpact,
+        hasRelationshipImpact,
+        hasPersonalImpact,
+        hasTimeUrgency,
+        createdAt: goal.createdAt,
+        milestoneCount: goal.milestones?.length || 0
+      };
+    });
+
+    const prompt = `You are a strategic life coach specializing in goal prioritization using evidence-based frameworks. Analyze and prioritize these ${goals.length} goals.
+
+CURRENT CONTEXT:
+- Date: ${now.toISOString().split('T')[0]}
+- Progress through year: ${Math.round((currentDayOfYear / daysInYear) * 100)}%
+- User context: ${JSON.stringify(userContext, null, 2)}
+
+GOALS TO PRIORITIZE:
+${goalsForAI.map((g, i) => `${i + 1}. "${g.title}"
+   Category: ${g.category}
+   Current Priority: ${g.currentPriority}
+   Progress: ${g.progress}%
+   Deadline: ${g.deadline || 'No deadline'}
+   Days until deadline: ${g.daysUntilDeadline || 'N/A'}
+   Impact areas: ${[
+     g.hasCareerImpact ? 'CAREER' : '',
+     g.hasHealthImpact ? 'HEALTH' : '', 
+     g.hasFinancialImpact ? 'FINANCIAL' : '',
+     g.hasRelationshipImpact ? 'RELATIONSHIPS' : '',
+     g.hasPersonalImpact ? 'PERSONAL' : ''
+   ].filter(Boolean).join(', ') || 'GENERAL'}
+   Time urgency: ${g.hasTimeUrgency ? 'HIGH' : 'NORMAL'}
+   Description: ${g.description}`).join('\n\n')}
+
+PRIORITIZATION FRAMEWORK:
+Use the Strategic Goal Priority Matrix considering:
+
+1. LIFE IMPACT WEIGHT (40%):
+   - Career/Financial: High long-term impact
+   - Health: Critical foundation for everything else
+   - Relationships: Essential for happiness and support
+   - Personal Growth: Important for fulfillment
+
+2. TIME SENSITIVITY (30%):
+   - Immediate deadlines (days/weeks)
+   - Time-bound opportunities
+   - Seasonal/cyclical goals
+   - Age-dependent goals
+
+3. MOMENTUM & FEASIBILITY (20%):
+   - Current progress
+   - Available resources
+   - Skill requirements
+   - Dependencies on other goals
+
+4. COMPOUND EFFECTS (10%):
+   - Goals that enable other goals
+   - Habit-forming goals
+   - Network/relationship building
+   - Skill acquisition goals
+
+PRIORITY SCALE:
+- CRITICAL (9-10): Life-changing impact + urgent timing
+- HIGH (7-8): Major impact + good timing, or critical foundation goals
+- MEDIUM (4-6): Important but flexible timing, or moderate impact
+- LOW (1-3): Nice-to-have, exploratory, or can be delayed
+
+STRATEGIC GUIDELINES:
+- Limit CRITICAL to 1-2 goals max (focus is key)
+- Ensure balance across life areas (don't neglect health for career)
+- Consider goal interdependencies (some goals unlock others)
+- Factor in energy and time constraints
+- Prioritize foundational goals (health, relationships, core skills)
+- Time-bound opportunities get urgency boost
+- Goals with momentum (>50% progress) may need completion focus
+
+For each goal, return priority score (1-10), confidence (1-10), strategic reasoning, and recommended action:
+
+[{
+  "originalIndex": 0,
+  "priorityScore": 8,
+  "confidence": 9,
+  "strategicReason": "Health foundation enables all other goals + time-sensitive window",
+  "recommendedAction": "immediate_focus",
+  "impactAreas": ["health", "energy", "longevity"],
+  "timeframe": "next_3_months"
+}]
+
+Return ONLY the JSON array.`;
+
+    try {
+      const text = await this.generateContent(prompt);
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      
+      if (jsonMatch) {
+        try {
+          const priorities = JSON.parse(jsonMatch[0]);
+          
+          // Validate and enhance response
+          if (!Array.isArray(priorities) || priorities.length === 0) {
+            console.warn('Invalid goal prioritization response');
+            return goals;
+          }
+
+          // Balance priority distribution
+          const balancedPriorities = this.balanceGoalPriorities(priorities);
+          
+          // Reorder goals based on priorities and add metadata
+          const prioritizedGoals = balancedPriorities
+            .filter(p => p.originalIndex < goals.length)
+            .sort((a, b) => b.priorityScore - a.priorityScore)
+            .map(p => ({
+              ...goals[p.originalIndex],
+              aiPriorityScore: p.priorityScore,
+              aiConfidence: p.confidence,
+              aiReasoning: p.strategicReason,
+              aiRecommendedAction: p.recommendedAction,
+              aiImpactAreas: p.impactAreas,
+              aiTimeframe: p.timeframe,
+              aiPrioritizedAt: new Date().toISOString()
+            }));
+          
+          return prioritizedGoals;
+        } catch (parseError) {
+          console.warn('Could not parse goal prioritization response:', parseError);
+          return goals;
+        }
+      }
+      
+      return goals;
+    } catch (error) {
+      console.error('Error prioritizing goals:', error);
+      return goals; // Return original goals if AI fails
+    }
+  }
+
+  // Balance goal priority distribution
+  balanceGoalPriorities(priorities) {
+    if (priorities.length <= 3) return priorities;
+    
+    // Limit critical priorities to avoid "everything is urgent" syndrome
+    const maxCritical = Math.max(1, Math.floor(priorities.length * 0.20)); // Max 20% critical
+    const maxHigh = Math.max(1, Math.floor(priorities.length * 0.35)); // Max 35% high
+    
+    const criticalPriorities = priorities.filter(p => p.priorityScore >= 9);
+    const highPriorities = priorities.filter(p => p.priorityScore >= 7 && p.priorityScore < 9);
+    
+    // If too many critical priorities, demote the least confident ones
+    if (criticalPriorities.length > maxCritical) {
+      const sortedByConfidence = criticalPriorities.sort((a, b) => b.confidence - a.confidence);
+      
+      sortedByConfidence.slice(maxCritical).forEach(p => {
+        p.priorityScore = Math.max(7, p.priorityScore - 2);
+        p.strategicReason = `${p.strategicReason} (Balanced from critical to maintain focus)`;
+      });
+    }
+    
+    // Similar balancing for high priorities
+    if (highPriorities.length > maxHigh) {
+      const sortedByConfidence = highPriorities.sort((a, b) => b.confidence - a.confidence);
+      
+      sortedByConfidence.slice(maxHigh).forEach(p => {
+        p.priorityScore = Math.max(4, p.priorityScore - 2);
+        p.strategicReason = `${p.strategicReason} (Balanced to medium priority for realistic execution)`;
+      });
+    }
+    
+    return priorities;
+  }
+
   // New method for AI-powered note prioritization
   async prioritizeNotes(notes, context = {}) {
     if (!this.apiKey) {

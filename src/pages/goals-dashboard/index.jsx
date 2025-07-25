@@ -6,6 +6,7 @@ import { useSettings } from '../../context/SettingsContext';
 import * as entityService from '../../services/entityManagementService';
 import { calculateUserStreak } from '../../utils/goalUtils';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
+import SmartPriorityManager from '../../components/SmartPriorityManager';
 import WelcomeHero from './components/WelcomeHero';
 import QuickActions from './components/QuickActions';
 import FilterSortControls from './components/FilterSortControls';
@@ -41,6 +42,7 @@ const GoalsDashboard = () => {
   const [filteredGoals, setFilteredGoals] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [activeSort, setActiveSort] = useState('deadline');
+  const [showSmartPriority, setShowSmartPriority] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const { checkAchievements } = useAchievements();
   const { settings } = useSettings();
@@ -227,6 +229,55 @@ const GoalsDashboard = () => {
     setGoals(prevGoals => prevGoals.map(goal => goal.id === updatedGoal.id ? updatedGoal : goal));
   };
 
+  const handleSmartPrioritization = () => {
+    if (safeGoals.length === 0) {
+      alert('Add some goals first to use smart prioritization.');
+      return;
+    }
+    setShowSmartPriority(true);
+  };
+
+  const handlePrioritizedGoalsApplied = async (prioritizedGoals) => {
+    try {
+      // Update goals with new AI priority data
+      for (const goal of prioritizedGoals) {
+        if (user && goal.id) {
+          await entityService.updateGoal(user, goal.id, {
+            aiPriorityScore: goal.aiPriorityScore,
+            aiConfidence: goal.aiConfidence,
+            aiReasoning: goal.aiReasoning,
+            aiRecommendedAction: goal.aiRecommendedAction,
+            aiImpactAreas: goal.aiImpactAreas,
+            aiTimeframe: goal.aiTimeframe,
+            aiPrioritizedAt: goal.aiPrioritizedAt
+          });
+        }
+      }
+      
+      // Update local state
+      setGoals(prioritizedGoals);
+      setShowSmartPriority(false);
+      
+      // Show success message
+      alert('Smart prioritization applied successfully! Your goals are now ordered by strategic importance.');
+    } catch (error) {
+      console.error('Error applying prioritization:', error);
+      alert('Failed to apply prioritization. Please try again.');
+    }
+  };
+
+  const getUserContext = () => {
+    return {
+      totalGoals: safeGoals.length,
+      completedGoals: safeGoals.filter(g => g.progress >= 100).length,
+      overdue: safeGoals.filter(g => g.targetDate && new Date(g.targetDate) < new Date()).length,
+      categories: [...new Set(safeGoals.map(g => g.category))],
+      avgProgress: safeGoals.length > 0 ? Math.round(safeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / safeGoals.length) : 0,
+      userName: user?.displayName || user?.email || 'User',
+      userGoalsHistory: safeGoals.length // Could be enhanced with more historical data
+    };
+  };
+
   const handleFilterChange = (filter) => setActiveFilter(filter);
   const handleSortChange = (sort) => setActiveSort(sort);
   const handleOpenDrift = () => navigate('/ai-assistant-chat-drift');
@@ -264,6 +315,8 @@ const GoalsDashboard = () => {
           <QuickActions
             onCreateGoal={handleCreateGoal}
             onOpenDrift={handleOpenDrift}
+            onSmartPrioritize={handleSmartPrioritization}
+            hasGoals={safeGoals.length > 0}
           />
           {/* Filter and Sort Controls - always show */}
           <FilterSortControls
@@ -295,6 +348,16 @@ const GoalsDashboard = () => {
       </main>
       {/* Floating Action Button */}
       <FloatingActionButton />
+      
+      {/* Smart Priority Manager Modal */}
+      {showSmartPriority && (
+        <SmartPriorityManager
+          goals={safeGoals}
+          onGoalsReordered={handlePrioritizedGoalsApplied}
+          onClose={() => setShowSmartPriority(false)}
+          userContext={getUserContext()}
+        />
+      )}
     </div>
   );
 };

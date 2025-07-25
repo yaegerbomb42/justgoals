@@ -179,26 +179,45 @@ export const TemporaryTodosProvider = ({ children }) => {
       const apiKey = settings?.geminiApiKey;
       const priorities = await todoAIService.prioritizeTodos(todos, apiKey);
 
-      // Update todos with new priorities
+      // Update todos with new priorities and AI reasoning
       const updatedTodos = todos.map(todo => {
         const priorityUpdate = priorities.find(p => p.id === todo.id);
         if (priorityUpdate) {
-          return { ...todo, priority: priorityUpdate.priority };
+          return { 
+            ...todo, 
+            priority: priorityUpdate.priority,
+            aiPrioritized: true,
+            aiConfidence: priorityUpdate.confidence || null,
+            aiReasoning: priorityUpdate.reasoning || null,
+            aiPrioritizedAt: new Date().toISOString()
+          };
         }
         return todo;
       });
 
+      // Sort by new priority (high to low)
+      const sortedTodos = updatedTodos.sort((a, b) => (b.priority || 1) - (a.priority || 1));
+
       // Save updated todos to Firestore
       await Promise.all(
-        updatedTodos
+        sortedTodos
           .filter(todo => {
             const original = todos.find(t => t.id === todo.id);
-            return original && original.priority !== todo.priority;
+            return original && (
+              original.priority !== todo.priority ||
+              original.aiPrioritized !== todo.aiPrioritized
+            );
           })
-          .map(todo => firestoreService.updateTempTodo(user.uid, todo.id, { priority: todo.priority }))
+          .map(todo => firestoreService.updateTempTodo(user.uid, todo.id, { 
+            priority: todo.priority,
+            aiPrioritized: todo.aiPrioritized,
+            aiConfidence: todo.aiConfidence,
+            aiReasoning: todo.aiReasoning,
+            aiPrioritizedAt: todo.aiPrioritizedAt
+          }))
       );
 
-      setTodos(updatedTodos);
+      setTodos(sortedTodos);
       
     } catch (error) {
       console.error('Error during AI prioritization:', error);
