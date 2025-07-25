@@ -1,10 +1,69 @@
-import React from 'react';
-import Icon from '../../../components/AppIcon';
+import React, { useState } from 'react';
+import Icon from '../../../components/ui/Icon';
 import { motion } from 'framer-motion';
+import GoalCreationCard from './GoalCreationCard';
+import HabitCreationCard from './HabitCreationCard';
 
-const MessageBubble = ({ message, isProcessing = false }) => {
+const MessageBubble = ({ message, isProcessing = false, onActionComplete }) => {
   const isUser = message.sender === 'user';
   const isAI = message.sender === 'assistant' || message.sender === 'ai' || message.sender === 'drift';
+  const [showInteractiveUI, setShowInteractiveUI] = useState(false);
+  const [activeUIType, setActiveUIType] = useState(null);
+  const [initialUIData, setInitialUIData] = useState({});
+
+  // Check if message has interactive UI triggers
+  const hasUIActions = message.metadata?.actions?.some(action => 
+    ['create_goal', 'edit_goal', 'create_habit', 'edit_habit'].includes(action.type)
+  );
+
+  const handleUIAction = (action) => {
+    setActiveUIType(action.type);
+    setInitialUIData(action.data || {});
+    setShowInteractiveUI(true);
+  };
+
+  const handleUISubmit = (data) => {
+    setShowInteractiveUI(false);
+    setActiveUIType(null);
+    if (onActionComplete) {
+      onActionComplete(activeUIType, data);
+    }
+  };
+
+  const handleUICancel = () => {
+    setShowInteractiveUI(false);
+    setActiveUIType(null);
+    setInitialUIData({});
+  };
+
+  const renderInteractiveUI = () => {
+    if (!showInteractiveUI) return null;
+
+    switch (activeUIType) {
+      case 'create_goal':
+      case 'edit_goal':
+        return (
+          <GoalCreationCard
+            isVisible={showInteractiveUI}
+            initialData={initialUIData}
+            onSubmit={handleUISubmit}
+            onCancel={handleUICancel}
+          />
+        );
+      case 'create_habit':
+      case 'edit_habit':
+        return (
+          <HabitCreationCard
+            isVisible={showInteractiveUI}
+            initialData={initialUIData}
+            onSubmit={handleUISubmit}
+            onCancel={handleUICancel}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   if (isUser) {
     return (
@@ -57,6 +116,35 @@ const MessageBubble = ({ message, isProcessing = false }) => {
                   <p className="text-sm leading-relaxed text-text-primary whitespace-pre-wrap">
                     {message.content}
                   </p>
+                  
+                  {/* Interactive Action Buttons */}
+                  {hasUIActions && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {message.metadata.actions.map((action, index) => {
+                        if (!['create_goal', 'edit_goal', 'create_habit', 'edit_habit'].includes(action.type)) {
+                          return null;
+                        }
+                        
+                        const actionConfig = {
+                          create_goal: { label: 'Create Goal', icon: 'Target', color: 'bg-blue-500 hover:bg-blue-600' },
+                          edit_goal: { label: 'Edit Goal', icon: 'Edit', color: 'bg-yellow-500 hover:bg-yellow-600' },
+                          create_habit: { label: 'Create Habit', icon: 'Repeat', color: 'bg-green-500 hover:bg-green-600' },
+                          edit_habit: { label: 'Edit Habit', icon: 'Edit', color: 'bg-purple-500 hover:bg-purple-600' }
+                        }[action.type];
+
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => handleUIAction(action)}
+                            className={`flex items-center space-x-2 px-3 py-2 text-white text-sm font-medium rounded-lg transition-colors ${actionConfig.color}`}
+                          >
+                            <Icon name={actionConfig.icon} className="w-4 h-4" />
+                            <span>{actionConfig.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -73,6 +161,9 @@ const MessageBubble = ({ message, isProcessing = false }) => {
             </div>
           </div>
         </div>
+        
+        {/* Render Interactive UI */}
+        {renderInteractiveUI()}
       </motion.div>
     );
   }

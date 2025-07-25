@@ -6,6 +6,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { usePlanData } from '../../context/PlanDataContext';
 import { useAchievements } from '../../context/AchievementContext';
 import { geminiService } from '../../services/geminiService';
+import contextAggregationService from '../../services/contextAggregationService';
 import firestoreService from '../../services/firestoreService';
 import Icon from '../../components/ui/Icon';
 import MessageBubble from './components/MessageBubble';
@@ -23,15 +24,52 @@ const DriftChat = () => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
-  const [currentContext, setCurrentContext] = useState({
-    userGoals: [],
-    recentActivity: [],
-    userPreferences: {},
-  });
+  const [comprehensiveContext, setComprehensiveContext] = useState(null);
+  const [apiKeyStatus, setApiKeyStatus] = useState('checking'); // 'checking', 'valid', 'invalid', 'missing'
   
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
+  // Initialize API key from settings
+  useEffect(() => {
+    const initializeApiKey = async () => {
+      if (!settings?.geminiApiKey) {
+        setApiKeyStatus('missing');
+        return;
+      }
+
+      setApiKeyStatus('checking');
+      try {
+        await geminiService.initialize(settings.geminiApiKey);
+        setApiKeyStatus('valid');
+      } catch (error) {
+        console.error('Failed to initialize Gemini API:', error);
+        setApiKeyStatus('invalid');
+      }
+    };
+
+    initializeApiKey();
+  }, [settings?.geminiApiKey]);
+
+  // Load comprehensive context when user or goals change
+  useEffect(() => {
+    const loadContext = async () => {
+      if (!user?.uid || apiKeyStatus !== 'valid') return;
+
+      try {
+        const context = await contextAggregationService.getComprehensiveContext(
+          user.uid,
+          goals || [],
+          settings || {}
+        );
+        setComprehensiveContext(context);
+      } catch (error) {
+        console.error('Error loading comprehensive context:', error);
+      }
+    };
+
+    loadContext();
+  }, [user?.uid, goals, settings, apiKeyStatus]);
   // Load conversation history from both localStorage and Firestore
   useEffect(() => {
     const loadConversationHistory = async () => {
@@ -94,15 +132,8 @@ const DriftChat = () => {
 
   // Update context with current app state
   useEffect(() => {
-    setCurrentContext({
-      userGoals: goals || [],
-      recentActivity: getRecentActivity(),
-      userPreferences: {
-        theme: settings?.theme,
-        notifications: settings?.notifications,
-        focusMode: settings?.focusMode,
-      },
-    });
+    // This effect is now handled by the comprehensive context loading above
+    // Keeping for backward compatibility but may be removed later
   }, [goals, settings]);
 
   const getRecentActivity = () => {
@@ -145,15 +176,25 @@ const DriftChat = () => {
       // Add user message
       addMessage(message, 'user');
       
-      // Prepare context for AI
-      const context = {
+      // Ensure we have valid API key
+      if (apiKeyStatus !== 'valid') {
+        addMessage('I need a valid Gemini API key to respond. Please check your settings.', 'assistant');
+        return;
+      }
+
+      // Use comprehensive context if available, fallback to basic context
+      const context = comprehensiveContext || {
         user: {
           name: user?.displayName || user?.email,
           email: user?.email,
         },
-        currentGoals: currentContext.userGoals,
-        recentActivity: currentContext.recentActivity,
-        userPreferences: currentContext.userPreferences,
+        currentGoals: goals || [],
+        recentActivity: getRecentActivity(),
+        userPreferences: {
+          theme: settings?.theme,
+          notifications: settings?.notifications,
+          focusMode: settings?.focusMode,
+        },
         conversationHistory: conversationHistory.slice(-10), // Last 10 messages for context
       };
 
@@ -207,6 +248,10 @@ const DriftChat = () => {
             break;
           case 'create_habit':
             await handleCreateHabit(action.data);
+            break;
+          case 'show_goal_ui':
+          case 'show_habit_ui':
+            // These are handled by the UI components directly
             break;
           case 'analyze_progress':
             await handleAnalyzeProgress(action.data);
@@ -305,9 +350,49 @@ const DriftChat = () => {
   };
 
   const handleAnalyzeProgress = async (analysisData) => {
-    // Analyze user progress and provide insights
-    const insights = await geminiService.analyzeProgress(currentContext.userGoals, currentContext.recentActivity);
+    // Use comprehensive context for better analysis
+    const analysisContext = comprehensiveContext || {
+      allGoals: goals || [],
+      recentActivity: getRecentActivity()
+    };
+    
+    const insights = await geminiService.analyzeProgress(
+      analysisContext.allGoals || analysisContext.currentGoals || [], 
+      analysisContext.recentActivity || {}
+    );
     addMessage(insights, 'assistant', { type: 'analysis' });
+  };
+
+  // Handle UI action completions from interactive components
+  const handleActionComplete = async (actionType, data) => {
+    try {
+      switch (actionType) {
+        case 'create_goal':
+          await handleCreateGoal(data);
+          // Clear context cache to refresh data
+          contextAggregationService.clearCache(user?.uid);
+          break;
+        case 'create_habit':
+          await handleCreateHabit(data);
+          contextAggregationService.clearCache(user?.uid);
+          break;
+        case 'edit_goal':
+          await handleUpdateGoal({ goalId: data.id, updates: data });
+          contextAggregationService.clearCache(user?.uid);
+          break;
+        case 'edit_habit':
+          // Handle habit editing
+          const existingHabits = JSON.parse(localStorage.getItem('habits') || '[]');
+          const updatedHabits = existingHabits.map(h => h.id === data.id ? data : h);
+          localStorage.setItem('habits', JSON.stringify(updatedHabits));
+          addMessage(`✅ Updated habit: "${data.title}"`, 'system');
+          contextAggregationService.clearCache(user?.uid);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error completing action ${actionType}:`, error);
+      addMessage(`❌ Error completing action: ${error.message}`, 'system');
+    }
   };
 
   const handleQuickAction = (action) => {
@@ -345,10 +430,48 @@ const DriftChat = () => {
   if (!settings?.geminiApiKey) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto p-6">
           <Icon name="Key" className="w-16 h-16 mx-auto text-warning mb-4" />
           <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
-          <p className="text-text-secondary">Please configure your Gemini API key in Settings to use Drift.</p>
+          <p className="text-text-secondary mb-4">Please configure your Gemini API key in Settings to use Drift.</p>
+          <button
+            onClick={() => navigate('/settings')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Go to Settings
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (apiKeyStatus === 'invalid') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <Icon name="AlertCircle" className="w-16 h-16 mx-auto text-error mb-4" />
+          <h3 className="text-xl font-semibold text-text-primary mb-2">Invalid API Key</h3>
+          <p className="text-text-secondary mb-4">Your Gemini API key appears to be invalid. Please check your settings.</p>
+          <button
+            onClick={() => navigate('/settings')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Update Settings
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (apiKeyStatus === 'checking') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <h3 className="text-xl font-semibold text-text-primary mb-2">Initializing Drift</h3>
+          <p className="text-text-secondary">Connecting to AI services...</p>
         </div>
       </div>
     );
@@ -400,7 +523,10 @@ const DriftChat = () => {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <MessageBubble message={message} />
+                  <MessageBubble 
+                    message={message} 
+                    onActionComplete={handleActionComplete}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
