@@ -154,6 +154,22 @@ What would you like me to help you with today?`,
   };
 
   const generateMealResponse = async (message, context) => {
+    // Enhanced input validation to prevent crashes
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      throw new Error('Invalid message input');
+    }
+
+    if (!context || typeof context !== 'object') {
+      context = { user: {}, mealData: {} };
+    }
+
+    // Safely access context properties with defaults
+    const user = context.user || {};
+    const mealData = context.mealData || {};
+    const preferences = mealData.preferences || {};
+    const meals = Array.isArray(mealData.meals) ? mealData.meals : [];
+    const mealPlans = Array.isArray(mealData.mealPlans) ? mealData.mealPlans : [];
+
     // Enhanced system prompt for better action generation
     const systemPrompt = `You are a practical nutrition assistant. Give concise, helpful meal planning advice.
 

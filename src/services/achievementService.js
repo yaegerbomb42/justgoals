@@ -1,6 +1,7 @@
 // Achievement system for tracking user progress and awarding badges
 import dailyActivityService from './dailyActivityService';
 import * as entityService from './entityManagementService';
+import { getUserId } from '../utils/userUtils';
 
 class AchievementService {
   constructor() {
@@ -517,7 +518,9 @@ class AchievementService {
   async getUserData(user) {
     if (!user) return this.getDefaultUserData();
     
-    const userId = user.uid || user.id;
+    const userId = getUserId(user);
+    if (!userId) return this.getDefaultUserData();
+    
     const cacheKey = `userData_${userId}`;
     
     // Check cache first
@@ -577,7 +580,8 @@ class AchievementService {
 
   // Optimized data fetching with batch localStorage operations
   async fetchUserDataFromSources(user) {
-    const userId = user.uid || user.id;
+    const userId = getUserId(user);
+    if (!userId) return this.getDefaultUserData();
     
     // Batch localStorage operations
     const localStorageKeys = [

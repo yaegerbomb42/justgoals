@@ -474,11 +474,24 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                     )}
                   </div>
 
-                  {/* Enhanced hover tooltip for habits */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-16 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 pointer-events-none">
+                  {/* Enhanced hover tooltip for habits with dynamic positioning */}
+                  <div className={`absolute mb-16 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 pointer-events-none ${
+                    // Dynamic positioning based on node position to avoid cutoff
+                    node.x < 200 ? 'left-0' : node.x > 600 ? 'right-0' : 'left-1/2 transform -translate-x-1/2'
+                  } ${
+                    node.y < 150 ? 'top-full mt-16' : 'bottom-full'
+                  }`}>
                     <div className="bg-surface-700 border border-border rounded-lg p-4 shadow-xl min-w-[250px] relative">
-                      {/* Tooltip arrow */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-surface-700"></div>
+                      {/* Dynamic tooltip arrow */}
+                      {node.y >= 150 ? (
+                        <div className={`absolute top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-surface-700 ${
+                          node.x < 200 ? 'left-6' : node.x > 600 ? 'right-6' : 'left-1/2 transform -translate-x-1/2'
+                        }`}></div>
+                      ) : (
+                        <div className={`absolute bottom-full w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-surface-700 ${
+                          node.x < 200 ? 'left-6' : node.x > 600 ? 'right-6' : 'left-1/2 transform -translate-x-1/2'
+                        }`}></div>
+                      )}
                       
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-2xl">{node.habit.emoji}</span>
@@ -562,9 +575,9 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                     )}
                   </div>
 
-                  {/* Date label for today or recent days */}
+                  {/* Date label for today or recent days with progress for today */}
                   {(node.isToday || node.dayIndex < 3) && (
-                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-center">
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
                       <div className={`text-xs whitespace-nowrap ${
                         node.isToday ? 'text-primary font-semibold' : 'text-text-secondary'
                       }`}>
@@ -573,6 +586,15 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                           day: 'numeric' 
                         })}
                       </div>
+                      {/* Show current progress numbers for today */}
+                      {node.isToday && (
+                        <div className="text-xs text-text-secondary mt-1">
+                          {(() => {
+                            const progress = getHabitProgress(node.habit, node.node);
+                            return `${progress.current}/${progress.target}`;
+                          })()}
+                        </div>
+                      )}
                     </div>
                   )}
 

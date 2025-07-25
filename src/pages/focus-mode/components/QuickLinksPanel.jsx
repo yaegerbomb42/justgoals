@@ -3,6 +3,7 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { useAuth } from '../../../context/AuthContext';
+import { createUserStorageKey } from '../../../utils/userUtils';
 
 const QuickLinksPanel = ({ 
   isOpen, 
@@ -21,8 +22,9 @@ const QuickLinksPanel = ({
 
   // Load global links for this user
   useEffect(() => {
-    if (user && user.id) {
-      const savedGlobalLinks = localStorage.getItem(`focus_global_links_${user.id}`);
+    const linksKey = createUserStorageKey('focus_global_links', user);
+    if (linksKey) {
+      const savedGlobalLinks = localStorage.getItem(linksKey);
       if (savedGlobalLinks) {
         try {
           setGlobalLinks(JSON.parse(savedGlobalLinks));
@@ -35,8 +37,9 @@ const QuickLinksPanel = ({
 
   // Save global links
   const saveGlobalLinks = (links) => {
-    if (user && user.id) {
-      localStorage.setItem(`focus_global_links_${user.id}`, JSON.stringify(links));
+    const linksKey = createUserStorageKey('focus_global_links', user);
+    if (linksKey) {
+      localStorage.setItem(linksKey, JSON.stringify(links));
       onGlobalLinksChange?.(links);
     }
   };

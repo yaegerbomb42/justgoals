@@ -239,7 +239,7 @@ class InAppNotificationService {
       title: '🏆 Achievement Unlocked!',
       message: `${achievement.title} - ${achievement.description}`,
       priority: NOTIFICATION_PRIORITY.HIGH,
-      timeout: 8000,
+      timeout: 5000, // 5 second auto-dismiss (will pause on hover)
       actions: [
         {
           label: 'View Achievements',

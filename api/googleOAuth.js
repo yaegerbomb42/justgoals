@@ -43,11 +43,16 @@ export default async function handler(req, res) {
       console.error('Google OAuth token exchange failed:', {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
-        error: errorData
+        error: errorData,
+        clientId: clientId?.substring(0, 20) + '...',
+        redirectUri
       });
+      
+      // Return a more helpful error response
       return res.status(400).json({ 
-        error: 'Failed to exchange authorization code',
-        details: errorData
+        error: 'OAuth token exchange failed',
+        details: `Google responded with ${tokenResponse.status}: ${tokenResponse.statusText}`,
+        hint: tokenResponse.status === 400 ? 'Check your redirect URI and authorization code' : 'OAuth service temporarily unavailable'
       });
     }
 

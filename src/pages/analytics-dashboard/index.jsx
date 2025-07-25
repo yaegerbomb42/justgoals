@@ -5,6 +5,7 @@ import analyticsService from '../../services/analyticsService';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 import AchievementBadge from '../../components/ui/AchievementBadge';
+import { getUserId, getFocusSessionStats, getUserStreakData } from '../../utils/userUtils';
 
 // Analytics Components
 import ProductivityHeatmap from './components/ProductivityHeatmap';
@@ -135,12 +136,10 @@ const AnalyticsDashboard = () => {
               <p className="text-2xl font-heading-bold text-accent">
                 {(() => {
                   try {
-                    const userId = user?.uid || user?.id;
-                    if (!userId) return 0;
-                    const focusStatsKey = `focus_session_stats_${userId}`;
-                    const focusStats = JSON.parse(localStorage.getItem(focusStatsKey) || '{}');
+                    const focusStats = getFocusSessionStats(user);
                     return Math.round((focusStats.totalFocusTime || 0) / 60);
                   } catch (e) {
+                    console.error('Error loading focus minutes:', e);
                     return Math.round(safeAnalyticsData.habits?.focusSessions?.totalTime || 0);
                   }
                 })()}m
@@ -156,7 +155,15 @@ const AnalyticsDashboard = () => {
             <div>
               <p className="text-sm text-text-secondary">Current Streak</p>
               <p className="text-2xl font-heading-bold text-warning">
-                {safeAnalyticsData.habits?.dailyCheckins?.currentStreak || 0} days
+                {(() => {
+                  try {
+                    const streakData = getUserStreakData(user);
+                    return streakData.currentStreak || 0;
+                  } catch (e) {
+                    console.error('Error loading streak data:', e);
+                    return safeAnalyticsData.habits?.dailyCheckins?.currentStreak || 0;
+                  }
+                })()} days
               </p>
             </div>
             <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
@@ -196,7 +203,7 @@ const AnalyticsDashboard = () => {
               View Details
             </Button>
           </div>
-          <InteractiveTimeAllocation data={safeAnalyticsData.habits} />
+          <InteractiveTimeAllocation data={safeAnalyticsData.habits} user={user} />
         </div>
       </div>
 
@@ -375,7 +382,7 @@ const AnalyticsDashboard = () => {
     <div className="space-y-6">
       <div className="bg-surface rounded-lg p-6 border border-border">
         <h3 className="text-lg font-heading-semibold text-text-primary mb-4">Interactive Time Allocation</h3>
-        <InteractiveTimeAllocation data={safeAnalyticsData.habits} />
+        <InteractiveTimeAllocation data={safeAnalyticsData.habits} user={user} />
       </div>
     </div>
   );

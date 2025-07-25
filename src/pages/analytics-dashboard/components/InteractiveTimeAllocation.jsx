@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Treemap } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Treemap, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import Icon from '../../../components/AppIcon';
+import { getUserId, getFocusSessionStats } from '../../../utils/userUtils';
 
-const InteractiveTimeAllocation = ({ data = {} }) => {
+const InteractiveTimeAllocation = ({ data = {}, user = null }) => {
   const [selectedView, setSelectedView] = useState('pie');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [timeFrame, setTimeFrame] = useState('week');
@@ -88,18 +89,14 @@ const InteractiveTimeAllocation = ({ data = {} }) => {
     let actualAverageSession = 1.5;
     
     try {
-      const userId = localStorage.getItem('currentUserId'); // Assuming this exists
-      if (userId) {
-        const focusStatsKey = `focus_session_stats_${userId}`;
-        const focusStats = JSON.parse(localStorage.getItem(focusStatsKey) || '{}');
-        
-        // Convert seconds to minutes for display
-        actualFocusMinutes = Math.round((focusStats.totalFocusTime || 0) / 60);
-        actualSessionCount = focusStats.sessionsToday || 0;
-        
-        if (actualSessionCount > 0) {
-          actualAverageSession = actualFocusMinutes / actualSessionCount / 60; // Convert to hours
-        }
+      const focusStats = getFocusSessionStats(user);
+      
+      // Convert seconds to minutes for display
+      actualFocusMinutes = Math.round((focusStats.totalFocusTime || 0) / 60);
+      actualSessionCount = focusStats.sessionsToday || 0;
+      
+      if (actualSessionCount > 0) {
+        actualAverageSession = actualFocusMinutes / actualSessionCount / 60; // Convert to hours
       }
     } catch (e) {
       console.warn('Could not load focus session data for analytics:', e);

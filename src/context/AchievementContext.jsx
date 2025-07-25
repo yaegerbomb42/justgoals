@@ -65,7 +65,7 @@ const AchievementProvider = React.memo(({ children }) => {
     
     if (newAchievements.length > 0) {
       setNewAchievements(newAchievements);
-      setShowAchievementModal(true);
+      // Don't show modal anymore - only in-app notifications
       
       // Update points
       const updatedPoints = achievementService.getUserPoints(user.id);

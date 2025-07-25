@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Icon from '../../components/ui/Icon';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
+import { getUserId, getFocusSessionStats, saveFocusSessionStats, createUserStorageKey, migrateLegacyUserData } from '../../utils/userUtils';
 import Button from '../../components/ui/Button';
 import GoalSelector from './components/GoalSelector';
 import FocusTimer from './components/FocusTimer';
@@ -27,7 +28,10 @@ const checkSoundFileExists = async (url) => {
   }
 };
 
-const getGoalChatKey = (goalId, userId) => `goal_chat_${userId}_${goalId}`;
+const getGoalChatKey = (goalId, user) => {
+  const userId = getUserId(user);
+  return userId ? `goal_chat_${userId}_${goalId}` : null;
+};
 
 const FocusMode = () => {
   const navigate = useNavigate();
@@ -36,10 +40,7 @@ const FocusMode = () => {
   const { settings, updateFocusModeSettings } = useSettings();
 
   const getStorageKey = useCallback((baseKey) => {
-    if (user && user.id) {
-      return `${baseKey}_${user.id}`;
-    }
-    return null;
+    return createUserStorageKey(baseKey, user);
   }, [user]);
   
   // Load goals using entityService
@@ -114,16 +115,11 @@ const FocusMode = () => {
 
     // Load session stats from user-specific localStorage
     if (isAuthenticated && user) {
-      const statsKey = getStorageKey('focus_session_stats');
-      if (statsKey) {
-        const savedStats = localStorage.getItem(statsKey);
-        if (savedStats) {
-          try { setSessionStats(JSON.parse(savedStats)); }
-          catch (e) { console.error("Error parsing session stats:", e); }
-        } else {
-          setSessionStats({ totalFocusTime: 0, sessionsToday: 0, currentStreak: 0 });
-        }
-      }
+      // Migrate any legacy data first
+      migrateLegacyUserData(user);
+      
+      const stats = getFocusSessionStats(user);
+      setSessionStats(stats);
     } else {
       setSessionStats({ totalFocusTime: 0, sessionsToday: 0, currentStreak: 0 });
     }
@@ -140,17 +136,20 @@ const FocusMode = () => {
   // Load global links count
   useEffect(() => {
     if (isAuthenticated && user) {
-      const savedGlobalLinks = localStorage.getItem(`focus_global_links_${user.id}`);
-      if (savedGlobalLinks) {
-        try {
-          const links = JSON.parse(savedGlobalLinks);
-          setGlobalLinksCount(links.length);
-        } catch (e) {
-          console.error('Error parsing global links:', e);
+      const linksKey = createUserStorageKey('focus_global_links', user);
+      if (linksKey) {
+        const savedGlobalLinks = localStorage.getItem(linksKey);
+        if (savedGlobalLinks) {
+          try {
+            const links = JSON.parse(savedGlobalLinks);
+            setGlobalLinksCount(links.length);
+          } catch (e) {
+            console.error('Error parsing global links:', e);
+            setGlobalLinksCount(0);
+          }
+        } else {
           setGlobalLinksCount(0);
         }
-      } else {
-        setGlobalLinksCount(0);
       }
     }
   }, [isAuthenticated, user]);
@@ -158,12 +157,9 @@ const FocusMode = () => {
   // Save user-specific stats to localStorage
   useEffect(() => {
     if (isAuthenticated && user) {
-      const statsKey = getStorageKey('focus_session_stats');
-      if (statsKey) {
-        localStorage.setItem(statsKey, JSON.stringify(sessionStats));
-      }
+      saveFocusSessionStats(user, sessionStats);
     }
-  }, [sessionStats, isAuthenticated, user, getStorageKey]);
+  }, [sessionStats, isAuthenticated, user]);
 
   // Save local session settings to localStorage
   useEffect(() => {
@@ -174,13 +170,15 @@ const FocusMode = () => {
   useEffect(() => {
     const loadChat = async () => {
       if (selectedGoal && isAuthenticated && user) {
-        const chatKey = getGoalChatKey(selectedGoal.id, user.id);
-        const savedChat = localStorage.getItem(chatKey);
-        if (savedChat) {
-          try {
-            setGoalChatMessages(JSON.parse(savedChat));
-          } catch (e) {
-            console.error("Error parsing goal chat:", e);
+        const chatKey = getGoalChatKey(selectedGoal.id, user);
+        if (chatKey) {
+          const savedChat = localStorage.getItem(chatKey);
+          if (savedChat) {
+            try {
+              setGoalChatMessages(JSON.parse(savedChat));
+            } catch (e) {
+              console.error("Error parsing goal chat:", e);
+            }
           }
         }
       }
@@ -349,9 +347,11 @@ const FocusMode = () => {
     // Save to localStorage with error handling
     if (isAuthenticated && user) {
       try {
-        const chatKey = getGoalChatKey(selectedGoal.id, user.id);
-        const updatedChat = [...goalChatMessages, newMsg];
-        localStorage.setItem(chatKey, JSON.stringify(updatedChat));
+        const chatKey = getGoalChatKey(selectedGoal.id, user);
+        if (chatKey) {
+          const updatedChat = [...goalChatMessages, newMsg];
+          localStorage.setItem(chatKey, JSON.stringify(updatedChat));
+        }
       } catch (error) {
         console.error('Error saving chat messages:', error);
         alert('Failed to save chat messages. Please try again later.');

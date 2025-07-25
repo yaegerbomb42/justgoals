@@ -163,30 +163,52 @@ const getAnimationVariants = (animationType, position) => {
 const NotificationToast = ({ notification, onRemove, onSnooze, position, animation }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [pausedTime, setPausedTime] = useState(null);
   
   const Icon = getNotificationIcon(notification.type);
   const colors = getNotificationColors(notification.type, notification.priority);
   const variants = getAnimationVariants(animation, position);
 
-  // Progress bar for timeout (if not persistent)
+  // Progress bar for timeout with hover pause functionality
   useEffect(() => {
     if (notification.persistent || notification.timeout <= 0) return;
 
-    const startTime = Date.now();
+    const initStartTime = Date.now();
+    setStartTime(initStartTime);
     const duration = notification.timeout;
 
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
+      if (isHovered) {
+        // Pause timer when hovered
+        if (!pausedTime) {
+          setPausedTime(Date.now());
+        }
+        return;
+      }
+
+      // Resume timer when not hovered
+      let currentStartTime = initStartTime;
+      if (pausedTime) {
+        // Add the pause duration to start time
+        const pauseDuration = Date.now() - pausedTime;
+        currentStartTime += pauseDuration;
+        setStartTime(currentStartTime);
+        setPausedTime(null);
+      }
+
+      const elapsed = Date.now() - currentStartTime;
       const remaining = Math.max(0, duration - elapsed);
       setTimeLeft(remaining);
 
       if (remaining <= 0) {
         clearInterval(interval);
+        onRemove(notification.id);
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [notification.persistent, notification.timeout]);
+  }, [notification.persistent, notification.timeout, isHovered, pausedTime, onRemove, notification.id]);
 
   const handleAction = (action) => {
     if (action.callback) {
