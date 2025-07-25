@@ -281,7 +281,193 @@ class HabitService {
     }
   }
 
-  // Delete a habit
+  // Edit a specific progress entry
+  async editProgressEntry(userId, habitId, nodeId, entryId, newAmount) {
+    try {
+      const habits = await this.getHabits(userId);
+      const habitIndex = habits.findIndex(h => h.id === habitId);
+      
+      if (habitIndex === -1) {
+        throw new Error('Habit not found');
+      }
+
+      const habit = habits[habitIndex];
+      const nodeIndex = habit.treeNodes.findIndex(n => n.id === nodeId);
+      
+      if (nodeIndex === -1) {
+        throw new Error('Node not found');
+      }
+
+      const node = habit.treeNodes[nodeIndex];
+      
+      if (habit.trackingType === 'amount') {
+        // For amount-based habits, update the current progress
+        node.currentProgress = Math.max(0, newAmount);
+        
+        // Update completion status
+        if (node.currentProgress >= (habit.targetAmount || 1)) {
+          node.status = 'completed';
+        } else {
+          node.status = 'active';
+        }
+      } else {
+        // For check-based habits, find and update the specific entry
+        const entryIndex = node.checks?.findIndex(check => check.id === entryId);
+        if (entryIndex !== -1) {
+          node.checks[entryIndex].amount = newAmount;
+          node.checks[entryIndex].timestamp = new Date().toISOString();
+        }
+      }
+
+      // Update the habit
+      habit.updatedAt = serverTimestamp();
+      habits[habitIndex] = habit;
+
+      if (!userId) {
+        this.saveToLocalStorage(habits);
+      } else {
+        const habitDoc = doc(this.getUserHabitsCollection(userId), habitId);
+        await updateDoc(habitDoc, {
+          treeNodes: habit.treeNodes,
+          updatedAt: serverTimestamp()
+        });
+        this.saveToLocalStorage(habits);
+      }
+
+      return habit;
+    } catch (error) {
+      console.error('Error editing progress entry:', error);
+      throw error;
+    }
+  }
+
+  // Delete a specific progress entry
+  async deleteProgressEntry(userId, habitId, nodeId, entryId) {
+    try {
+      const habits = await this.getHabits(userId);
+      const habitIndex = habits.findIndex(h => h.id === habitId);
+      
+      if (habitIndex === -1) {
+        throw new Error('Habit not found');
+      }
+
+      const habit = habits[habitIndex];
+      const nodeIndex = habit.treeNodes.findIndex(n => n.id === nodeId);
+      
+      if (nodeIndex === -1) {
+        throw new Error('Node not found');
+      }
+
+      const node = habit.treeNodes[nodeIndex];
+      
+      if (habit.trackingType === 'amount') {
+        // For amount-based habits, reset to 0
+        node.currentProgress = 0;
+        node.status = 'active';
+      } else {
+        // For check-based habits, remove the specific entry
+        node.checks = node.checks?.filter(check => check.id !== entryId) || [];
+        
+        // Update completion status
+        if (node.checks.length >= (habit.targetChecks || 1)) {
+          node.status = 'completed';
+        } else {
+          node.status = 'active';
+        }
+      }
+
+      // Update the habit
+      habit.updatedAt = serverTimestamp();
+      habits[habitIndex] = habit;
+
+      if (!userId) {
+        this.saveToLocalStorage(habits);
+      } else {
+        const habitDoc = doc(this.getUserHabitsCollection(userId), habitId);
+        await updateDoc(habitDoc, {
+          treeNodes: habit.treeNodes,
+          updatedAt: serverTimestamp()
+        });
+        this.saveToLocalStorage(habits);
+      }
+
+      return habit;
+    } catch (error) {
+      console.error('Error deleting progress entry:', error);
+      throw error;
+    }
+  }
+
+  // Add progress with support for different operations (add, subtract, set)
+  async addProgressWithOperation(userId, habitId, nodeId, operation, amount) {
+    try {
+      const habits = await this.getHabits(userId);
+      const habitIndex = habits.findIndex(h => h.id === habitId);
+      
+      if (habitIndex === -1) {
+        throw new Error('Habit not found');
+      }
+
+      const habit = habits[habitIndex];
+      const nodeIndex = habit.treeNodes.findIndex(n => n.id === nodeId);
+      
+      if (nodeIndex === -1) {
+        throw new Error('Node not found');
+      }
+
+      const node = habit.treeNodes[nodeIndex];
+      
+      if (habit.trackingType === 'amount') {
+        let newProgress = node.currentProgress || 0;
+        
+        switch (operation) {
+          case 'add':
+            newProgress += amount;
+            break;
+          case 'subtract':
+            newProgress = Math.max(0, newProgress - amount);
+            break;
+          case 'set':
+            newProgress = Math.max(0, amount);
+            break;
+          default:
+            newProgress += amount; // Default to add
+        }
+        
+        node.currentProgress = newProgress;
+        
+        // Check if target is reached
+        if (node.currentProgress >= (habit.targetAmount || 1)) {
+          node.status = 'completed';
+        } else {
+          node.status = 'active';
+        }
+      } else {
+        // For non-amount habits, default to regular check-in
+        return this.addCheckIn(userId, habitId, nodeId, 'default', amount);
+      }
+
+      // Update the habit
+      habit.updatedAt = serverTimestamp();
+      habits[habitIndex] = habit;
+
+      if (!userId) {
+        this.saveToLocalStorage(habits);
+      } else {
+        const habitDoc = doc(this.getUserHabitsCollection(userId), habitId);
+        await updateDoc(habitDoc, {
+          treeNodes: habit.treeNodes,
+          updatedAt: serverTimestamp()
+        });
+        this.saveToLocalStorage(habits);
+      }
+
+      return habit;
+    } catch (error) {
+      console.error('Error adding progress with operation:', error);
+      throw error;
+    }
+  }
   async deleteHabit(userId, habitId) {
     try {
       if (!userId) {
