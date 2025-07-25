@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/ui/Icon';
 import firestoreService from '../../../services/firestoreService';
-import { geminiService } from '../../../services/geminiService';
+import { todoAIService } from '../../../services/todoAIService';
 import { useAuth } from '../../../context/AuthContext';
 import { useSettings } from '../../../context/SettingsContext';
 
@@ -42,7 +42,7 @@ const FocusSessionNotes = () => {
 
     const apiKey = settings?.geminiApiKey;
     if (!apiKey?.trim()) {
-      addMessage('AI assistant requires a Gemini API key. Please set it in Settings.', 'system');
+      addMessage('Drift AI requires a Gemini API key. Please set it in Settings.', 'system');
       return;
     }
 
@@ -54,37 +54,28 @@ const FocusSessionNotes = () => {
     addMessage(userMessage, 'user');
 
     try {
-      const prompt = `You are a helpful focus assistant for someone in a focus/work session. Provide brief, encouraging, and practical responses to help them stay focused and productive.
-
-User's message: "${userMessage}"
-
-Respond with:
-- Quick tips for maintaining focus
-- Brief motivation or encouragement
-- Practical advice for productivity
-- Solutions to common focus challenges
-
-Keep responses concise (1-2 sentences) since they're in a focus session.`;
-
-      const response = await geminiService.generateContent(prompt, apiKey);
-      
-      if (!response || response.trim().length === 0) {
-        throw new Error('Received empty response from AI');
+      // Initialize Drift AI for this user
+      if (user?.uid) {
+        todoAIService.loadPersonality(user.uid);
       }
 
+      // Prepare focus session context
+      const focusContext = {
+        active: 1, // In focus session
+        completed: 0,
+        topPriority: 0,
+        recentTodos: [],
+        sessionType: 'focus',
+        userQuestion: userMessage
+      };
+
+      const response = await todoAIService.generateResponse(userMessage, focusContext, apiKey);
+      
       addMessage(response, 'assistant');
 
     } catch (error) {
-      console.error('Error generating AI response:', error);
-      
-      let errorMessage = 'I encountered an error. Please try again.';
-      if (error.message.includes('API key')) {
-        errorMessage = 'Invalid API key. Please check your settings.';
-      } else if (error.message.includes('rate limit')) {
-        errorMessage = 'Too many requests. Please wait a moment and try again.';
-      }
-      
-      addMessage(errorMessage, 'system');
+      console.error('Error generating Drift AI response:', error);
+      addMessage('I encountered an error. Please try again! 🤖', 'system');
     } finally {
       setIsAiLoading(false);
     }
@@ -116,8 +107,8 @@ Keep responses concise (1-2 sentences) since they're in a focus session.`;
         session: 'focus_mode'
       };
 
-      // Save to firestore under a special collection for session notes
-      await firestoreService.saveData(`users/${user.uid}/sessionNotes`, noteData);
+      // Save to firestore using the correct function
+      await firestoreService.saveDriftMemory(user.uid, noteData);
 
       // Clear notes and add to chat history
       addMessage(sessionNotes.trim(), 'note');

@@ -91,26 +91,42 @@ What would you like me to help you with today?`,
       // Add user message
       addMessage(userMessage, 'user');
 
-      // Prepare context for AI
+      // Check if services are available
+      if (!geminiService || !apiKey) {
+        throw new Error('AI service is not properly configured');
+      }
+
+      // Prepare context for AI with error handling
       const context = {
         user: {
-          name: user?.displayName || user?.email,
-          email: user?.email,
+          name: user?.displayName || user?.email || 'User',
+          email: user?.email || '',
         },
         mealData: {
-          meals: mealData.meals || [],
-          mealPlans: mealData.mealPlans || [],
-          preferences: mealData.mealPreferences || {},
+          meals: mealData?.meals || [],
+          mealPlans: mealData?.mealPlans || [],
+          preferences: mealData?.mealPreferences || {},
         },
         currentDate: new Date().toISOString(),
       };
 
-      // Generate AI response with meal-specific capabilities
+      // Generate AI response with enhanced error handling
       const response = await generateMealResponse(userMessage, context);
 
-      // Process any actions from the AI response
-      if (response.actions && response.actions.length > 0) {
-        await processActions(response.actions);
+      // Validate response
+      if (!response || typeof response.message !== 'string') {
+        throw new Error('Invalid response from AI service');
+      }
+
+      // Process any actions from the AI response with error handling
+      if (response.actions && Array.isArray(response.actions) && response.actions.length > 0) {
+        try {
+          await processActions(response.actions);
+        } catch (actionError) {
+          console.error('Error processing AI actions:', actionError);
+          // Continue to show the message even if actions fail
+          addMessage('Note: Some automated actions could not be completed, but you can still use the advice provided above.', 'system');
+        }
       }
 
       // Add AI response
@@ -121,7 +137,17 @@ What would you like me to help you with today?`,
 
     } catch (error) {
       console.error('Error processing message:', error);
-      addMessage('I apologize, but I encountered an error processing your request. Please try again.', 'assistant');
+      let errorMessage = 'I apologize, but I encountered an error processing your request.';
+      
+      if (error.message?.includes('timeout')) {
+        errorMessage = 'The request timed out. Please try asking a simpler question.';
+      } else if (error.message?.includes('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message?.includes('API')) {
+        errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+      }
+      
+      addMessage(errorMessage + ' Please try again.', 'assistant');
     } finally {
       setIsLoading(false);
     }
@@ -226,21 +252,49 @@ Respond naturally first, then add the action.`;
   };
 
   const processActions = async (actions) => {
+    if (!Array.isArray(actions)) {
+      console.warn('Invalid actions array:', actions);
+      return;
+    }
+
     for (const action of actions) {
       try {
+        if (!action || typeof action !== 'object' || !action.type) {
+          console.warn('Invalid action:', action);
+          continue;
+        }
+
         switch (action.type) {
           case 'create_meal_plan':
-            await handleCreateMealPlan(action.data);
+            if (typeof saveMealPlan === 'function') {
+              await handleCreateMealPlan(action.data);
+            } else {
+              console.warn('saveMealPlan function not available');
+              addMessage('Meal plan creation is temporarily unavailable.', 'system');
+            }
             break;
           case 'create_meal':
-            await handleCreateMeal(action.data);
+            if (typeof saveMeal === 'function') {
+              await handleCreateMeal(action.data);
+            } else {
+              console.warn('saveMeal function not available');
+              addMessage('Meal creation is temporarily unavailable.', 'system');
+            }
             break;
           case 'update_preferences':
-            await handleUpdatePreferences(action.data);
+            if (typeof updateMealPreferences === 'function') {
+              await handleUpdatePreferences(action.data);
+            } else {
+              console.warn('updateMealPreferences function not available');
+              addMessage('Preference updates are temporarily unavailable.', 'system');
+            }
             break;
+          default:
+            console.warn('Unknown action type:', action.type);
         }
       } catch (error) {
         console.error(`Error processing action ${action.type}:`, error);
+        addMessage(`Could not complete the ${action.type} action. Please try manually.`, 'system');
       }
     }
   };

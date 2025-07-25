@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
-import AddHabitModal from '../../../components/AddHabitModal';
 import ChainVisualization from '../../../components/ChainLink';
 import habitService, { getToday, getCurrentWeek } from '../../../services/habitService';
 import { useAuth } from '../../../context/AuthContext';
@@ -28,7 +27,6 @@ const HabitTracking = () => {
   const [showCelebration, setShowCelebration] = useState({ daily: false, weekly: false });
   const [newChainLink, setNewChainLink] = useState({ daily: false, weekly: false });
   const [showSettings, setShowSettings] = useState(false);
-  const [showAddModal, setShowAddModal] = useState({ daily: false, weekly: false });
   const [isLoading, setIsLoading] = useState(true);
 
   // Load habit data on component mount
@@ -54,15 +52,6 @@ const HabitTracking = () => {
   };
 
   // Add a new custom habit
-  const handleAddHabit = async (habitData, isWeekly) => {
-    try {
-      await habitService.addCustomHabit(userId, habitData, isWeekly);
-      await loadHabitsData(); // Reload data to get the updated habits
-    } catch (error) {
-      console.error('Error adding habit:', error);
-    }
-  };
-
   // Remove a custom habit
   const handleRemoveHabit = async (habitId, isWeekly, isCustom) => {
     if (!isCustom) return; // Only allow removing custom habits
@@ -216,15 +205,6 @@ const HabitTracking = () => {
                 Daily Habits
               </h2>
               <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => setShowAddModal({ daily: true, weekly: false })}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Icon name="Plus" size={16} />
-                  Add Habit
-                </Button>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">🔥</span>
                   <span className="text-2xl font-heading-bold text-warning">{habitData.dailyChain}</span>
@@ -360,15 +340,6 @@ const HabitTracking = () => {
                 Weekly Habits
               </h2>
               <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => setShowAddModal({ daily: false, weekly: true })}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Icon name="Plus" size={16} />
-                  Add Habit
-                </Button>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">🔥</span>
                   <span className="text-2xl font-heading-bold text-warning">{habitData.weeklyChain}</span>
@@ -592,27 +563,6 @@ const HabitTracking = () => {
       </div>
 
       {/* Add Habit Modals */}
-      <AnimatePresence>
-        {showAddModal.daily && (
-          <AddHabitModal
-            isOpen={showAddModal.daily}
-            onClose={() => setShowAddModal({ daily: false, weekly: false })}
-            onAddHabit={handleAddHabit}
-            isWeekly={false}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showAddModal.weekly && (
-          <AddHabitModal
-            isOpen={showAddModal.weekly}
-            onClose={() => setShowAddModal({ daily: false, weekly: false })}
-            onAddHabit={handleAddHabit}
-            isWeekly={true}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };

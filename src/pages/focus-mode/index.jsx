@@ -78,10 +78,10 @@ const FocusMode = () => {
     selectedAmbientSound: 'none'
   });
 
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [isLinksOpen, setIsLinksOpen] = useState(false);
+  const [globalLinksCount, setGlobalLinksCount] = useState(0);
   const [sessionStats, setSessionStats] = useState({
     totalFocusTime: 0, sessionsToday: 0, currentStreak: 0
   });
@@ -136,6 +136,24 @@ const FocusMode = () => {
     }
 
   }, [location.search, isAuthenticated, user, getStorageKey, goals]);
+
+  // Load global links count
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const savedGlobalLinks = localStorage.getItem(`focus_global_links_${user.id}`);
+      if (savedGlobalLinks) {
+        try {
+          const links = JSON.parse(savedGlobalLinks);
+          setGlobalLinksCount(links.length);
+        } catch (e) {
+          console.error('Error parsing global links:', e);
+          setGlobalLinksCount(0);
+        }
+      } else {
+        setGlobalLinksCount(0);
+      }
+    }
+  }, [isAuthenticated, user]);
 
   // Save user-specific stats to localStorage
   useEffect(() => {
@@ -286,12 +304,12 @@ const FocusMode = () => {
     window.open(link.url, '_blank');
   };
 
-  const handleToggleNotes = () => {
-    setIsNotesOpen(!isNotesOpen);
-  };
-
   const handleToggleLinks = () => {
     setIsLinksOpen(!isLinksOpen);
+  };
+
+  const handleGlobalLinksChange = (links) => {
+    setGlobalLinksCount(links.length);
   };
 
   const handleSettingsChange = (newSettings) => {
@@ -552,6 +570,7 @@ const FocusMode = () => {
         onLinkClick={handleLinkClick}
         sessionLinks={sessionLinks}
         onSessionLinksChange={handleSessionLinksChange}
+        onGlobalLinksChange={handleGlobalLinksChange}
       />
 
       {/* Settings Modal */}
@@ -567,14 +586,10 @@ const FocusMode = () => {
 
       {/* Floating Actions */}
       <FocusFloatingActions
-        onToggleNotes={handleToggleNotes}
         onToggleLinks={handleToggleLinks}
-        isNotesOpen={isNotesOpen}
         isLinksOpen={isLinksOpen}
+        linksCount={globalLinksCount}
       />
-
-      {/* Focus Session Notes Chat Bar */}
-      <FocusSessionNotes />
 
       {/* Exit Confirmation */}
       <ExitConfirmation

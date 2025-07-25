@@ -3,11 +3,8 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
 const FocusFloatingActions = ({ 
-  onToggleNotes, 
   onToggleLinks, 
-  notesCount = 0,
   linksCount = 0,
-  isNotesOpen,
   isLinksOpen
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -37,25 +34,6 @@ const FocusFloatingActions = ({
             )}
             <div className="absolute right-full mr-2 top-1/2 transform -translate-y-1/2 bg-surface-800 text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
               Quick Links
-            </div>
-          </div>
-
-          {/* Notes Button */}
-          <div className="relative">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={onToggleNotes}
-              iconName="FileText"
-              className={`transition-all duration-300 ${isNotesOpen ? 'bg-primary' : 'bg-surface-700 hover:bg-surface-600'}`}
-            />
-            {notesCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-warning text-warning-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                {notesCount}
-              </span>
-            )}
-            <div className="absolute right-full mr-2 top-1/2 transform -translate-y-1/2 bg-surface-800 text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
-              Session Notes
             </div>
           </div>
         </div>

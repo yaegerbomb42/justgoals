@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useMeals } from '../../../context/MealsContext';
 import Icon from '../../../components/ui/Icon';
-import MacroSlider from '../../../components/ui/MacroSlider';
+import SimpleMacroSlider from '../../../components/ui/SimpleMacroSlider';
 
 const MealPreferences = ({ preferences = {}, onError }) => {
   const [contextError, setContextError] = useState(null);
@@ -313,18 +313,27 @@ const MealPreferences = ({ preferences = {}, onError }) => {
       const sanitizedData = {
         ...formData,
         dailyCalories: parseInt(formData.dailyCalories) || 2000,
-        protein: parseInt(formData.protein) || 0,
-        carbs: parseInt(formData.carbs) || 0,
-        fat: parseInt(formData.fat) || 0,
+        macroTargets: {
+          protein: parseInt(formData.macroTargets?.protein) || 25,
+          carbs: parseInt(formData.macroTargets?.carbs) || 45,
+          fat: parseInt(formData.macroTargets?.fat) || 30
+        },
         dietaryRestrictions: Array.isArray(formData.dietaryRestrictions) ? formData.dietaryRestrictions : [],
-        allergies: Array.isArray(formData.allergies) ? formData.allergies : [],
-        dislikedFoods: Array.isArray(formData.dislikedFoods) ? formData.dislikedFoods : [],
-        cuisinePreferences: Array.isArray(formData.cuisinePreferences) ? formData.cuisinePreferences : [],
+        allergens: Array.isArray(formData.allergens) ? formData.allergens : [],
+        preferredMealCount: parseInt(formData.preferredMealCount) || 3,
+        cookingTime: formData.cookingTime || 'medium',
         updatedAt: new Date().toISOString()
       };
       
-      await updateMealPreferences(sanitizedData);
-      if (onSuccess) onSuccess('Meal preferences saved successfully!');
+      if (updateMealPreferences) {
+        await updateMealPreferences(sanitizedData);
+        setHasUnsavedChanges(false);
+        if (onError) onError(null); // Clear any previous errors
+        // Show success feedback
+        console.log('Meal preferences saved successfully!');
+      } else {
+        throw new Error('Meal preferences service is not available');
+      }
     } catch (error) {
       console.error('Error saving meal preferences:', error);
       const errorMessage = error?.message || 'Unknown error occurred';
@@ -486,7 +495,7 @@ const MealPreferences = ({ preferences = {}, onError }) => {
             )}
           </div>
         </div>
-        <MacroSlider
+        <SimpleMacroSlider
           macroTargets={formData.macroTargets || { protein: 25, carbs: 45, fat: 30 }}
           dailyCalories={formData.dailyCalories || 2000}
           onChange={handleMacroSliderChange}

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
 import firestoreService from '../services/firestoreService';
-import { geminiService } from '../services/geminiService';
+import { todoAIService } from '../services/todoAIService';
 
 const TemporaryTodosContext = createContext();
 
@@ -22,6 +22,13 @@ export const TemporaryTodosProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
+
+  // Load AI personality when user changes
+  useEffect(() => {
+    if (user?.uid) {
+      todoAIService.loadPersonality(user.uid);
+    }
+  }, [user?.uid]);
 
   // Load todos from Firestore
   const loadTodos = useCallback(async () => {
@@ -60,7 +67,7 @@ export const TemporaryTodosProvider = ({ children }) => {
   }, [loadTodos]);
 
   // Add a new todo
-  const addTodo = async (todoText, priority = 0) => {
+  const addTodo = async (todoText, priority = 1) => {
     if (!user?.uid || !todoText.trim()) {
       console.log('Cannot add todo: user not authenticated or empty text');
       return null;
@@ -155,138 +162,56 @@ export const TemporaryTodosProvider = ({ children }) => {
 
   // AI-powered priority sorting
   const aiPrioritizeTodos = async () => {
-    if (!user?.uid || todos.length === 0 || isAiProcessing) return;
+    if (!user?.uid) {
+      setError('Please sign in to use AI prioritization.');
+      return;
+    }
+
+    if (todos.length === 0) {
+      setError('No todos to prioritize.');
+      return;
+    }
 
     try {
       setIsAiProcessing(true);
       setError(null);
 
-      // Check if API key is available
       const apiKey = settings?.geminiApiKey;
-      if (!apiKey?.trim()) {
-        setError('AI prioritization requires a Gemini API key. Please set it in Settings.');
-        return;
-      }
+      const priorities = await todoAIService.prioritizeTodos(todos, apiKey);
 
-      // Prepare todos for AI analysis
-      const todosForAI = todos.map(todo => ({
-        id: todo.id,
-        text: todo.text,
-        currentPriority: todo.priority || 0,
-        createdAt: todo.createdAt,
-        isUrgent: todo.text.toLowerCase().includes('urgent') || todo.text.toLowerCase().includes('asap'),
-        hasDeadline: todo.text.toLowerCase().includes('deadline') || todo.text.toLowerCase().includes('due'),
-        isQuickTask: todo.text.toLowerCase().includes('quick') || todo.text.toLowerCase().includes('5 min')
-      }));
-
-      // Enhanced prompt for better AI prioritization
-      const prompt = `
-        You are an expert productivity assistant. Analyze these ${todosForAI.length} todos and assign priority scores from 1-10 based on:
-        
-        PRIORITY FACTORS:
-        - Urgency (time-sensitive tasks get higher priority 7-10)
-        - Impact (high-value outcomes get priority 6-9)  
-        - Effort required (quick wins get slight boost +1)
-        - Dependencies (blocking other tasks gets priority 7-10)
-        - Context clues (urgent, deadline, asap = high priority)
-        
-        TODOS TO PRIORITIZE:
-        ${todosForAI.map((todo, i) => `${i + 1}. "${todo.text}" (current: ${todo.currentPriority}, created: ${new Date(todo.createdAt?.toDate?.() || todo.createdAt).toLocaleDateString()})`).join('\n')}
-
-        INSTRUCTIONS:
-        - Distribute priorities evenly (not all 8s and 9s)
-        - Use full 1-10 scale
-        - Consider variety in task types
-        - Quick tasks can be 3-5 priority
-        - Important but not urgent: 4-6
-        - Urgent and important: 8-10
-        - Low value busy work: 1-3
-
-        Return ONLY a JSON array with objects containing "id" and "priority" (1-10, where 10 is highest):
-        [{"id": "todo_id", "priority": 8}, {"id": "todo_id", "priority": 3}]
-      `;
-
-      const response = await geminiService.generateContent(prompt, apiKey);
-      
-      // Parse AI response with enhanced error handling
-      let aiPriorities;
-      try {
-        // Extract JSON from response
-        const jsonMatch = response.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          aiPriorities = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in AI response');
+      // Update todos with new priorities
+      const updatedTodos = todos.map(todo => {
+        const priorityUpdate = priorities.find(p => p.id === todo.id);
+        if (priorityUpdate) {
+          return { ...todo, priority: priorityUpdate.priority };
         }
-      } catch (parseError) {
-        console.error('Error parsing AI response:', parseError);
-        setError('AI prioritization failed - invalid response format. Please try again.');
-        return;
-      }
-
-      // Enhanced validation and application of priorities
-      const validPriorities = aiPriorities.filter(item => 
-        item.id && 
-        typeof item.priority === 'number' && 
-        item.priority >= 1 && 
-        item.priority <= 10 &&
-        todos.some(todo => todo.id === item.id)
-      );
-
-      if (validPriorities.length === 0) {
-        setError('AI could not prioritize any todos. Please try again.');
-        return;
-      }
-
-      if (validPriorities.length < todos.length * 0.5) {
-        console.warn(`Only ${validPriorities.length}/${todos.length} todos were prioritized by AI`);
-      }
-
-      // Update in Firestore with batch operation
-      await firestoreService.batchUpdateTempTodosPriority(user.uid, validPriorities);
-      
-      // Update local state with immediate visual feedback
-      setTodos(prev => {
-        const updated = [...prev];
-        validPriorities.forEach(({ id, priority }) => {
-          const index = updated.findIndex(t => t.id === id);
-          if (index !== -1) {
-            updated[index] = { 
-              ...updated[index], 
-              priority, 
-              aiPrioritized: true,
-              lastPrioritized: new Date().toISOString()
-            };
-          }
-        });
-        
-        // Sort by priority (highest first), then by creation date
-        return updated.sort((a, b) => {
-          const priorityDiff = (b.priority || 0) - (a.priority || 0);
-          if (priorityDiff !== 0) return priorityDiff;
-          
-          const dateA = new Date(a.createdAt?.toDate?.() || a.createdAt);
-          const dateB = new Date(b.createdAt?.toDate?.() || b.createdAt);
-          return dateB - dateA;
-        });
+        return todo;
       });
 
-      // Success feedback
-      console.log(`AI successfully prioritized ${validPriorities.length} todos`);
+      // Save updated todos to Firestore
+      await Promise.all(
+        updatedTodos
+          .filter(todo => {
+            const original = todos.find(t => t.id === todo.id);
+            return original && original.priority !== todo.priority;
+          })
+          .map(todo => firestoreService.updateTempTodo(user.uid, todo.id, { priority: todo.priority }))
+      );
+
+      setTodos(updatedTodos);
       
-    } catch (err) {
-      console.error('Error in AI prioritization:', err);
+    } catch (error) {
+      console.error('Error during AI prioritization:', error);
       
-      // Provide specific error messages
-      if (err.message.includes('API key')) {
-        setError('Invalid API key. Please check your Gemini API key in Settings.');
-      } else if (err.message.includes('rate limit')) {
-        setError('Too many AI requests. Please wait a moment and try again.');
-      } else if (err.message.includes('timeout')) {
-        setError('AI prioritization timed out. Please try again.');
-      } else {
-        setError(`AI prioritization failed: ${err.message}`);
-      }
+      // Better error messages
+      const errorMessages = {
+        'API_KEY_MISSING': 'AI prioritization requires a Gemini API key. Please set it in Settings.',
+        'NO_TODOS_TO_PRIORITIZE': 'No todos available to prioritize.',
+        'INVALID_AI_RESPONSE': 'AI service returned invalid response. Please try again.',
+        'INVALID_PRIORITY_FORMAT': 'AI priority format error. Please try again.'
+      };
+      
+      setError(errorMessages[error.message] || 'AI prioritization failed. Please try again.');
     } finally {
       setIsAiProcessing(false);
     }
@@ -294,17 +219,19 @@ export const TemporaryTodosProvider = ({ children }) => {
 
   // Get priority color based on priority score
   const getPriorityColor = (priority) => {
-    if (!priority || priority < 3) return 'text-text-secondary';
-    if (priority < 6) return 'text-amber-500';
-    if (priority < 8) return 'text-orange-500';
+    const p = priority || 1; // Default to 1 instead of 0
+    if (p < 3) return 'text-text-secondary';
+    if (p < 6) return 'text-amber-500';
+    if (p < 8) return 'text-orange-500';
     return 'text-red-500';
   };
 
   // Get priority label
   const getPriorityLabel = (priority) => {
-    if (!priority || priority < 3) return 'Low';
-    if (priority < 6) return 'Medium';
-    if (priority < 8) return 'High';
+    const p = priority || 1; // Default to 1 instead of 0
+    if (p < 3) return 'Low';
+    if (p < 6) return 'Medium';
+    if (p < 8) return 'High';
     return 'Critical';
   };
 
@@ -321,7 +248,9 @@ export const TemporaryTodosProvider = ({ children }) => {
     aiPrioritizeTodos,
     getPriorityColor,
     getPriorityLabel,
-    loadTodos
+    loadTodos,
+    // AI service functions
+    aiService: todoAIService
   };
 
   return (

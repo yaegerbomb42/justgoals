@@ -17,17 +17,19 @@ const TodoItem = ({
   const [showDopamine, setShowDopamine] = useState(false);
 
   const getPriorityIcon = (priority) => {
-    if (!priority || priority < 3) return 'Circle';
-    if (priority < 6) return 'Minus';
-    if (priority < 8) return 'ArrowUp';
+    const p = priority || 1; // Default to 1 instead of 0
+    if (p < 3) return 'Circle';
+    if (p < 6) return 'Minus';
+    if (p < 8) return 'ArrowUp';
     return 'AlertTriangle';
   };
 
   const getPriorityBadgeStyle = (priority) => {
-    if (!priority || priority < 3) return 'bg-surface-200 text-text-muted';
-    if (priority < 6) return 'bg-warning/20 text-warning';
-    if (priority < 8) return 'bg-warning/30 text-warning';
-    return 'bg-error/20 text-error';
+    const p = priority || 1; // Default to 1 instead of 0
+    if (p < 3) return 'bg-surface-200 text-text-muted';
+    if (p < 6) return 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-600 shadow-sm';
+    if (p < 8) return 'bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-600 shadow-md';
+    return 'bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-600 shadow-lg';
   };
 
   const handleComplete = async () => {
@@ -69,29 +71,35 @@ const TodoItem = ({
 
   return (
     <motion.div
-      layout
+      layout="position"
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ 
-        opacity: isCompleting ? 0.5 : 1, 
+        opacity: isCompleting ? 0.8 : 1, 
         y: 0, 
-        scale: isCompleting ? 0.95 : 1,
-        x: isCompleting ? -20 : 0,
-        backgroundColor: showDopamine ? '#22c55e' : undefined // Tailwind green-500
+        scale: 1,
+        x: 0
       }}
       exit={{ 
         opacity: 0, 
-        scale: 0.8,
-        x: -100,
-        transition: { duration: 0.3 }
+        scale: 0.9,
+        x: -50,
+        transition: { duration: 0.2 }
       }}
       transition={{ 
-        delay: index * 0.05,
-        type: "spring",
-        stiffness: 300,
-        damping: 30
+        delay: index * 0.03,
+        type: "tween",
+        duration: 0.3,
+        ease: "easeOut"
       }}
-      whileHover={{ scale: 1.02 }}
-      className={`group bg-surface border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-all duration-200 hover:shadow-lg ${showDopamine ? 'ring-4 ring-success/40' : ''}`}
+      whileHover={{ 
+        scale: 1.01,
+        transition: { duration: 0.1 }
+      }}
+      className={`group relative bg-gradient-to-br from-surface to-surface/80 border border-border/60 rounded-2xl overflow-hidden 
+        hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 backdrop-blur-sm
+        ${showDopamine ? 'ring-2 ring-success/60 shadow-success/30 shadow-lg' : ''}
+        ${isCompleting ? 'animate-pulse' : ''}
+      `}
     >
       <div className="p-4">
         <div className="flex items-start gap-4">
@@ -105,11 +113,11 @@ const TodoItem = ({
                 name={getPriorityIcon(todo.priority)} 
                 className={`w-4 h-4 ${getPriorityColor(todo.priority)}`} 
               />
-              {todo.priority && todo.priority > 0 && (
+              {(todo.priority && todo.priority > 1) && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center text-xs font-bold ${getPriorityBadgeStyle(todo.priority)}`}
+                  className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${getPriorityBadgeStyle(todo.priority)} border-2 border-surface shadow-md`}
                 >
                   {todo.priority}
                 </motion.div>

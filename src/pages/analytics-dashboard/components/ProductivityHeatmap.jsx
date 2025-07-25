@@ -1,27 +1,31 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 
 const ProductivityHeatmap = ({ data = [] }) => {
   const [selectedDay, setSelectedDay] = useState(null);
-  const [viewMode, setViewMode] = useState('productivity'); // productivity, goals, habits
+  const [viewMode, setViewMode] = useState('productivity');
 
-  // Process data for meaningful activity tracking
   const processedData = useMemo(() => {
-    if (!data || data.length === 0) return { weeks: [], maxValues: {} };
+    if (!data || data.length === 0) return { weeks: [], maxValues: {}, stats: {} };
     
-    // Sort by date ascending
     const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    // Calculate max values for normalization
+    const stats = {
+      totalDays: sorted.length,
+      activeDays: sorted.filter(d => (d.goals || 0) + (d.focus || 0) + (d.habits || 0) > 0).length,
+      avgGoals: sorted.reduce((sum, d) => sum + (d.goals || 0), 0) / sorted.length,
+      avgFocus: sorted.reduce((sum, d) => sum + (d.focus || 0), 0) / sorted.length,
+      avgHabits: sorted.reduce((sum, d) => sum + (d.habits || 0), 0) / sorted.length,
+    };
+    
     const maxValues = {
       productivity: Math.max(1, ...sorted.map(d => (d.goals || 0) + (d.focus || 0) + (d.habits || 0))),
       goals: Math.max(1, ...sorted.map(d => d.goals || 0)),
-      focus: Math.max(1, ...sorted.map(d => Math.round((d.focus || 0) * 60))), // Convert hours to minutes
+      focus: Math.max(1, ...sorted.map(d => Math.round((d.focus || 0) * 60))),
       habits: Math.max(1, ...sorted.map(d => d.habits || 0)),
-      milestones: Math.max(1, ...sorted.map(d => d.milestones || 0))
     };
     
-    // Group into weeks (Sun-Sat)
     const weeks = [];
     let week = Array(7).fill(null);
     
@@ -31,7 +35,7 @@ const ProductivityHeatmap = ({ data = [] }) => {
       week[dayOfWeek] = { 
         ...d, 
         date: dateObj,
-        totalActivity: (d.goals || 0) + (d.focus || 0) + (d.habits || 0) + (d.milestones || 0)
+        totalActivity: (d.goals || 0) + (d.focus || 0) + (d.habits || 0)
       };
       
       if (dayOfWeek === 6) {
@@ -42,216 +46,229 @@ const ProductivityHeatmap = ({ data = [] }) => {
     
     if (week.some(day => day !== null)) weeks.push(week);
     
-    return { weeks, maxValues };
+    return { weeks: weeks.slice(-12), maxValues, stats };
   }, [data]);
 
-  // Color intensity function
   const getColorIntensity = (value, max) => {
     if (!value || max === 0) return 0;
-    return Math.min(value / max, 1);
+    return Math.min(Math.sqrt(value / max), 1);
   };
 
-  // Get color based on view mode and intensity
   const getCellColor = (day, intensity) => {
-    if (!day || intensity === 0) return 'rgb(15, 23, 42)'; // dark slate
+    if (!day || intensity === 0) {
+      return 'bg-slate-800 border-slate-700';
+    }
     
-    const colors = {
-      productivity: {
-        light: [59, 130, 246], // blue
-        dark: [29, 78, 216]
-      },
-      goals: {
-        light: [34, 197, 94], // green  
-        dark: [21, 128, 61]
-      },
-      habits: {
-        light: [168, 85, 247], // purple
-        dark: [124, 58, 237]
-      },
-      focus: {
-        light: [251, 146, 60], // orange
-        dark: [234, 88, 12]
-      }
+    const colorMaps = {
+      productivity: [
+        'bg-blue-900/30 border-blue-800/50',
+        'bg-blue-800/40 border-blue-700/60', 
+        'bg-blue-700/50 border-blue-600/70',
+        'bg-blue-600/60 border-blue-500/80',
+        'bg-blue-500/70 border-blue-400/90',
+        'bg-blue-400/80 border-blue-300',
+        'bg-blue-300/90 border-blue-200',
+      ],
+      goals: [
+        'bg-green-900/30 border-green-800/50',
+        'bg-green-800/40 border-green-700/60',
+        'bg-green-700/50 border-green-600/70', 
+        'bg-green-600/60 border-green-500/80',
+        'bg-green-500/70 border-green-400/90',
+        'bg-green-400/80 border-green-300',
+        'bg-green-300/90 border-green-200',
+      ],
+      habits: [
+        'bg-purple-900/30 border-purple-800/50',
+        'bg-purple-800/40 border-purple-700/60',
+        'bg-purple-700/50 border-purple-600/70',
+        'bg-purple-600/60 border-purple-500/80', 
+        'bg-purple-500/70 border-purple-400/90',
+        'bg-purple-400/80 border-purple-300',
+        'bg-purple-300/90 border-purple-200',
+      ],
+      focus: [
+        'bg-orange-900/30 border-orange-800/50',
+        'bg-orange-800/40 border-orange-700/60',
+        'bg-orange-700/50 border-orange-600/70',
+        'bg-orange-600/60 border-orange-500/80',
+        'bg-orange-500/70 border-orange-400/90', 
+        'bg-orange-400/80 border-orange-300',
+        'bg-orange-300/90 border-orange-200',
+      ]
     };
     
-    const colorSet = colors[viewMode] || colors.productivity;
-    const [r, g, b] = colorSet.light;
-    const [dr, dg, db] = colorSet.dark;
-    
-    // Interpolate between light and dark based on intensity
-    const finalR = Math.round(r + (dr - r) * intensity);
-    const finalG = Math.round(g + (dg - g) * intensity);
-    const finalB = Math.round(b + (db - b) * intensity);
-    
-    return `rgb(${finalR}, ${finalG}, ${finalB})`;
+    const colorArray = colorMaps[viewMode] || colorMaps.productivity;
+    const colorIndex = Math.floor(intensity * (colorArray.length - 1));
+    return colorArray[colorIndex];
   };
 
-  // Get value for current view mode
   const getValue = (day) => {
     if (!day) return 0;
     switch (viewMode) {
       case 'goals': return day.goals || 0;
       case 'habits': return day.habits || 0;
-      case 'focus': return Math.round((day.focus || 0) * 60); // Convert hours to minutes for better display
+      case 'focus': return Math.round((day.focus || 0) * 60);
       default: return day.totalActivity || 0;
     }
   };
 
-  // Get tooltip text
-  const getTooltip = (day) => {
-    if (!day) return '';
-    const focusMinutes = Math.round((day.focus || 0) * 60);
-    return `${day.date.toLocaleDateString()}\n` +
-           `Goals: ${day.goals || 0} completed\n` +
-           `Focus: ${focusMinutes}min (${(day.focus || 0).toFixed(1)}h)\n` +
-           `Habits: ${day.habits || 0} tracked\n` +
-           `Milestones: ${day.milestones || 0} reached\n` +
-           `Total Activity: ${day.totalActivity || 0}`;
-  };
-
-  if (!data || data.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <Icon name="Calendar" size={48} className="text-text-muted mx-auto mb-4" />
-        <p className="text-text-secondary">No activity data available</p>
-        <p className="text-text-secondary text-sm mt-2">
-          Start completing goals, focus sessions, and tracking habits to see your activity pattern!
-        </p>
-      </div>
-    );
-  }
+  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   return (
-    <div>
-      {/* View Mode Selector */}
-      <div className="flex space-x-2 mb-4">
-        {[
-          { id: 'productivity', label: 'Overall', icon: 'TrendingUp', color: 'blue' },
-          { id: 'goals', label: 'Goals', icon: 'Target', color: 'green' },
-          { id: 'habits', label: 'Habits', icon: 'Repeat', color: 'purple' },
-          { id: 'focus', label: 'Focus Time', icon: 'Clock', color: 'orange' }
-        ].map((mode) => (
-          <button
-            key={mode.id}
-            onClick={() => setViewMode(mode.id)}
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-              viewMode === mode.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-surface-700 text-text-secondary hover:bg-surface-600'
-            }`}
-          >
-            <Icon name={mode.icon} size={16} />
-            <span>{mode.label}</span>
-          </button>
-        ))}
-      </div>
-      {/* Heatmap Grid */}
-      <div className="overflow-x-auto">
-        <div className="min-w-max">
-          {/* Day labels */}
-          <div className="flex mb-2">
-            <div className="w-12"></div>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="w-10 text-center text-xs text-text-secondary">
-                {day}
-              </div>
-            ))}
-          </div>
-          
-          {/* Heatmap weeks */}
-          <div className="space-y-1">
-            {processedData.weeks.map((week, weekIdx) => (
-              <div key={weekIdx} className="flex">
-                <div className="w-12 text-xs text-text-secondary flex items-center justify-end pr-2">
-                  {week.find(d => d)?.date?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) || ''}
-                </div>
-                {week.map((day, dayIdx) => {
-                  const value = getValue(day);
-                  const intensity = getColorIntensity(value, processedData.maxValues[viewMode] || 1);
-                  const isSelected = selectedDay?.date?.toDateString() === day?.date?.toDateString();
-                  
-                  return (
-                    <div
-                      key={dayIdx}
-                      className={`w-10 h-10 rounded-sm border border-surface-600 cursor-pointer transition-all hover:scale-110 hover:border-primary/50 ${
-                        isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
-                      }`}
-                      style={{
-                        backgroundColor: day ? getCellColor(day, intensity) : 'rgb(30, 41, 59)'
-                      }}
-                      onClick={() => day ? setSelectedDay(day) : null}
-                      title={getTooltip(day)}
-                    >
-                      {day && value > 0 && (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xs text-white font-medium opacity-80">
-                            {viewMode === 'focus' ? `${value}m` : value}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-text-primary">Activity Heatmap</h3>
+        <div className="flex items-center gap-2">
+          {[
+            { key: 'productivity', label: 'All' },
+            { key: 'goals', label: 'Goals' },
+            { key: 'habits', label: 'Habits' },
+            { key: 'focus', label: 'Focus' }
+          ].map(mode => (
+            <button
+              key={mode.key}
+              onClick={() => setViewMode(mode.key)}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                viewMode === mode.key
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'bg-surface-300 text-text-secondary hover:bg-surface-400'
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="mt-4 flex items-center justify-between text-xs text-text-secondary">
-        <span>Less active</span>
-        <div className="flex space-x-1">
-          {[0, 0.2, 0.4, 0.6, 0.8, 1].map((intensity, idx) => (
+      <div className="grid grid-cols-4 gap-4 p-4 bg-surface-300 rounded-lg">
+        <div className="text-center">
+          <div className="text-lg font-bold text-text-primary">
+            {processedData.stats.activeDays || 0}
+          </div>
+          <div className="text-xs text-text-secondary">Active Days</div>
+        </div>
+        <div className="text-center">
+          <div className="text-lg font-bold text-green-500">
+            {Math.round(processedData.stats.avgGoals || 0)}
+          </div>
+          <div className="text-xs text-text-secondary">Avg Goals</div>
+        </div>
+        <div className="text-center">
+          <div className="text-lg font-bold text-purple-500">
+            {Math.round(processedData.stats.avgHabits || 0)}
+          </div>
+          <div className="text-xs text-text-secondary">Avg Habits</div>
+        </div>
+        <div className="text-center">
+          <div className="text-lg font-bold text-orange-500">
+            {Math.round((processedData.stats.avgFocus || 0) * 60)}m
+          </div>
+          <div className="text-xs text-text-secondary">Avg Focus</div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {days.map((day, i) => (
+            <div key={i} className="text-xs text-text-secondary text-center font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-1">
+          {processedData.weeks.map((week, weekIndex) => (
+            <div key={weekIndex} className="grid grid-cols-7 gap-1">
+              {week.map((day, dayIndex) => {
+                const value = getValue(day);
+                const maxValue = processedData.maxValues[viewMode] || 1;
+                const intensity = getColorIntensity(value, maxValue);
+                const colorClass = getCellColor(day, intensity);
+                
+                return (
+                  <motion.div
+                    key={`${weekIndex}-${dayIndex}`}
+                    className={`relative h-8 w-full rounded border cursor-pointer transition-all duration-200 ${colorClass} hover:scale-110 hover:z-10 hover:shadow-lg`}
+                    onClick={() => setSelectedDay(day)}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {day && value > 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-medium text-white">
+                          {value > 99 ? '99+' : value}
+                        </span>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-text-secondary">
+        <span>Less</span>
+        <div className="flex items-center gap-1">
+          {[0, 1, 2, 3, 4, 5, 6].map(i => (
             <div
-              key={idx}
-              className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: getCellColor({ totalActivity: 1 }, intensity) }}
+              key={i}
+              className={`w-3 h-3 rounded border ${getCellColor({ [viewMode]: i + 1 }, i / 6)}`}
             />
           ))}
         </div>
-        <span>More active</span>
+        <span>More</span>
       </div>
 
-      {/* Selected Day Details */}
       {selectedDay && (
-        <div className="mt-4 p-4 bg-surface-700 rounded-lg border border-border">
-          <h4 className="font-semibold text-text-primary mb-2">
-            {selectedDay.date.toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <Icon name="Target" size={16} className="text-green-500" />
-              <span className="text-text-secondary">Goals:</span>
-              <span className="font-medium text-text-primary">{selectedDay.goals || 0}</span>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-surface-300 rounded-lg border border-border"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-text-primary">
+              {selectedDay.date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </h4>
+            <button
+              onClick={() => setSelectedDay(null)}
+              className="text-text-secondary hover:text-text-primary"
+            >
+              <Icon name="X" size={16} />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-lg font-bold text-green-700">{selectedDay.goals || 0}</div>
+              <div className="text-xs text-green-600">Goals</div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="Clock" size={16} className="text-orange-500" />
-              <span className="text-text-secondary">Focus:</span>
-              <span className="font-medium text-text-primary">
-                {Math.round((selectedDay.focus || 0) * 60)}min ({(selectedDay.focus || 0).toFixed(1)}h)
-              </span>
+            <div className="text-center p-3 bg-purple-50 rounded-lg">
+              <div className="text-lg font-bold text-purple-700">{selectedDay.habits || 0}</div>
+              <div className="text-xs text-purple-600">Habits</div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="Repeat" size={16} className="text-purple-500" />
-              <span className="text-text-secondary">Habits:</span>
-              <span className="font-medium text-text-primary">{selectedDay.habits || 0}</span>
+            <div className="text-center p-3 bg-orange-50 rounded-lg">
+              <div className="text-lg font-bold text-orange-700">
+                {Math.round((selectedDay.focus || 0) * 60)}m
+              </div>
+              <div className="text-xs text-orange-600">Focus Time</div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="CheckSquare" size={16} className="text-yellow-500" />
-              <span className="text-text-secondary">Milestones:</span>
-              <span className="font-medium text-text-primary">{selectedDay.milestones || 0}</span>
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-lg font-bold text-blue-700">{selectedDay.milestones || 0}</div>
+              <div className="text-xs text-blue-600">Milestones</div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );
 };
 
-export default ProductivityHeatmap; 
+export default ProductivityHeatmap;

@@ -10,12 +10,12 @@ const QuickLinksPanel = ({
   sessionId, 
   onLinkClick,
   sessionLinks = [],
-  onSessionLinksChange 
+  onSessionLinksChange,
+  onGlobalLinksChange 
 }) => {
   const { user } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLink, setNewLink] = useState({ title: '', url: '', icon: 'globe' });
-  const [linkType, setLinkType] = useState('session'); // 'session' or 'global'
   const [globalLinks, setGlobalLinks] = useState([]);
   const [isMinimized, setIsMinimized] = useState(false);
 
@@ -37,6 +37,7 @@ const QuickLinksPanel = ({
   const saveGlobalLinks = (links) => {
     if (user && user.id) {
       localStorage.setItem(`focus_global_links_${user.id}`, JSON.stringify(links));
+      onGlobalLinksChange?.(links);
     }
   };
 
@@ -51,30 +52,20 @@ const QuickLinksPanel = ({
       addedAt: new Date().toISOString()
     };
 
-    if (linkType === 'global') {
-      const updatedGlobalLinks = [...globalLinks, linkData];
-      setGlobalLinks(updatedGlobalLinks);
-      saveGlobalLinks(updatedGlobalLinks);
-    } else {
-      // Session-specific link
-      const updatedSessionLinks = [...sessionLinks, linkData];
-      onSessionLinksChange(updatedSessionLinks);
-    }
+    // Always add to global links (permanent)
+    const updatedGlobalLinks = [...globalLinks, linkData];
+    setGlobalLinks(updatedGlobalLinks);
+    saveGlobalLinks(updatedGlobalLinks);
 
     // Reset form
     setNewLink({ title: '', url: '', icon: 'globe' });
     setShowAddForm(false);
   };
 
-  const handleRemoveLink = (linkId, type) => {
-    if (type === 'global') {
-      const updatedGlobalLinks = globalLinks.filter(link => link.id !== linkId);
-      setGlobalLinks(updatedGlobalLinks);
-      saveGlobalLinks(updatedGlobalLinks);
-    } else {
-      const updatedSessionLinks = sessionLinks.filter(link => link.id !== linkId);
-      onSessionLinksChange(updatedSessionLinks);
-    }
+  const handleRemoveLink = (linkId) => {
+    const updatedGlobalLinks = globalLinks.filter(link => link.id !== linkId);
+    setGlobalLinks(updatedGlobalLinks);
+    saveGlobalLinks(updatedGlobalLinks);
   };
 
   const handleLinkClick = (link) => {
@@ -107,7 +98,7 @@ const QuickLinksPanel = ({
     { value: 'Linkedin', label: 'LinkedIn' }
   ];
 
-  const allLinks = [...globalLinks, ...sessionLinks];
+  const allLinks = [...globalLinks];
 
   return (
     <div className={`fixed right-4 top-20 w-80 bg-surface border border-border rounded-lg shadow-lg transition-all duration-300 z-50 ${
@@ -152,31 +143,7 @@ const QuickLinksPanel = ({
           {showAddForm && (
             <div className="bg-surface-800 rounded-lg p-4 mb-4 border border-border">
               <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-body-medium text-text-primary mb-1">
-                    Link Type
-                  </label>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant={linkType === 'session' ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => setLinkType('session')}
-                      className="flex-1"
-                    >
-                      Session Only
-                    </Button>
-                    <Button
-                      variant={linkType === 'global' ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => setLinkType('global')}
-                      className="flex-1"
-                    >
-                      Global
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
+                                <div>
                   <label className="block text-sm font-body-medium text-text-primary mb-1">
                     Title
                   </label>
@@ -268,7 +235,7 @@ const QuickLinksPanel = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleRemoveLink(link.id, globalLinks.some(gl => gl.id === link.id) ? 'global' : 'session')}
+                  onClick={() => handleRemoveLink(link.id)}
                   iconName="Trash2"
                   className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Delete Link"
