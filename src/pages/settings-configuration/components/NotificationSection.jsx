@@ -8,6 +8,7 @@ import smsNotificationService from '../../../services/smsNotificationService';
 import discordNotificationService from '../../../services/discordNotificationService';
 import ntfyNotificationService from '../../../services/ntfyNotificationService';
 import inAppNotificationService from '../../../services/inAppNotificationService';
+import notificationSchedulerService from '../../../services/notificationSchedulerService';
 import firestoreService from '../../../services/firestoreService';
 
 const NotificationSection = () => {
@@ -90,6 +91,8 @@ const NotificationSection = () => {
     updateNotificationSettings({
       [key]: !settings.notifications[key]
     });
+    // Sync to backend for scheduled notifications
+    syncToBackend();
   };
 
   const handleQuietHoursToggle = () => {
@@ -99,6 +102,7 @@ const NotificationSection = () => {
         enabled: !settings.notifications.quietHours.enabled
       }
     });
+    syncToBackend();
   };
 
   const handleTimeChange = (field, value) => {
@@ -108,6 +112,46 @@ const NotificationSection = () => {
         [field]: value
       }
     });
+    syncToBackend();
+  };
+
+  // Sync notification settings to backend for scheduled notifications
+  const syncToBackend = async () => {
+    if (!user) return;
+    
+    try {
+      await notificationSchedulerService.saveUserNotificationSettings(user.id, settings.notifications);
+      console.log('Notification settings synced to backend');
+    } catch (error) {
+      console.error('Failed to sync notification settings to backend:', error);
+    }
+  };
+
+  // Test backend notification system
+  const testBackendNotifications = async () => {
+    if (!user) return;
+    
+    setTestStatus(prev => ({ ...prev, 'backend': 'sending' }));
+    
+    try {
+      const success = await notificationSchedulerService.testBackendConnection(
+        user.id, 
+        "🧪 Backend notification test! Your scheduled notifications will work even when the browser is closed."
+      );
+      
+      setTestStatus(prev => ({ 
+        ...prev, 
+        'backend': success ? 'success' : 'error' 
+      }));
+      
+      setTimeout(() => {
+        setTestStatus(prev => ({ ...prev, 'backend': null }));
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Backend notification test failed:', error);
+      setTestStatus(prev => ({ ...prev, 'backend': 'error' }));
+    }
   };
 
   const handleSMSChange = (phoneNumber, carrier) => {
@@ -164,6 +208,9 @@ const NotificationSection = () => {
     if (topic) {
       ntfyNotificationService.init(topic);
     }
+    
+    // Sync to backend for scheduled notifications
+    syncToBackend();
   };
 
   const handleScheduleTimeChange = (notificationType, time) => {
@@ -173,6 +220,9 @@ const NotificationSection = () => {
         [notificationType]: time
       }
     });
+    
+    // Sync to backend for scheduled notifications
+    syncToBackend();
   };
 
   const handleTestNotification = async (type) => {
@@ -585,6 +635,28 @@ const NotificationSection = () => {
             <p className="text-xs text-text-secondary">
               <strong>How to use:</strong> Download the <a href="https://ntfy.sh/app/" target="_blank" rel="noopener noreferrer" className="underline text-primary">ntfy app</a> on your phone, choose a unique topic, and subscribe to it in the app. Enter your topic above.
             </p>
+            
+            {/* Backend Test */}
+            <div className="mt-4 pt-3 border-t border-border">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h6 className="text-sm font-medium text-text-primary">Backend Notifications</h6>
+                  <p className="text-xs text-text-secondary">Test scheduled notifications that work even when browser is closed</p>
+                </div>
+                <button
+                  onClick={testBackendNotifications}
+                  disabled={!settings.notifications.enabled || !settings.notifications.ntfy?.topic}
+                  className={`px-3 py-1 text-xs font-medium text-white rounded-lg transition-colors ${
+                    !settings.notifications.enabled || !settings.notifications.ntfy?.topic 
+                      ? 'bg-gray-500 opacity-50 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  aria-label="Test Backend Notifications"
+                >
+                  Test Backend
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
