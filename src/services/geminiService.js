@@ -20,6 +20,27 @@ class GeminiService {
       throw new Error('API key is required');
     }
     this.apiKey = apiKey;
+    
+    // Test the API key to ensure it's valid
+    try {
+      await this.generateContent('Hello');
+      return true;
+    } catch (error) {
+      this.apiKey = null;
+      throw new Error('Invalid API key provided');
+    }
+  }
+
+  // Enhanced method to initialize from settings context
+  initializeFromSettings(settings) {
+    const apiKey = settings?.geminiApiKey;
+    if (!apiKey) {
+      console.warn('No Gemini API key found in settings');
+      return false;
+    }
+    
+    this.setApiKey(apiKey);
+    return true;
   }
 
   async generateContent(prompt, customApiKey = null) {
@@ -137,13 +158,16 @@ User Context:
 - Name: ${context?.user?.name || 'User'}
 - Current Goals: ${context?.currentGoals?.length || 0} active goals
 - Conversation History: ${context?.conversationHistory?.length || 0} previous messages
+- Recent Activity: ${context?.recentActivity ? JSON.stringify(context.recentActivity).substring(0, 200) : 'None'}
+- User Patterns: ${context?.userPatterns ? Object.keys(context.userPatterns).join(', ') : 'None'}
 
 Available Actions:`;
 
     let actionsPrompt = "";
     if (capabilities.canCreateGoals) {
       actionsPrompt += `
-- CREATE GOAL: When user wants to create a goal, use: [ACTION]{"type": "create_goal", "data": {"title": "Goal Title", "description": "Goal Description", "category": "personal|health|career|education", "priority": "high|medium|low", "deadline": "YYYY-MM-DD"}}[/ACTION]`;
+- CREATE GOAL: When user wants to create a goal, use: [ACTION]{"type": "create_goal", "data": {"title": "Goal Title", "description": "Goal Description", "category": "personal|health|career|education", "priority": "high|medium|low", "deadline": "YYYY-MM-DD"}}[/ACTION]
+- CREATE GOAL UI: To show interactive goal creation UI, use: [ACTION]{"type": "show_goal_ui", "data": {"action": "create", "prefilled": {}}}[/ACTION]`;
     }
     
     if (capabilities.canCreateMilestones) {
@@ -153,7 +177,8 @@ Available Actions:`;
     
     if (capabilities.canManageHabits) {
       actionsPrompt += `
-- CREATE HABIT: When user wants to create habits, use: [ACTION]{"type": "create_habit", "data": {"title": "Habit Title", "description": "Description", "frequency": "daily|weekly", "category": "health|productivity|personal"}}[/ACTION]`;
+- CREATE HABIT: When user wants to create habits, use: [ACTION]{"type": "create_habit", "data": {"title": "Habit Title", "description": "Description", "frequency": "daily|weekly", "category": "health|productivity|personal"}}[/ACTION]
+- CREATE HABIT UI: To show interactive habit creation UI, use: [ACTION]{"type": "show_habit_ui", "data": {"action": "create", "prefilled": {}}}[/ACTION]`;
     }
     
     if (capabilities.canAddJournalEntries) {
@@ -168,11 +193,18 @@ Available Actions:`;
 Instructions:
 1. Keep responses conversational and friendly
 2. Be practical and actionable
-3. Use actions when appropriate to help users
-4. Provide specific, helpful advice
+3. Use interactive UI actions (show_goal_ui, show_habit_ui) when users want to create or edit items
+4. Provide specific, helpful advice based on user's context and patterns
 5. Be encouraging and supportive
-6. When creating items for users, use the action format shown above
+6. When creating items for users, prefer showing UI over direct actions for better user experience
 7. Always explain what you're doing when taking actions
+8. Use the user's historical data and patterns to provide personalized recommendations
+
+Context Usage:
+- Reference user's existing goals when suggesting new ones
+- Consider their patterns and preferences
+- Build on their previous conversations
+- Acknowledge their progress and achievements
 
 Respond naturally first, then add appropriate actions if needed.`;
 
@@ -189,6 +221,12 @@ Respond naturally first, then add appropriate actions if needed.`;
         try {
           const jsonStr = match.replace(/\[ACTION\]|\[\/ACTION\]/g, '').trim();
           const actionData = JSON.parse(jsonStr);
+          
+          // Handle UI action types by converting them to interactive UI actions
+          if (actionData.type === 'show_goal_ui' || actionData.type === 'show_habit_ui') {
+            actionData.isUI = true;
+          }
+          
           actions.push(actionData);
         } catch (parseError) {
           console.warn('Could not parse action:', parseError);
