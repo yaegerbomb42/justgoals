@@ -251,7 +251,8 @@ const DriftChat = () => {
             break;
           case 'show_goal_ui':
           case 'show_habit_ui':
-            // These are handled by the UI components directly
+            // These actions are handled directly by the MessageBubble component
+            // They don't need processing here as they trigger UI components
             break;
           case 'analyze_progress':
             await handleAnalyzeProgress(action.data);

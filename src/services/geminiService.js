@@ -221,6 +221,12 @@ Respond naturally first, then add appropriate actions if needed.`;
         try {
           const jsonStr = match.replace(/\[ACTION\]|\[\/ACTION\]/g, '').trim();
           const actionData = JSON.parse(jsonStr);
+          
+          // Handle UI action types by converting them to interactive UI actions
+          if (actionData.type === 'show_goal_ui' || actionData.type === 'show_habit_ui') {
+            actionData.isUI = true;
+          }
+          
           actions.push(actionData);
         } catch (parseError) {
           console.warn('Could not parse action:', parseError);
