@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import * as entityService from '../../services/entityManagementService'; // Import the service
+import * as entityService from '../../services/entityManagementService';
+import { migrateGoalDeadlineField } from '../../utils/userUtils'; // Import the service
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 import GoalFormWizard from './components/GoalFormWizard';
 import AIAssistantPanel from './components/AIAssistantPanel';
@@ -23,6 +24,9 @@ const GoalCreationManagement = () => {
   // Load goals using the entity service
   useEffect(() => {
     if (isAuthenticated && user) {
+      // Migrate any existing goals from targetDate to deadline field
+      migrateGoalDeadlineField(user);
+      
       (async () => {
         const userGoals = await entityService.getGoals(user);
         setExistingGoals(userGoals);
@@ -265,7 +269,7 @@ const GoalCreationManagement = () => {
                 </div>
                 <div>
                   <div className="text-lg font-heading-medium text-text-primary">
-                    {existingGoals.filter(g => new Date(g.targetDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).length}
+                    {existingGoals.filter(g => g.deadline && new Date(g.deadline) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).length}
                   </div>
                   <div className="text-sm text-text-secondary">Due Soon</div>
                 </div>

@@ -35,7 +35,7 @@ const SmartPriorityManager = ({
         ...userContext,
         totalGoals: goals.length,
         completedGoals: goals.filter(g => g.progress >= 100).length,
-        overdue: goals.filter(g => g.targetDate && new Date(g.targetDate) < new Date()).length,
+        overdue: goals.filter(g => g.deadline && new Date(g.deadline) < new Date()).length,
         categories: [...new Set(goals.map(g => g.category))],
         avgProgress: Math.round(goals.reduce((sum, g) => sum + (g.progress || 0), 0) / goals.length)
       };
@@ -121,7 +121,7 @@ const SmartPriorityManager = ({
     }
 
     const overdueGoals = all.filter(g => 
-      g.targetDate && new Date(g.targetDate) < new Date()
+      g.deadline && new Date(g.deadline) < new Date()
     );
     
     if (overdueGoals.length > 0) {
@@ -261,8 +261,8 @@ const SmartPriorityManager = ({
                         
                         <div className="flex items-center space-x-4 text-sm text-text-secondary mb-2">
                           <span>{goal.category}</span>
-                          {goal.targetDate && (
-                            <span>Due: {new Date(goal.targetDate).toLocaleDateString()}</span>
+                          {goal.deadline && (
+                            <span>Due: {new Date(goal.deadline).toLocaleDateString()}</span>
                           )}
                           <span>{goal.progress || 0}% complete</span>
                         </div>

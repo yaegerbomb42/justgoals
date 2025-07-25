@@ -5,6 +5,7 @@ import { useAchievements } from '../../context/AchievementContext';
 import { useSettings } from '../../context/SettingsContext';
 import * as entityService from '../../services/entityManagementService';
 import { calculateUserStreak } from '../../utils/goalUtils';
+import { migrateGoalDeadlineField } from '../../utils/userUtils';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 import SmartPriorityManager from '../../components/SmartPriorityManager';
 import WelcomeHero from './components/WelcomeHero';
@@ -58,6 +59,9 @@ const GoalsDashboard = () => {
   useEffect(() => {
     setGoals([]);
     if (isAuthenticated && user) {
+      // Migrate any existing goals from targetDate to deadline field
+      migrateGoalDeadlineField(user);
+      
       (async () => {
         const userGoals = await entityService.getGoals(user);
         setGoals(userGoals);
@@ -176,11 +180,11 @@ const GoalsDashboard = () => {
       filtered = filtered.filter(goal => {
         switch (activeFilter) {
           case 'active':
-            return goal.progress < 100 && (!goal.targetDate || new Date(goal.targetDate) >= new Date());
+            return goal.progress < 100 && (!goal.deadline || new Date(goal.deadline) >= new Date());
           case 'completed':
             return goal.progress >= 100;
           case 'overdue':
-            return goal.progress < 100 && goal.targetDate && new Date(goal.targetDate) < new Date();
+            return goal.progress < 100 && goal.deadline && new Date(goal.deadline) < new Date();
           case 'high-priority':
             return goal.priority === 'high' || goal.priority === 'critical';
           default:
@@ -193,8 +197,8 @@ const GoalsDashboard = () => {
     // Apply sorting
     if (activeSort === 'deadline') {
       filtered.sort((a, b) => {
-        const dateA = new Date(a.targetDate || a.deadline || '9999-12-31');
-        const dateB = new Date(b.targetDate || b.deadline || '9999-12-31');
+        const dateA = new Date(a.deadline || '9999-12-31');
+        const dateB = new Date(b.deadline || '9999-12-31');
         return dateA - dateB;
       });
     } else if (activeSort === 'progress') {
@@ -270,7 +274,7 @@ const GoalsDashboard = () => {
     return {
       totalGoals: safeGoals.length,
       completedGoals: safeGoals.filter(g => g.progress >= 100).length,
-      overdue: safeGoals.filter(g => g.targetDate && new Date(g.targetDate) < new Date()).length,
+      overdue: safeGoals.filter(g => g.deadline && new Date(g.deadline) < new Date()).length,
       categories: [...new Set(safeGoals.map(g => g.category))],
       avgProgress: safeGoals.length > 0 ? Math.round(safeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / safeGoals.length) : 0,
       userName: user?.displayName || user?.email || 'User',

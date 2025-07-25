@@ -95,6 +95,46 @@ export const getUserStreakData = (user) => {
 };
 
 /**
+ * Migrate goals from targetDate to deadline field for consistency
+ * @param {object} user - User object from auth context
+ */
+export const migrateGoalDeadlineField = (user) => {
+  const userId = getUserId(user);
+  if (!userId) return;
+
+  try {
+    const goalsKey = `goals_data_${userId}`;
+    const goalsData = localStorage.getItem(goalsKey);
+    
+    if (goalsData) {
+      const goals = JSON.parse(goalsData);
+      let hasChanges = false;
+      
+      const updatedGoals = goals.map(goal => {
+        // If goal has targetDate but no deadline, migrate it
+        if (goal.targetDate && !goal.deadline) {
+          hasChanges = true;
+          console.log(`Migrating goal "${goal.title}" targetDate to deadline`);
+          return {
+            ...goal,
+            deadline: goal.targetDate,
+            // Keep targetDate for compatibility during transition
+          };
+        }
+        return goal;
+      });
+      
+      if (hasChanges) {
+        localStorage.setItem(goalsKey, JSON.stringify(updatedGoals));
+        console.log(`Migrated ${goals.length} goals deadline field`);
+      }
+    }
+  } catch (e) {
+    console.error('Error migrating goal deadline field:', e);
+  }
+};
+
+/**
  * Migrate legacy localStorage keys to use standardized user ID
  * @param {object} user - User object from auth context
  */

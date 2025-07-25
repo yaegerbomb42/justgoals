@@ -224,17 +224,14 @@ const GoalFormWizard = ({ onGoalSave, onStepChange, currentStep }) => {
         completed: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        // Handle targetDate properly in user's local timezone
-        targetDate: formData.targetDate ? (() => {
-          // Parse the date input as local date (YYYY-MM-DD)
-          const localDate = new Date(formData.targetDate + 'T00:00:00');
-          // Set to end of day in local timezone to avoid date shifting
-          localDate.setHours(23, 59, 59, 999);
-          return localDate.toISOString();
-        })() : null,
+        // Map targetDate to deadline and handle timezone properly
+        deadline: formData.targetDate ? formData.targetDate : null, // Keep as YYYY-MM-DD format
         milestones: [],
         id: `goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       };
+      
+      // Remove targetDate since we're using deadline instead
+      delete goalData.targetDate;
       onGoalSave(goalData);
     }
   };

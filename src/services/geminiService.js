@@ -496,7 +496,7 @@ Keep it concise but impactful.`;
 
     // Analyze goals for priority factors
     const goalsForAI = goals.map((goal, index) => {
-      const deadline = goal.targetDate || goal.deadline;
+      const deadline = goal.deadline;
       const daysUntilDeadline = deadline ? 
         Math.floor((new Date(deadline) - now) / 86400000) : null;
       

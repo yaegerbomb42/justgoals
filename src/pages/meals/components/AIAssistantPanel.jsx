@@ -54,7 +54,7 @@ What would you like me to help you with today?`,
     if (user?.uid && messages.length > 0) {
       const historyData = {
         messages,
-        timestamp: Date.now(),
+        timestamp: new Date(),
       };
       localStorage.setItem(`meals-ai-conversation-${user?.uid}`, JSON.stringify(historyData));
     }
@@ -523,7 +523,16 @@ Respond naturally first, then add the action.`;
               >
                 <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                 <div className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
+                  {(() => {
+                    try {
+                      const timestamp = message.timestamp instanceof Date 
+                        ? message.timestamp 
+                        : new Date(message.timestamp);
+                      return timestamp.toLocaleTimeString();
+                    } catch (e) {
+                      return new Date().toLocaleTimeString();
+                    }
+                  })()}
                 </div>
               </div>
             </motion.div>

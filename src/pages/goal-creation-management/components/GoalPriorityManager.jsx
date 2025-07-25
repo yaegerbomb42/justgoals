@@ -115,9 +115,9 @@ const GoalPriorityManager = ({ goals, onGoalsReorder, onPriorityChange, onDelete
                     <span className="text-sm text-text-secondary">
                       {goal.category}
                     </span>
-                    {goal.targetDate && (
+                    {goal.deadline && (
                       <span className="text-sm text-text-secondary">
-                        Due: {new Date(goal.targetDate).toLocaleDateString()}
+                        Due: {new Date(goal.deadline).toLocaleDateString()}
                       </span>
                     )}
                   </div>

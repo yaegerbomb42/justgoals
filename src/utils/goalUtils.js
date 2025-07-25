@@ -345,17 +345,21 @@ export const getDaysUntilDeadline = (deadline) => {
   if (!deadline) return null;
   
   try {
-    // Create a new date object from the deadline string
-    const deadlineDate = new Date(deadline + 'T23:59:59'); // End of deadline day
+    // Parse the deadline date (YYYY-MM-DD) in local timezone
+    const deadlineDate = new Date(deadline);
     const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today to fix off-by-one error
+    
+    // Reset time to midnight for both dates to avoid time comparison issues
+    deadlineDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
     
     // Calculate difference in milliseconds and convert to days
     const diffTime = deadlineDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Use ceil instead of floor
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     return diffDays;
   } catch (error) {
+    console.error('Error calculating days until deadline:', error);
     return null;
   }
 };
