@@ -60,24 +60,56 @@ const GoalFormWizard = ({ onGoalSave, onStepChange, currentStep }) => {
 
   // Load Google API
   useEffect(() => {
-    if (!window.gapi) {
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        window.gapi.load('client:auth2', async () => {
-          await window.gapi.client.init({
-            apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-            clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-            discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-            scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly"
-          });
-          setGoogleAuthLoaded(true);
+    const loadGoogleAPI = async () => {
+      try {
+        // Check if required environment variables are present
+        if (!import.meta.env.VITE_GOOGLE_API_KEY) {
+          console.warn('⚠️ VITE_GOOGLE_API_KEY not found - Google Calendar sync disabled');
+          return;
+        }
+        if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+          console.warn('⚠️ VITE_GOOGLE_CLIENT_ID not found - Google Calendar sync disabled');
+          return;
+        }
+
+        if (!window.gapi) {
+          const script = document.createElement('script');
+          script.src = 'https://apis.google.com/js/api.js';
+          script.onload = () => initializeGapi();
+          script.onerror = () => {
+            console.error('❌ Failed to load Google API script');
+          };
+          document.body.appendChild(script);
+        } else {
+          await initializeGapi();
+        }
+      } catch (error) {
+        console.error('❌ Error loading Google API:', error);
+      }
+    };
+
+    const initializeGapi = async () => {
+      try {
+        await new Promise((resolve) => {
+          window.gapi.load('client:auth2', resolve);
         });
-      };
-      document.body.appendChild(script);
-    } else {
-      setGoogleAuthLoaded(true);
-    }
+
+        await window.gapi.client.init({
+          apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+          clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
+          scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly"
+        });
+
+        console.log('✅ Google API initialized successfully');
+        setGoogleAuthLoaded(true);
+      } catch (error) {
+        console.error('❌ Failed to initialize Google API:', error);
+        setCalendarBanner(`Google Calendar setup failed: ${error.message}`);
+      }
+    };
+
+    loadGoogleAPI();
   }, []);
 
   // On mount, try to load eventId for this goal if editing
@@ -91,26 +123,68 @@ const GoalFormWizard = ({ onGoalSave, onStepChange, currentStep }) => {
 
   // Fetch user's calendars
   const fetchCalendars = async () => {
-    if (!window.gapi || !window.gapi.auth2) return;
-    await window.gapi.auth2.getAuthInstance().signIn();
-    const res = await window.gapi.client.calendar.calendarList.list();
-    setCalendarList(res.result.items || []);
+    try {
+      if (!window.gapi || !window.gapi.auth2) {
+        throw new Error('Google API not loaded');
+      }
+
+      const authInstance = window.gapi.auth2.getAuthInstance();
+      if (!authInstance) {
+        throw new Error('Google Auth not initialized');
+      }
+
+      console.log('🔐 Attempting Google sign-in...');
+      const user = await authInstance.signIn();
+      
+      if (!user.isSignedIn()) {
+        throw new Error('User not signed in');
+      }
+
+      console.log('📅 Fetching calendar list...');
+      const response = await window.gapi.client.calendar.calendarList.list();
+      const calendars = response.result.items || [];
+      
+      console.log(`✅ Found ${calendars.length} calendars`);
+      setCalendarList(calendars);
+      setCalendarBanner(`Connected! Found ${calendars.length} calendars.`);
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch calendars:', error);
+      setCalendarBanner(`Failed to connect to Google Calendar: ${error.message}`);
+    }
   };
 
   // Add or update event in Google Calendar
   const syncGoalToGoogleCalendar = async () => {
     setCalendarSyncStatus('syncing');
     try {
-      await window.gapi.auth2.getAuthInstance().signIn();
+      if (!window.gapi || !window.gapi.auth2) {
+        throw new Error('Google API not loaded');
+      }
+
+      const authInstance = window.gapi.auth2.getAuthInstance();
+      if (!authInstance || !authInstance.isSignedIn.get()) {
+        console.log('🔐 Signing in to Google...');
+        await authInstance.signIn();
+      }
+
+      if (!formData.title || !formData.targetDate) {
+        throw new Error('Goal title and target date are required');
+      }
+
       const event = {
         summary: formData.title,
-        description: formData.description,
+        description: formData.description || 'Goal created with JustGoals',
         start: { date: formData.targetDate },
         end: { date: formData.targetDate },
       };
+
+      console.log('📅 Syncing event to calendar:', selectedCalendar);
       let response;
+
       if (eventIdRef.current) {
         // Update existing event
+        console.log('🔄 Updating existing event:', eventIdRef.current);
         response = await window.gapi.client.calendar.events.update({
           calendarId: selectedCalendar,
           eventId: eventIdRef.current,
@@ -118,22 +192,41 @@ const GoalFormWizard = ({ onGoalSave, onStepChange, currentStep }) => {
         });
       } else {
         // Create new event
+        console.log('➕ Creating new event');
         response = await window.gapi.client.calendar.events.insert({
           calendarId: selectedCalendar,
           resource: event,
         });
         eventIdRef.current = response.result.id;
+        
+        // Save event ID to Firestore
         if (user && formData.id) {
           await saveGoalCalendarEventId(user.id, formData.id, eventIdRef.current);
         }
       }
+
       setCalendarSyncStatus('success');
-      setCalendarBanner('Goal synced to Google Calendar!');
-      window.open(response.result.htmlLink, '_blank');
+      setCalendarBanner('✅ Goal synced to Google Calendar!');
+      
+      // Open calendar event
+      if (response.result.htmlLink) {
+        window.open(response.result.htmlLink, '_blank');
+      }
+      
     } catch (err) {
+      console.error('❌ Google Calendar sync failed:', err);
       setCalendarSyncStatus('error');
-      setCalendarBanner('Google Calendar sync failed.');
-      alert('Google Calendar sync failed: ' + (err.message || err));
+      
+      let errorMessage = 'Google Calendar sync failed.';
+      if (err.message) {
+        errorMessage += ` ${err.message}`;
+      }
+      if (err.details) {
+        errorMessage += ` Details: ${err.details}`;
+      }
+      
+      setCalendarBanner(errorMessage);
+      alert(errorMessage);
     }
   };
 
