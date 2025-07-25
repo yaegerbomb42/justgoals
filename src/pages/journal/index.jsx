@@ -31,32 +31,43 @@ const Journal = () => {
 
   // Load goals using the entity service
   useEffect(() => {
-    if (isAuthenticated && user) {
-      try {
-        const userGoals = entityService.getGoals(user);
-        setGoals(Array.isArray(userGoals) ? userGoals : []);
-      } catch (e) {
+    const loadGoals = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const userGoals = await entityService.getGoals(user);
+          setGoals(Array.isArray(userGoals) ? userGoals : []);
+        } catch (e) {
+          console.error('Error loading goals:', e);
+          setGoals([]);
+          setError('Failed to load goals. Please check your connection or permissions.');
+        }
+      } else {
         setGoals([]);
-        setError('Failed to load goals. Please check your connection or permissions.');
       }
-    } else {
-      setGoals([]);
-    }
+    };
+
+    loadGoals();
   }, [isAuthenticated, user]);
 
   // Load journal entries using the entity service
   useEffect(() => {
-    if (isAuthenticated && user) {
-      try {
-        const userEntries = entityService.getJournalEntries(user);
-        setEntries(Array.isArray(userEntries) ? userEntries : []);
-      } catch (e) {
+    const loadEntries = async () => {
+      if (isAuthenticated && user) {
+        try {
+          setError(null);
+          const userEntries = await entityService.getJournalEntries(user);
+          setEntries(Array.isArray(userEntries) ? userEntries : []);
+        } catch (e) {
+          console.error('Error loading journal entries:', e);
+          setEntries([]);
+          setError('Failed to load journal entries. Please check your connection or permissions.');
+        }
+      } else {
         setEntries([]);
-        setError('Failed to load journal entries. Please check your connection or permissions.');
       }
-    } else {
-      setEntries([]);
-    }
+    };
+
+    loadEntries();
   }, [isAuthenticated, user]);
 
   // Filter entries based on search and filters. This useEffect remains largely the same.
@@ -86,11 +97,15 @@ const Journal = () => {
     setFilteredEntries(filtered);
   }, [entries, searchQuery, selectedMood, selectedGoal]);
 
-  const handleSaveEntry = (entryData) => { // entryData comes from JournalEditor
-    if (user) {
+  const handleSaveEntry = async (entryData) => { // entryData comes from JournalEditor
+    if (!user) return;
+
+    try {
+      setError(null);
+      
       if (selectedEntry) {
         // Update existing entry
-        const updatedEntry = entityService.updateJournalEntry(user, selectedEntry.id, entryData);
+        const updatedEntry = await entityService.updateJournalEntry(user, selectedEntry.id, entryData);
         if (updatedEntry) {
           setEntries(prevEntries =>
             prevEntries.map(entry =>
@@ -100,15 +115,20 @@ const Journal = () => {
         }
       } else {
         // Create new entry
-        const createdEntry = entityService.createJournalEntry(user, entryData);
+        const createdEntry = await entityService.createJournalEntry(user, entryData);
         if (createdEntry) {
           // The service prepends, so we can just fetch all again or prepend locally
           setEntries(prevEntries => [createdEntry, ...prevEntries]);
         }
       }
+      
+      // Close editor and clear selection
+      setIsEditorOpen(false);
+      setSelectedEntry(null);
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
+      setError('Failed to save journal entry. Please try again.');
     }
-    setIsEditorOpen(false);
-    setSelectedEntry(null);
   };
 
   const handleEditEntry = (entry) => {
@@ -116,11 +136,19 @@ const Journal = () => {
     setIsEditorOpen(true);
   };
 
-  const handleDeleteEntry = (entryId) => {
-    if (user && window.confirm('Are you sure you want to delete this entry?')) {
-      const success = entityService.deleteJournalEntry(user, entryId);
-      if (success) {
-        setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
+  const handleDeleteEntry = async (entryId) => {
+    if (!user) return;
+    
+    if (window.confirm('Are you sure you want to delete this entry?')) {
+      try {
+        setError(null);
+        const success = await entityService.deleteJournalEntry(user, entryId);
+        if (success) {
+          setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
+        }
+      } catch (error) {
+        console.error('Error deleting journal entry:', error);
+        setError('Failed to delete journal entry. Please try again.');
       }
     }
   };

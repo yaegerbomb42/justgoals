@@ -168,14 +168,44 @@ const GoalsDashboard = () => {
   // Filter and sort goals
   useEffect(() => {
     let filtered = [...goals];
+    
+    // Apply filter based on type
     if (activeFilter !== 'all') {
-      filtered = filtered.filter(goal => goal.category === activeFilter);
+      filtered = filtered.filter(goal => {
+        switch (activeFilter) {
+          case 'active':
+            return goal.progress < 100 && (!goal.targetDate || new Date(goal.targetDate) >= new Date());
+          case 'completed':
+            return goal.progress >= 100;
+          case 'overdue':
+            return goal.progress < 100 && goal.targetDate && new Date(goal.targetDate) < new Date();
+          case 'high-priority':
+            return goal.priority === 'high' || goal.priority === 'critical';
+          default:
+            // If it's not a status filter, treat it as a category filter
+            return goal.category === activeFilter;
+        }
+      });
     }
+    
+    // Apply sorting
     if (activeSort === 'deadline') {
-      filtered.sort((a, b) => new Date(a.targetDate || a.deadline) - new Date(b.targetDate || b.deadline));
+      filtered.sort((a, b) => {
+        const dateA = new Date(a.targetDate || a.deadline || '9999-12-31');
+        const dateB = new Date(b.targetDate || b.deadline || '9999-12-31');
+        return dateA - dateB;
+      });
     } else if (activeSort === 'progress') {
       filtered.sort((a, b) => (b.progress || 0) - (a.progress || 0));
+    } else if (activeSort === 'priority') {
+      const priorityOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+      filtered.sort((a, b) => (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0));
+    } else if (activeSort === 'created') {
+      filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    } else if (activeSort === 'alphabetical') {
+      filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
     }
+    
     setFilteredGoals(filtered);
   }, [goals, activeFilter, activeSort]);
 

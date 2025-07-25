@@ -22,6 +22,7 @@ const StreakAnalytics = ({ data = {} }) => {
 
   // Generate streak history for visualization
   const streakHistory = useMemo(() => {
+    const safeData = data && typeof data === 'object' ? data : {};
     const days = 30; // Last 30 days
     const history = [];
     const today = new Date();
@@ -40,7 +41,7 @@ const StreakAnalytics = ({ data = {} }) => {
       };
       // Optionally, fill from safeData if available
       if (safeData.streakHistory && Array.isArray(safeData.streakHistory)) {
-        const found = safeData.streakHistory.find(d => d.date === dayData.date);
+        const found = safeData.streakHistory.find(d => d && d.date === dayData.date);
         if (found) {
           dayData.dailyCheckins = found.dailyCheckins || 0;
           dayData.focusSessions = found.focusSessions || 0;
@@ -51,10 +52,27 @@ const StreakAnalytics = ({ data = {} }) => {
       history.push(dayData);
     }
     return history;
-  }, [safeData]);
+  }, [data]);
 
   // Calculate streak patterns
   const streakPatterns = useMemo(() => {
+    if (!Array.isArray(streakHistory) || streakHistory.length === 0) {
+      return {
+        weekdays: Array(7).fill(0).map((_, i) => ({
+          day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i],
+          dailyCheckins: 0,
+          focusSessions: 0,
+          goalUpdates: 0,
+          count: 0
+        })),
+        hourly: Array(24).fill(0).map((_, i) => ({
+          hour: i,
+          activity: 0,
+          focusSessions: 0
+        }))
+      };
+    }
+
     const patterns = {
       weekdays: Array(7).fill(0).map((_, i) => ({
         day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i],
@@ -65,26 +83,30 @@ const StreakAnalytics = ({ data = {} }) => {
       })),
       hourly: Array(24).fill(0).map((_, i) => ({
         hour: i,
-        activity: Math.random() * 10, // Mock hourly activity
-        focusSessions: Math.random() * 3
+        activity: 0, // Remove mock data
+        focusSessions: 0 // Remove mock data
       }))
     };
 
     // Calculate weekday patterns
     streakHistory.forEach(day => {
-      const dayOfWeek = new Date(day.date).getDay();
-      patterns.weekdays[dayOfWeek].dailyCheckins += day.dailyCheckins;
-      patterns.weekdays[dayOfWeek].focusSessions += day.focusSessions;
-      patterns.weekdays[dayOfWeek].goalUpdates += day.goalUpdates;
-      patterns.weekdays[dayOfWeek].count += 1;
+      if (day && day.date) {
+        const dayOfWeek = new Date(day.date).getDay();
+        if (dayOfWeek >= 0 && dayOfWeek < 7) {
+          patterns.weekdays[dayOfWeek].dailyCheckins += day.dailyCheckins || 0;
+          patterns.weekdays[dayOfWeek].focusSessions += day.focusSessions || 0;
+          patterns.weekdays[dayOfWeek].goalUpdates += day.goalUpdates || 0;
+          patterns.weekdays[dayOfWeek].count += 1;
+        }
+      }
     });
 
     // Average the patterns
     patterns.weekdays = patterns.weekdays.map(day => ({
       ...day,
-      dailyCheckins: day.count > 0 ? day.dailyCheckins / day.count : 0,
-      focusSessions: day.count > 0 ? day.focusSessions / day.count : 0,
-      goalUpdates: day.count > 0 ? day.goalUpdates / day.count : 0
+      dailyCheckins: day.count > 0 ? Math.round(day.dailyCheckins / day.count * 10) / 10 : 0,
+      focusSessions: day.count > 0 ? Math.round(day.focusSessions / day.count * 10) / 10 : 0,
+      goalUpdates: day.count > 0 ? Math.round(day.goalUpdates / day.count * 10) / 10 : 0
     }));
 
     return patterns;
@@ -92,42 +114,68 @@ const StreakAnalytics = ({ data = {} }) => {
 
   // Calculate streak insights
   const streakInsights = useMemo(() => {
-    const currentStreaks = {
-      dailyCheckins: streakData.dailyCheckins.currentStreak || 0,
-      focusSessions: streakData.focusSessions.currentStreak || 0,
-      goalUpdates: streakData.goalUpdates.currentStreak || 0
-    };
+    try {
+      if (!streakData || typeof streakData !== 'object') {
+        return {
+          momentum: [],
+          consistencyScore: 0,
+          streakPotential: 'Low',
+          activeDays: 0,
+          recommendations: []
+        };
+      }
 
-    const maxStreaks = {
-      dailyCheckins: streakData.dailyCheckins.maxStreak || 0,
-      focusSessions: streakData.focusSessions.maxStreak || 0,
-      goalUpdates: streakData.goalUpdates.maxStreak || 0
-    };
+      const currentStreaks = {
+        dailyCheckins: streakData.dailyCheckins?.currentStreak || 0,
+        focusSessions: streakData.focusSessions?.currentStreak || 0,
+        goalUpdates: streakData.goalUpdates?.currentStreak || 0
+      };
 
-    // Calculate streak momentum (how close to personal best)
-    const momentum = Object.keys(currentStreaks).map(key => ({
-      metric: key,
-      current: currentStreaks[key],
-      max: maxStreaks[key],
-      percentage: maxStreaks[key] > 0 ? (currentStreaks[key] / maxStreaks[key]) * 100 : 0
-    }));
+      const maxStreaks = {
+        dailyCheckins: streakData.dailyCheckins?.maxStreak || 0,
+        focusSessions: streakData.focusSessions?.maxStreak || 0,
+        goalUpdates: streakData.goalUpdates?.maxStreak || 0
+      };
 
-    // Calculate consistency score
-    const activeDays = streakHistory.filter(day => day.totalActivity > 0).length;
-    const consistencyScore = (activeDays / streakHistory.length) * 100;
+      // Calculate streak momentum (how close to personal best)
+      const momentum = Object.keys(currentStreaks).map(key => ({
+        metric: key,
+        current: currentStreaks[key],
+        max: maxStreaks[key],
+        percentage: maxStreaks[key] > 0 ? Math.round((currentStreaks[key] / maxStreaks[key]) * 100) : 0
+      }));
 
-    // Predict streak potential
-    const recentActivity = streakHistory.slice(-7); // Last 7 days
-    const recentConsistency = recentActivity.filter(day => day.totalActivity > 0).length / 7;
-    const streakPotential = recentConsistency > 0.7 ? 'High' : recentConsistency > 0.4 ? 'Medium' : 'Low';
+      // Calculate consistency score
+      const activeDays = Array.isArray(streakHistory) ? 
+        streakHistory.filter(day => day && (day.totalActivity || 0) > 0).length : 0;
+      const totalDays = Array.isArray(streakHistory) ? streakHistory.length : 1;
+      const consistencyScore = Math.round((activeDays / totalDays) * 100);
 
-    return {
-      momentum,
-      consistencyScore,
-      streakPotential,
-      activeDays,
-      totalDays: streakHistory.length
-    };
+      // Predict streak potential
+      const recentActivity = Array.isArray(streakHistory) ? streakHistory.slice(-7) : []; // Last 7 days
+      const recentConsistency = recentActivity.length > 0 ? 
+        recentActivity.filter(day => day && (day.totalActivity || 0) > 0).length / recentActivity.length : 0;
+      const streakPotential = recentConsistency > 0.7 ? 'High' : recentConsistency > 0.4 ? 'Medium' : 'Low';
+
+      return {
+        momentum,
+        consistencyScore,
+        streakPotential,
+        activeDays,
+        totalDays: totalDays,
+        recommendations: []
+      };
+    } catch (error) {
+      console.error('Error calculating streak insights:', error);
+      return {
+        momentum: [],
+        consistencyScore: 0,
+        streakPotential: 'Low',
+        activeDays: 0,
+        totalDays: 0,
+        recommendations: []
+      };
+    }
   }, [streakData, streakHistory]);
 
   const metrics = [
