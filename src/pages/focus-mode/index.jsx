@@ -33,12 +33,43 @@ const getGoalChatKey = (goalId, user) => {
   return userId ? `goal_chat_${userId}_${goalId}` : null;
 };
 
+// Utility to unlock/resume audio context on user interaction
+function unlockAudioContext(audioRef) {
+  if (!audioRef.current) return;
+  const audio = audioRef.current;
+  // Try to play a silent sound to unlock
+  const playSilent = () => {
+    audio.volume = 0;
+    audio.play().catch(() => {});
+    setTimeout(() => { audio.volume = 0.5; }, 100);
+  };
+  // Resume context if suspended
+  if (window.AudioContext || window.webkitAudioContext) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+  }
+  playSilent();
+}
+
 const FocusMode = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { settings, updateFocusModeSettings } = useSettings();
 
+  // Unlock audio on first user interaction
+  useEffect(() => {
+    const handler = () => unlockAudioContext(audioRef);
+    window.addEventListener('pointerdown', handler, { once: true });
+    window.addEventListener('keydown', handler, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', handler);
+      window.removeEventListener('keydown', handler);
+    };
+  }, []);
+  
   const getStorageKey = useCallback((baseKey) => {
     return createUserStorageKey(baseKey, user);
   }, [user]);

@@ -43,6 +43,26 @@ const NotificationWrapper = ({ children }) => {
   return children;
 };
 
+// Utility to unlock/resume audio context on user interaction
+function unlockAudioContext(audioRef) {
+  if (!audioRef.current) return;
+  const audio = audioRef.current;
+  // Try to play a silent sound to unlock
+  const playSilent = () => {
+    audio.volume = 0;
+    audio.play().catch(() => {});
+    setTimeout(() => { audio.volume = 0.5; }, 100);
+  };
+  // Resume context if suspended
+  if (window.AudioContext || window.webkitAudioContext) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+  }
+  playSilent();
+}
+
 const GlobalBackgroundMusic = () => {
   const { settings, isMusicMuted } = useSettings();
   const music = settings?.appearance?.backgroundMusic || 'none';

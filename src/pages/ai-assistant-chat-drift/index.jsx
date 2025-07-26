@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -13,6 +13,7 @@ import MessageBubble from './components/MessageBubble';
 import MessageInput from './components/MessageInput';
 import QuickActionChips from './components/QuickActionChips';
 import WelcomeScreen from './components/WelcomeScreen';
+import unifiedAIService from '../../services/unifiedAIService';
 
 const DriftChat = () => {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ const DriftChat = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = usePlanData();
   const { addAchievement } = useAchievements();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -169,6 +171,17 @@ const DriftChat = () => {
     return newMessage;
   };
 
+  // Determine persona based on route
+  const getPersona = () => {
+    if (location.pathname.startsWith('/meals')) return 'meal';
+    if (location.pathname.startsWith('/goals-dashboard')) return 'goal';
+    if (location.pathname.startsWith('/daily-milestones')) return 'todo';
+    if (location.pathname.startsWith('/habits')) return 'habit';
+    // Add more as needed
+    return 'general';
+  };
+  const persona = getPersona();
+
   const processUserMessage = async (message) => {
     setIsLoading(true);
     try {
@@ -189,6 +202,7 @@ const DriftChat = () => {
           focusMode: settings?.focusMode,
         },
         conversationHistory: conversationHistory.slice(-10),
+        persona, // Pass persona to AI
       };
 
       const aiResponse = await unifiedAIService.getResponse(
