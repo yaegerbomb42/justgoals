@@ -171,18 +171,11 @@ const DriftChat = () => {
 
   const processUserMessage = async (message) => {
     setIsLoading(true);
-    
     try {
       // Add user message
       addMessage(message, 'user');
-      
-      // Ensure we have valid API key
-      if (apiKeyStatus !== 'valid') {
-        addMessage('I need a valid Gemini API key to respond. Please check your settings.', 'assistant');
-        return;
-      }
 
-      // Use comprehensive context if available, fallback to basic context
+      // Use unifiedAIService for shared Drift memory, with domain 'drift'
       const context = comprehensiveContext || {
         user: {
           name: user?.displayName || user?.email,
@@ -195,33 +188,19 @@ const DriftChat = () => {
           notifications: settings?.notifications,
           focusMode: settings?.focusMode,
         },
-        conversationHistory: conversationHistory.slice(-10), // Last 10 messages for context
+        conversationHistory: conversationHistory.slice(-10),
       };
 
-      // Generate AI response with action capabilities
-      const response = await geminiService.generateResponse(message, context, {
-        canCreateGoals: true,
-        canUpdateGoals: true,
-        canCreateMilestones: true,
-        canAddJournalEntries: true,
-        canManageHabits: true,
-        canAnalyzeProgress: true,
-      });
+      const aiResponse = await unifiedAIService.getResponse(
+        user?.uid || 'anonymous',
+        message,
+        context.currentGoals || [],
+        context,
+        'drift'
+      );
 
-      // Process any actions from the AI response
-      if (response.actions && response.actions.length > 0) {
-        await processActions(response.actions);
-      }
-
-      // Add AI response
-      addMessage(response.message, 'assistant', {
-        actions: response.actions,
-        suggestions: response.suggestions,
-      });
-
-      // Update conversation history
-      setConversationHistory(prev => [...prev, { role: 'user', content: message }, { role: 'assistant', content: response.message }]);
-
+      addMessage(aiResponse, 'assistant');
+      setConversationHistory(prev => [...prev, { role: 'user', content: message }, { role: 'assistant', content: aiResponse }]);
     } catch (error) {
       console.error('Error processing message:', error);
       addMessage('I apologize, but I encountered an error processing your request. Please try again.', 'assistant');

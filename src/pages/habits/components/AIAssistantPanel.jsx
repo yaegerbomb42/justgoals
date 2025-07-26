@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { useSettings } from '../../../context/SettingsContext';
-import { geminiService } from '../../../services/geminiService';
+import unifiedAIService from '../../../services/unifiedAIService';
 import Icon from '../../../components/ui/Icon';
 import Button from '../../../components/ui/Button';
 
@@ -114,20 +114,16 @@ What would you like me to help you with today?`,
         currentDate: new Date().toISOString(),
       };
 
-      // Generate AI response
-      const response = await generateHabitsResponse(userMessage, context);
+      // Use unifiedAIService for shared Drift memory, with domain 'habits'
+      const aiResponseContent = await unifiedAIService.getResponse(
+        user?.uid || 'anonymous',
+        userMessage,
+        [],
+        context,
+        'habits'
+      );
 
-      // Process any actions from the AI response
-      if (response.actions && response.actions.length > 0) {
-        await processActions(response.actions);
-      }
-
-      // Add AI response
-      addMessage(response.message, 'assistant', {
-        actions: response.actions,
-        suggestions: response.suggestions,
-      });
-
+      addMessage(aiResponseContent, 'assistant');
     } catch (error) {
       console.error('Error processing message:', error);
       addMessage('I apologize, but I encountered an error processing your request. Please try again.', 'assistant');

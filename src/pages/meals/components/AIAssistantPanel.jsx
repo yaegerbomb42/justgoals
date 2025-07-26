@@ -4,7 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useSettings } from '../../../context/SettingsContext';
 import { useMeals } from '../../../context/MealsContext';
 import { useAchievements } from '../../../context/AchievementContext';
-import { geminiService } from '../../../services/geminiService';
+import unifiedAIService from '../../../services/unifiedAIService';
 import Icon from '../../../components/ui/Icon';
 
 const AIAssistantPanel = ({ mealData, apiKey: propApiKey }) => {
@@ -91,12 +91,7 @@ What would you like me to help you with today?`,
       // Add user message
       addMessage(userMessage, 'user');
 
-      // Check if services are available
-      if (!geminiService || !apiKey) {
-        throw new Error('AI service is not properly configured');
-      }
-
-      // Prepare context for AI with error handling
+      // Prepare context for AI
       const context = {
         user: {
           name: user?.displayName || user?.email || 'User',
@@ -110,31 +105,16 @@ What would you like me to help you with today?`,
         currentDate: new Date().toISOString(),
       };
 
-      // Generate AI response with enhanced error handling
-      const response = await generateMealResponse(userMessage, context);
+      // Use unifiedAIService for shared Drift memory, with domain 'meals'
+      const aiResponseContent = await unifiedAIService.getResponse(
+        user?.uid || 'anonymous',
+        userMessage,
+        [], // currentGoals not relevant for meals
+        context,
+        'meals'
+      );
 
-      // Validate response
-      if (!response || typeof response.message !== 'string') {
-        throw new Error('Invalid response from AI service');
-      }
-
-      // Process any actions from the AI response with error handling
-      if (response.actions && Array.isArray(response.actions) && response.actions.length > 0) {
-        try {
-          await processActions(response.actions);
-        } catch (actionError) {
-          console.error('Error processing AI actions:', actionError);
-          // Continue to show the message even if actions fail
-          addMessage('Note: Some automated actions could not be completed, but you can still use the advice provided above.', 'system');
-        }
-      }
-
-      // Add AI response
-      addMessage(response.message, 'assistant', {
-        actions: response.actions,
-        suggestions: response.suggestions,
-      });
-
+      addMessage(aiResponseContent, 'assistant');
     } catch (error) {
       console.error('Error processing message:', error);
       let errorMessage = 'I apologize, but I encountered an error processing your request.';

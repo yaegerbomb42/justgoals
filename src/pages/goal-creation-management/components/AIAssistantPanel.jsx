@@ -2,16 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
-import { geminiService } from '../../../services/geminiService';
+import unifiedAIService from '../../../services/unifiedAIService';
 
 const AIAssistantPanel = ({ isCollapsed, onToggle, goalContext = null }) => {
+  // Use shared Drift memory for this domain (goal planning)
   const [messages, setMessages] = useState([
     {
       id: 1,
       type: 'assistant',
       content: `Hello! I'm Drift, your AI goal planning assistant. I'm here to help you create meaningful goals and develop effective strategies to achieve them.\n\nWhat kind of goal are you working on today?`,
       timestamp: new Date()
-    }
+    },
+    ...unifiedAIService.getHistory().map((msg, idx) => ({
+      id: 1000 + idx,
+      type: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content,
+      timestamp: new Date(msg.timestamp)
+    }))
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -49,7 +56,14 @@ const AIAssistantPanel = ({ isCollapsed, onToggle, goalContext = null }) => {
     setIsTyping(true);
 
     try {
-      const aiResponseContent = await generateAIResponse(inputMessage, goalContext);
+      // Use unifiedAIService for shared Drift memory, with domain 'goal-planning'
+      const aiResponseContent = await unifiedAIService.getResponse(
+        goalContext?.userId || 'anonymous',
+        inputMessage,
+        goalContext?.currentGoals || [],
+        goalContext?.settings || {},
+        'goal-planning'
+      );
       const assistantMessage = {
         id: Date.now() + 1,
         type: 'assistant',
@@ -71,38 +85,7 @@ const AIAssistantPanel = ({ isCollapsed, onToggle, goalContext = null }) => {
     }
   };
 
-  const generateAIResponse = async (userInput, context) => {
-    try {
-      const isConnected = geminiService.isInitialized;
-      
-      if (!isConnected) {
-        return "I'm not connected to my AI services right now. Please check your API key in settings to enable AI assistance.";
-      }
-
-      const prompt = `
-You are Drift, an AI goal planning assistant helping users create and manage meaningful goals.
-
-${context ? `Current goal context: ${JSON.stringify(context, null, 2)}` : ''}
-
-User question: "${userInput}"
-
-Provide expert guidance on:
-- Goal setting and planning strategies
-- Breaking down goals into actionable milestones
-- Timeline estimation and realistic planning
-- Motivation and habit formation
-- Progress tracking and accountability
-- Overcoming common obstacles
-
-Keep responses practical, encouraging, and actionable. Focus on specific strategies the user can implement immediately.
-      `;
-
-      return await geminiService.generateText(prompt);
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      return "I'm having trouble processing your request right now. Please try again in a moment.";
-    }
-  };
+  // No longer needed: generateAIResponse (handled by unifiedAIService)
 
   const handleSuggestionClick = (suggestion) => {
     setInputMessage(suggestion);

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
-import { geminiService } from '../../../services/geminiService';
+import unifiedAIService from '../../../services/unifiedAIService';
 
 const AIAssistantPanel = ({ isExpanded, onToggle, selectedDate, milestones, goals }) => {
   const [messages, setMessages] = useState([
@@ -24,49 +24,7 @@ const AIAssistantPanel = ({ isExpanded, onToggle, selectedDate, milestones, goal
     scrollToBottom();
   }, [messages]);
 
-  const generateAIResponse = async (userMessage) => {
-    try {
-      const isConnected = geminiService.isInitialized;
-      
-      if (!isConnected) {
-        return "I'm not connected to my AI services right now. Please check your API key in settings to enable AI assistance.";
-      }
-
-      const context = {
-        selectedDate: selectedDate.toISOString().split('T')[0],
-        milestones: milestones,
-        goals: goals,
-        completedCount: milestones.filter(m => m.completed).length,
-        totalCount: milestones.length,
-        highPriorityTasks: milestones.filter(m => m.priority === 'high' && !m.completed)
-      };
-
-      const prompt = `
-You are Drift, an AI productivity assistant helping with daily milestone management. 
-
-Context:
-- Date: ${context.selectedDate}
-- Milestones: ${context.totalCount} total, ${context.completedCount} completed
-- Goals: ${context.goals.length} active goals
-- High priority incomplete tasks: ${context.highPriorityTasks.length}
-
-User message: "${userMessage}"
-
-Provide helpful, actionable advice about:
-- Task prioritization and time management
-- Motivation and productivity strategies
-- Goal alignment and progress tracking
-- Specific suggestions based on their current milestone status
-
-Keep responses concise, encouraging, and practical. Focus on actionable next steps.
-      `;
-
-      return await geminiService.generateText(prompt);
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      return "I'm having trouble processing your request right now. Please try again in a moment.";
-    }
-  };
+  // No longer needed: generateAIResponse (handled by unifiedAIService)
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -83,14 +41,20 @@ Keep responses concise, encouraging, and practical. Focus on actionable next ste
     setIsTyping(true);
 
     try {
-      const aiResponseContent = await generateAIResponse(inputValue);
+      // Use unifiedAIService for shared Drift memory, with domain 'milestones'
+      const aiResponseContent = await unifiedAIService.getResponse(
+        'milestones-user', // Use a static or user id if available
+        inputValue,
+        goals || [],
+        { selectedDate, milestones, goals },
+        'milestones'
+      );
       const aiResponse = {
         id: Date.now() + 1,
         type: 'assistant',
         content: aiResponseContent,
         timestamp: new Date()
       };
-      
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
