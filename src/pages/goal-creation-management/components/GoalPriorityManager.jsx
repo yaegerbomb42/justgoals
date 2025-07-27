@@ -38,7 +38,13 @@ const GoalPriorityManager = ({ goals, onGoalsReorder, onPriorityChange, onDelete
     onPriorityChange(goalId, newPriority);
   };
 
-  const getPriorityConfig = (priority) => {
+  // Support both legacy (high/medium/low) and AI (1-10) priorities
+  const getPriorityConfig = (priority, priorityScore) => {
+    if (typeof priorityScore === 'number') {
+      if (priorityScore >= 9) return priorityLevels[0];
+      if (priorityScore >= 7) return priorityLevels[1];
+      return priorityLevels[2];
+    }
     return priorityLevels.find(level => level.id === priority) || priorityLevels[1];
   };
 
@@ -72,8 +78,11 @@ const GoalPriorityManager = ({ goals, onGoalsReorder, onPriorityChange, onDelete
 
       <div className="space-y-3">
         {goals.map((goal, index) => {
-          const priorityConfig = getPriorityConfig(goal.priority);
-          
+          // Support both legacy and AI priorities
+          const priorityScore = typeof goal.priorityScore === 'number' ? goal.priorityScore : null;
+          const priorityConfig = getPriorityConfig(goal.priority, priorityScore);
+          // Fill bar based on priorityScore (1-10), fallback to progress if not present
+          const barPercent = priorityScore ? Math.round((priorityScore / 10) * 100) : (goal.progress || 0);
           return (
             <div
               key={goal.id}
@@ -157,19 +166,26 @@ const GoalPriorityManager = ({ goals, onGoalsReorder, onPriorityChange, onDelete
                 </div>
               </div>
 
-              {/* Progress Bar */}
+              {/* Priority Score Bar with Tooltip */}
               <div className="mt-3 flex items-center space-x-3">
-                <div className="flex-1 bg-surface-600 rounded-full h-2">
+                <div className="flex-1 bg-surface-600 rounded-full h-2 relative group" style={{ minHeight: '2rem' }}>
                   <div
                     className="h-2 rounded-full transition-all duration-normal"
                     style={{
-                      width: `${goal.progress || 0}%`,
+                      width: `${barPercent}%`,
                       backgroundColor: priorityConfig.color
                     }}
                   />
+                  {goal.aiReasoning && (
+                    <div className="absolute left-0 top-full mt-2 z-10 hidden group-hover:block w-max max-w-xs bg-surface-900 text-xs text-text-secondary rounded shadow-lg p-2 border border-border"
+                      style={{ fontSize: '0.75rem', lineHeight: '1.2', whiteSpace: 'normal' }}
+                    >
+                      <span>Why: {goal.aiReasoning}</span>
+                    </div>
+                  )}
                 </div>
                 <span className="text-sm font-data text-text-secondary min-w-[3rem]">
-                  {goal.progress || 0}%
+                  {priorityScore ? `${priorityScore}/10` : `${goal.progress || 0}%`}
                 </span>
               </div>
             </div>

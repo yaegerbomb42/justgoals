@@ -545,6 +545,8 @@ Keep it concise but impactful.`;
 
     const prompt = `You are a strategic life coach specializing in goal prioritization using evidence-based frameworks. Analyze and prioritize these ${goals.length} goals.
 
+IMPORTANT: Prioritize business, career, finance, and urgent tasks over fun, personal, or hobby goals. If a goal is related to job search, applications, deadlines, or financial improvement, it should be ranked higher than reading, hobbies, or general personal growth. Fun and personal goals should only be high priority if there is a clear urgent or health-related reason.
+
 CURRENT CONTEXT:
 - Date: ${now.toISOString().split('T')[0]}
 - Progress through year: ${Math.round((currentDayOfYear / daysInYear) * 100)}%
