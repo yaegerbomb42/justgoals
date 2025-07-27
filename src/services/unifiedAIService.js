@@ -2,6 +2,7 @@
 // Provides a single Drift personality and shared memory for all AI interactions
 
 import ContextAggregationService from './contextAggregationService';
+import { geminiService } from './geminiService';
 
 class UnifiedAIService {
   constructor() {
@@ -29,16 +30,35 @@ class UnifiedAIService {
     return await this.contextService.getComprehensiveContext(userId, currentGoals, settings);
   }
 
-  // Generate AI response (stub: replace with Gemini/OpenAI integration)
+  // Generate AI response using Gemini service
   async getResponse(userId, message, currentGoals = [], settings = {}, domain = 'general') {
     this.addMessage('user', message);
     const context = await this.getContext(userId, currentGoals, settings);
-    // Compose prompt with personality, history, and context
-    const prompt = `You are Drift, the unified AI assistant for JustGoals. Your memory and personality are shared across all tabs. Domain: ${domain}.\n\nRecent conversation:\n${this.getHistory().map(m => `${m.role}: ${m.content}`).join('\n')}\n\nUser context:\n${JSON.stringify(context)}`;
-    // TODO: Integrate with Gemini/OpenAI API here
-    const aiReply = `Drift: (AI response for '${message}' in domain '${domain}')`;
-    this.addMessage('assistant', aiReply);
-    return aiReply;
+
+    // Add conversation history to context for better responses
+    context.conversationHistory = this.getHistory();
+
+    // Define domain-specific capabilities
+    const capabilitiesMap = {
+      'meals': { canCreateMeals: true, canUpdatePreferences: true },
+      'habits': { canManageHabits: true },
+      'milestones': { canCreateMilestones: true },
+      'goal-planning': { canCreateGoals: true },
+      'general': {}
+    };
+
+    const capabilities = capabilitiesMap[domain] || {};
+
+    try {
+      const response = await geminiService.generateResponse(message, context, capabilities);
+      const aiReply = response.message || 'Sorry, I did not understand that.';
+      this.addMessage('assistant', aiReply);
+      return aiReply;
+    } catch (error) {
+      const errorMessage = error.message || 'AI service error';
+      this.addMessage('assistant', errorMessage);
+      return errorMessage;
+    }
   }
 }
 

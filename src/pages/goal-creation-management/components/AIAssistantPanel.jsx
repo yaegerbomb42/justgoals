@@ -6,20 +6,41 @@ import unifiedAIService from '../../../services/unifiedAIService';
 
 const AIAssistantPanel = ({ isCollapsed, onToggle, goalContext = null }) => {
   // Use shared Drift memory for this domain (goal planning)
-  const [messages, setMessages] = useState([
-    {
+  const [messages, setMessages] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem(`ai-conversation-goal-planning-${goalContext?.userId || 'anonymous'}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Merge with shared conversation history from unifiedAIService, avoiding duplicates
+        const sharedHistory = unifiedAIService.getHistory().map((msg, idx) => ({
+          id: 1000 + idx,
+          type: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.timestamp)
+        }));
+        const combinedMessages = [...parsed.messages];
+        sharedHistory.forEach(shMsg => {
+          if (!combinedMessages.find(m => m.content === shMsg.content && m.type === shMsg.type)) {
+            combinedMessages.push(shMsg);
+          }
+        });
+        return combinedMessages.length > 0 ? combinedMessages : [{
+          id: 1,
+          type: 'assistant',
+          content: `Hello! I'm Drift, your AI goal planning assistant. I'm here to help you create meaningful goals and develop effective strategies to achieve them.\n\nWhat kind of goal are you working on today?`,
+          timestamp: new Date()
+        }];
+      }
+    } catch (e) {
+      console.error('Failed to load conversation history:', e);
+    }
+    return [{
       id: 1,
       type: 'assistant',
       content: `Hello! I'm Drift, your AI goal planning assistant. I'm here to help you create meaningful goals and develop effective strategies to achieve them.\n\nWhat kind of goal are you working on today?`,
       timestamp: new Date()
-    },
-    ...unifiedAIService.getHistory().map((msg, idx) => ({
-      id: 1000 + idx,
-      type: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content,
-      timestamp: new Date(msg.timestamp)
-    }))
-  ]);
+    }];
+  });
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
@@ -37,7 +58,7 @@ const AIAssistantPanel = ({ isCollapsed, onToggle, goalContext = null }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     scrollToBottom();
   }, [messages]);
 

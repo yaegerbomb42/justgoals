@@ -25,7 +25,7 @@ const HabitsAIAssistant = ({
 
   useEffect(() => {
     // Load conversation history
-    const savedHistory = localStorage.getItem(`habits-ai-conversation-${user?.uid}`);
+    const savedHistory = localStorage.getItem(`ai-conversation-habits-${user?.uid}`);
     if (savedHistory) {
       try {
         const parsed = JSON.parse(savedHistory);
@@ -59,7 +59,7 @@ What would you like me to help you with today?`,
         messages,
         timestamp: Date.now(),
       };
-      localStorage.setItem(`habits-ai-conversation-${user?.uid}`, JSON.stringify(historyData));
+      localStorage.setItem(`ai-conversation-habits-${user?.uid}`, JSON.stringify(historyData));
     }
   }, [messages, user?.uid]);
 

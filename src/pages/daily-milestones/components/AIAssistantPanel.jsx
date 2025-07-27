@@ -4,27 +4,49 @@ import Button from '../../../components/ui/Button';
 import unifiedAIService from '../../../services/unifiedAIService';
 
 const AIAssistantPanel = ({ isExpanded, onToggle, selectedDate, milestones, goals }) => {
-  const [messages, setMessages] = useState([
-    {
+  const [messages, setMessages] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem(`ai-conversation-milestones-${'milestones-user'}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.messages || [{
+          id: 1,
+          type: 'assistant',
+          content: `Good morning! I'm Drift, your AI productivity assistant. I can help you plan your daily milestones, suggest task priorities, and provide achievement strategies.\n\nHow can I help you make today productive?`,
+          timestamp: new Date()
+        }];
+      }
+    } catch (e) {
+      console.error('Failed to load conversation history:', e);
+    }
+    return [{
       id: 1,
       type: 'assistant',
       content: `Good morning! I'm Drift, your AI productivity assistant. I can help you plan your daily milestones, suggest task priorities, and provide achievement strategies.\n\nHow can I help you make today productive?`,
       timestamp: new Date()
-    }
-  ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
+    }];
+  });
+  const [inputValue, setInputValue] = React.useState('');
+  const [isTyping, setIsTyping] = React.useState(false);
+  const messagesEndRef = React.useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   // No longer needed: generateAIResponse (handled by unifiedAIService)
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(`ai-conversation-milestones-${'milestones-user'}`, JSON.stringify({ messages, timestamp: Date.now() }));
+    } catch (e) {
+      console.error('Failed to save conversation history:', e);
+    }
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
