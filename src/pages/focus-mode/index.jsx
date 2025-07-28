@@ -113,6 +113,7 @@ const FocusMode = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [isLinksOpen, setIsLinksOpen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [globalLinksCount, setGlobalLinksCount] = useState(0);
   const [sessionStats, setSessionStats] = useState({
     totalFocusTime: 0, sessionsToday: 0, currentStreak: 0
@@ -434,6 +435,8 @@ const FocusMode = () => {
         return 'bg-background';
     }
   };
+
+  const handleToggleNotes = () => setIsNotesOpen((prev) => !prev);
 
   return (
     <div className={`min-h-screen ${getBackgroundClass()} relative overflow-hidden`}>

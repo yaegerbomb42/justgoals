@@ -20,6 +20,9 @@ const SmartPriorityManager = ({
   useEffect(() => {
     if (goals.length > 0) {
       handleSmartPrioritization();
+    } else {
+      setPrioritizedGoals([]);
+      setAnalysisResults(null);
     }
   }, [goals]);
 
@@ -28,7 +31,11 @@ const SmartPriorityManager = ({
       alert('AI prioritization requires a Gemini API key. Please set it in Settings.');
       return;
     }
-
+    if (!goals || goals.length === 0) {
+      setPrioritizedGoals([]);
+      setAnalysisResults(null);
+      return;
+    }
     setIsAnalyzing(true);
     try {
       const enhancedContext = {

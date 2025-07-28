@@ -343,20 +343,17 @@ export const formatDate = (dateString) => {
  */
 export const getDaysUntilDeadline = (deadline) => {
   if (!deadline) return null;
-  
   try {
     // Parse the deadline date (YYYY-MM-DD) in local timezone
     const deadlineDate = new Date(deadline);
     const today = new Date();
-    
     // Reset time to midnight for both dates to avoid time comparison issues
     deadlineDate.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
-    
     // Calculate difference in milliseconds and convert to days
+    // Use Math.floor so '2 days left' means you have all of today and tomorrow before the deadline
     const diffTime = deadlineDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   } catch (error) {
     console.error('Error calculating days until deadline:', error);
