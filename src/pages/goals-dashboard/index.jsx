@@ -220,11 +220,14 @@ const GoalsDashboard = () => {
     navigate('/goal-creation-management');
   };
 
-  const handleDeleteGoal = (goalId) => {
+  const handleDeleteGoal = async (goalId) => {
     if (user) {
-      const success = entityService.deleteGoal(user, goalId);
-      if (success) {
+      try {
+        await entityService.deleteGoal(user, goalId);
         setGoals(prevGoals => prevGoals.filter(goal => goal.id !== goalId));
+      } catch (error) {
+        console.error("Failed to delete goal:", error);
+        alert("Failed to delete the goal. Please try again.");
       }
     }
   };
