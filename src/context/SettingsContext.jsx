@@ -276,10 +276,8 @@ export const SettingsProvider = ({ children }) => {
     root.className = root.className.replace(/\baccent-\w+/g, '');
     root.classList.add(`accent-${accentColor}`);
     
-    // Force a repaint
-    document.body.style.display = 'none';
-    document.body.offsetHeight; // trigger reflow
-    document.body.style.display = '';
+    // Force a gentle repaint without affecting layout
+    root.style.visibility = 'visible';
   };
 
   // Add a robust updateApiKey method

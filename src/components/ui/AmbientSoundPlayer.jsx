@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
 
-const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange }) => {
+const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isActive, onPlayingChange }) => {
+  // Use soundType if provided, otherwise fall back to soundId for backward compatibility
+  const activeSoundId = soundType || soundId;
   const audioRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,50 +16,53 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
       name: 'Rain',
       urls: [
         '/assets/sounds/rain.mp3',
-        '/sets/sounds/rain.mp3',
         'https://www.soundjay.com/misc/sounds/rain-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3'
+        'https://cdn.freesound.org/previews/2523/2523-lq.mp3', // Freesound rain sample
+        '/assets/sounds/rain.wav'
       ]
     },
     forest: {
       name: 'Forest',
       urls: [
         '/assets/sounds/forest.mp3',
-        '/sets/sounds/forest.mp3',
         'https://www.soundjay.com/nature/sounds/forest-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2022/03/10/audio_84c0b49d93.mp3'
+        'https://cdn.freesound.org/previews/379/379-lq.mp3', // Freesound forest sample
+        '/assets/sounds/forest.wav'
       ]
     },
     ocean: {
       name: 'Ocean Waves',
       urls: [
         '/assets/sounds/ocean.mp3',
-        '/sets/sounds/ocean.mp3',
         'https://www.soundjay.com/nature/sounds/ocean-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2021/08/04/audio_12345abcde.mp3'
+        'https://cdn.freesound.org/previews/316/316-lq.mp3', // Freesound ocean sample
+        '/assets/sounds/ocean.wav'
       ]
     },
     cafe: {
       name: 'Coffee Shop',
       urls: [
         '/assets/sounds/cafe.mp3',
-        '/sets/sounds/cafe.mp3',
         'https://www.soundjay.com/misc/sounds/cafe-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2022/01/18/audio_cafe123456.mp3'
+        'https://cdn.freesound.org/previews/507/507-lq.mp3', // Freesound cafe sample
+        '/assets/sounds/cafe.wav'
       ]
     },
     fire: {
       name: 'Fireplace',
       urls: [
         '/assets/sounds/fire.mp3',
-        '/sets/sounds/fire.mp3',
         'https://www.soundjay.com/misc/sounds/fire-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2021/11/08/audio_fire789012.mp3'
+        'https://cdn.freesound.org/previews/31267/31267_270899-lq.mp3', // Freesound fire sample
+        '/assets/sounds/fire.wav'
       ]
     }
   };
 
-  const currentSound = soundConfigs[soundId];
+  const currentSound = soundConfigs[activeSoundId];
+  
+  // Use isActive if provided, otherwise fall back to isPlaying
+  const shouldPlay = isActive !== undefined ? isActive : isPlaying;
 
   // Handle user interaction for autoplay policy compliance
   useEffect(() => {
@@ -121,7 +126,7 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
 
     const audio = audioRef.current;
     
-    if (isPlaying && hasUserInteracted) {
+    if (shouldPlay && hasUserInteracted) {
       setIsLoading(true);
       setError(null);
 
@@ -152,11 +157,11 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
           setIsLoading(false);
           onPlayingChange?.(false);
         });
-    } else if (!isPlaying) {
+    } else if (!shouldPlay) {
       audio.pause();
       onPlayingChange?.(false);
     }
-  }, [isPlaying, soundId, hasUserInteracted, volume, currentSound, onPlayingChange]);
+  }, [shouldPlay, activeSoundId, hasUserInteracted, volume, currentSound, onPlayingChange]);
 
   // Update volume when it changes
   useEffect(() => {
@@ -201,7 +206,7 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
         </div>
       )}
       
-      {!hasUserInteracted && isPlaying && (
+      {!hasUserInteracted && shouldPlay && (
         <div className="text-xs text-accent mb-2 p-2 bg-accent/10 rounded border border-accent/20">
           <Icon name="Info" className="w-3 h-3 inline mr-1" />
           Click anywhere to enable ambient sounds

@@ -145,7 +145,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1">
+          <div className="flex-1 min-h-[600px]">
             {renderSection()}
           </div>
         </div>
