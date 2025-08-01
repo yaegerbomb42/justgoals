@@ -107,21 +107,40 @@ const GoalsDashboard = () => {
     async function checkOnboarding() {
       if (isAuthenticated && user && user.id) {
         try {
-          const appSettings = await firestoreService.getAppSettings(user.id);
-          // Fallback to localStorage if onboardingDismissed is not found
-          let onboardingDismissed = appSettings.onboardingDismissed;
-          if (typeof onboardingDismissed === 'undefined') {
-            onboardingDismissed = localStorage.getItem(`onboardingDismissed_${user.id}`) === 'true';
+          // First check localStorage for immediate response
+          const localOnboardingDismissed = localStorage.getItem(`onboardingDismissed_${user.id}`) === 'true';
+          
+          // If localStorage says dismissed, use that immediately
+          if (localOnboardingDismissed && lastOnboardingState !== true) {
+            setShowOnboarding(false);
+            setLastOnboardingState(true);
+            setOnboardingError(null);
+            console.log('[Onboarding] Using localStorage value (dismissed)');
           }
-          console.log('[Onboarding] Firestore/localStorage value:', onboardingDismissed);
+          
+          // Then try to get from Firestore for sync
+          const appSettings = await firestoreService.getAppSettings(user.id);
+          let firestoreOnboardingDismissed = appSettings.onboardingDismissed;
+          
+          // Determine the authoritative value (prefer true if either source says true)
+          const authoritativeValue = localOnboardingDismissed || firestoreOnboardingDismissed || false;
+          
           if (!cancelled) {
-            // Only update state if value actually changes
-            if (lastOnboardingState !== onboardingDismissed) {
-              setShowOnboarding(!onboardingDismissed);
-              setLastOnboardingState(onboardingDismissed);
+            if (lastOnboardingState !== authoritativeValue) {
+              setShowOnboarding(!authoritativeValue);
+              setLastOnboardingState(authoritativeValue);
               setOnboardingError(null);
               sessionFlag = true;
-              console.log('[Onboarding] State updated:', !onboardingDismissed);
+              console.log('[Onboarding] State updated:', !authoritativeValue, 'from sources:', { local: localOnboardingDismissed, firestore: firestoreOnboardingDismissed });
+              
+              // Sync the authoritative value to both stores if needed
+              if (authoritativeValue) {
+                localStorage.setItem(`onboardingDismissed_${user.id}`, 'true');
+                if (!firestoreOnboardingDismissed) {
+                  firestoreService.saveAppSettings(user.id, { ...appSettings, onboardingDismissed: true })
+                    .catch(e => console.warn('Failed to sync onboarding state to Firestore:', e));
+                }
+              }
             } else {
               console.log('[Onboarding] No state change needed');
             }
@@ -134,7 +153,7 @@ const GoalsDashboard = () => {
             if (lastOnboardingState !== onboardingDismissed) {
               setShowOnboarding(!onboardingDismissed);
               setLastOnboardingState(onboardingDismissed);
-              setOnboardingError('Could not check onboarding status. Please check your connection or permissions.');
+              setOnboardingError('Could not check onboarding status. Using local data.');
               sessionFlag = true;
               console.log('[Onboarding] Fallback state updated:', !onboardingDismissed);
             } else {
@@ -156,17 +175,18 @@ const GoalsDashboard = () => {
   const handleDismissOnboarding = async () => {
     setShowOnboarding(false);
     if (isAuthenticated && user && user.id) {
+      // Always persist in localStorage immediately to ensure state is saved
+      localStorage.setItem(`onboardingDismissed_${user.id}`, 'true');
+      setLastOnboardingState(true);
+      
       try {
+        // Attempt to save to Firestore as well
         const appSettings = await firestoreService.getAppSettings(user.id);
         await firestoreService.saveAppSettings(user.id, { ...appSettings, onboardingDismissed: true });
-        localStorage.setItem(`onboardingDismissed_${user.id}`, 'true'); // Always persist in localStorage as well
-        setLastOnboardingState(true);
-        console.log('[Onboarding] Modal dismissed, state set to true');
+        console.log('[Onboarding] Modal dismissed, synced to Firestore');
       } catch (e) {
-        // If Firestore fails, persist in localStorage
-        localStorage.setItem(`onboardingDismissed_${user.id}`, 'true');
-        setLastOnboardingState(true);
-        console.log('[Onboarding] Modal dismissed (fallback), state set to true');
+        // If Firestore fails, we already have localStorage backup
+        console.warn('[Onboarding] Modal dismissed, Firestore sync failed but localStorage persisted:', e);
       }
     }
   };

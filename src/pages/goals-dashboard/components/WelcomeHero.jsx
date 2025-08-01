@@ -52,17 +52,16 @@ const WelcomeHero = ({ userName, userId, overallProgress, totalGoals, completedG
     const interval = setInterval(async () => {
       setTotalTime(prev => {
         const updated = prev + 5;
-        // Save to Firestore first, then update localStorage
+        // Always update localStorage first to ensure local state is preserved
+        localStorage.setItem('totalTimeLoggedSeconds', updated);
+        
+        // Attempt to save to Firestore if userId exists, but don't let failure affect local state
         if (userId) {
           firestoreService.saveTotalTimeLogged(userId, updated)
-            .then(() => {
-              localStorage.setItem('totalTimeLoggedSeconds', updated);
-            })
-            .catch(() => {
-              // If save fails, do not update localStorage
+            .catch((error) => {
+              // Log error but don't prevent local storage update
+              console.warn('Failed to save total time to Firestore:', error);
             });
-        } else {
-          localStorage.setItem('totalTimeLoggedSeconds', updated);
         }
         return updated;
       });

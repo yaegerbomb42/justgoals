@@ -427,19 +427,44 @@ class FirestoreService {
   // Save total time logged (in seconds) to Firestore appSettings
   async saveTotalTimeLogged(userId, totalTime) {
     if (!userId) throw new Error('User ID required');
-    const settingsDoc = this.getUserDoc(userId, 'appSettings', 'current');
-    await setDoc(settingsDoc, { totalTimeLoggedSeconds: totalTime }, { merge: true });
+    if (typeof totalTime !== 'number' || totalTime < 0) {
+      console.warn('Invalid total time value:', totalTime);
+      return;
+    }
+    
+    try {
+      const settingsDoc = this.getUserDoc(userId, 'appSettings', 'current');
+      await setDoc(settingsDoc, { 
+        totalTimeLoggedSeconds: totalTime,
+        lastUpdated: serverTimestamp() 
+      }, { merge: true });
+    } catch (error) {
+      console.error('Failed to save total time to Firestore:', error);
+      throw error;
+    }
   }
 
   // Get total time logged (in seconds) from Firestore appSettings
   async getTotalTimeLogged(userId) {
     if (!userId) throw new Error('User ID required');
-    const settingsDoc = this.getUserDoc(userId, 'appSettings', 'current');
-    const docSnap = await getDoc(settingsDoc);
-    if (docSnap.exists() && typeof docSnap.data().totalTimeLoggedSeconds === 'number') {
-      return docSnap.data().totalTimeLoggedSeconds;
+    
+    try {
+      const settingsDoc = this.getUserDoc(userId, 'appSettings', 'current');
+      const docSnap = await getDoc(settingsDoc);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const totalTime = data.totalTimeLoggedSeconds;
+        
+        if (typeof totalTime === 'number' && totalTime >= 0) {
+          return totalTime;
+        }
+      }
+      return 0;
+    } catch (error) {
+      console.error('Failed to get total time from Firestore:', error);
+      return 0; // Return 0 instead of throwing to allow graceful fallback
     }
-    return 0;
   }
 
   // Migration helper: migrate from localStorage to Firestore

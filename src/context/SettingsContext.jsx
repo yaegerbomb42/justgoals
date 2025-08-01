@@ -181,9 +181,17 @@ export const SettingsProvider = ({ children }) => {
   // Save settings to localStorage and Firestore (if logged in) whenever they change
   useEffect(() => {
     if (!isLoaded) return;
+    
+    // Always save to localStorage immediately
     localStorage.setItem('justgoals-settings', JSON.stringify(settings));
+    
+    // Attempt to save to Firestore if authenticated, with error handling
     if (isAuthenticated && user && user.id) {
-      firestoreService.saveAppSettings(user.id, settings).catch(() => {});
+      firestoreService.saveAppSettings(user.id, settings)
+        .catch(error => {
+          console.warn('Failed to sync settings to Firestore:', error);
+          // Settings are still saved in localStorage
+        });
     }
   }, [settings, isAuthenticated, user, isLoaded]);
 
@@ -286,10 +294,19 @@ export const SettingsProvider = ({ children }) => {
   const updateApiKey = (apiKey) => {
     setSettings(prev => {
       const updated = { ...prev, geminiApiKey: apiKey };
+      
+      // Always update localStorage immediately
       localStorage.setItem('justgoals-settings', JSON.stringify(updated));
+      
+      // Attempt to save to Firestore if authenticated, but don't block on it
       if (isAuthenticated && user && user.id) {
-        firestoreService.saveAppSettings(user.id, updated).catch(() => {});
+        firestoreService.saveAppSettings(user.id, updated)
+          .catch(error => {
+            console.warn('Failed to save API key to Firestore:', error);
+            // API key is still saved in localStorage and state
+          });
       }
+      
       return updated;
     });
   };
