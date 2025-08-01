@@ -1,6 +1,55 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
 
+// Sound configurations with multiple fallback URLs - moved outside component to prevent recreation
+const soundConfigs = {
+  rain: {
+    name: 'Rain',
+    urls: [
+      '/assets/sounds/rain.mp3',
+      'https://www.soundjay.com/misc/sounds/rain-01.mp3',
+      'https://cdn.freesound.org/previews/2523/2523-lq.mp3', // Freesound rain sample
+      '/assets/sounds/rain.wav'
+    ]
+  },
+  forest: {
+    name: 'Forest',
+    urls: [
+      '/assets/sounds/forest.mp3',
+      'https://www.soundjay.com/nature/sounds/forest-01.mp3',
+      'https://cdn.freesound.org/previews/379/379-lq.mp3', // Freesound forest sample
+      '/assets/sounds/forest.wav'
+    ]
+  },
+  ocean: {
+    name: 'Ocean Waves',
+    urls: [
+      '/assets/sounds/ocean.mp3',
+      'https://www.soundjay.com/nature/sounds/ocean-01.mp3',
+      'https://cdn.freesound.org/previews/316/316-lq.mp3', // Freesound ocean sample
+      '/assets/sounds/ocean.wav'
+    ]
+  },
+  cafe: {
+    name: 'Coffee Shop',
+    urls: [
+      '/assets/sounds/cafe.mp3',
+      'https://www.soundjay.com/misc/sounds/cafe-01.mp3',
+      'https://cdn.freesound.org/previews/507/507-lq.mp3', // Freesound cafe sample
+      '/assets/sounds/cafe.wav'
+    ]
+  },
+  fire: {
+    name: 'Fireplace',
+    urls: [
+      '/assets/sounds/fire.mp3',
+      'https://www.soundjay.com/misc/sounds/fire-01.mp3',
+      'https://cdn.freesound.org/previews/31267/31267_270899-lq.mp3', // Freesound fire sample
+      '/assets/sounds/fire.wav'
+    ]
+  }
+};
+
 const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isActive, onPlayingChange }) => {
   // Use soundType if provided, otherwise fall back to soundId for backward compatibility
   const activeSoundId = soundType || soundId;
@@ -9,55 +58,6 @@ const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isAct
   const [error, setError] = useState(null);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [currentUrl, setCurrentUrl] = useState(null);
-
-  // Sound configurations with multiple fallback URLs
-  const soundConfigs = {
-    rain: {
-      name: 'Rain',
-      urls: [
-        '/assets/sounds/rain.mp3',
-        'https://www.soundjay.com/misc/sounds/rain-01.mp3',
-        'https://cdn.freesound.org/previews/2523/2523-lq.mp3', // Freesound rain sample
-        '/assets/sounds/rain.wav'
-      ]
-    },
-    forest: {
-      name: 'Forest',
-      urls: [
-        '/assets/sounds/forest.mp3',
-        'https://www.soundjay.com/nature/sounds/forest-01.mp3',
-        'https://cdn.freesound.org/previews/379/379-lq.mp3', // Freesound forest sample
-        '/assets/sounds/forest.wav'
-      ]
-    },
-    ocean: {
-      name: 'Ocean Waves',
-      urls: [
-        '/assets/sounds/ocean.mp3',
-        'https://www.soundjay.com/nature/sounds/ocean-01.mp3',
-        'https://cdn.freesound.org/previews/316/316-lq.mp3', // Freesound ocean sample
-        '/assets/sounds/ocean.wav'
-      ]
-    },
-    cafe: {
-      name: 'Coffee Shop',
-      urls: [
-        '/assets/sounds/cafe.mp3',
-        'https://www.soundjay.com/misc/sounds/cafe-01.mp3',
-        'https://cdn.freesound.org/previews/507/507-lq.mp3', // Freesound cafe sample
-        '/assets/sounds/cafe.wav'
-      ]
-    },
-    fire: {
-      name: 'Fireplace',
-      urls: [
-        '/assets/sounds/fire.mp3',
-        'https://www.soundjay.com/misc/sounds/fire-01.mp3',
-        'https://cdn.freesound.org/previews/31267/31267_270899-lq.mp3', // Freesound fire sample
-        '/assets/sounds/fire.wav'
-      ]
-    }
-  };
 
   const currentSound = soundConfigs[activeSoundId];
   
@@ -161,7 +161,7 @@ const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isAct
       audio.pause();
       onPlayingChange?.(false);
     }
-  }, [shouldPlay, activeSoundId, hasUserInteracted, volume, currentSound, onPlayingChange]);
+  }, [shouldPlay, activeSoundId, hasUserInteracted, volume, onPlayingChange]);
 
   // Update volume when it changes
   useEffect(() => {
