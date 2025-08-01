@@ -322,14 +322,27 @@ export const formatDate = (dateString) => {
   if (!dateString) return 'No deadline';
   
   try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Invalid date';
-    
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    // Handle YYYY-MM-DD format by parsing components explicitly to avoid timezone issues
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day); // month is 0-indexed
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } else {
+      // Fallback to normal Date parsing for other formats
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
   } catch (error) {
     return 'Invalid date';
   }
@@ -344,14 +357,16 @@ export const formatDate = (dateString) => {
 export const getDaysUntilDeadline = (deadline) => {
   if (!deadline) return null;
   try {
-    // Parse the deadline date (YYYY-MM-DD) in local timezone
-    const deadlineDate = new Date(deadline);
+    // Parse the deadline date (YYYY-MM-DD) in local timezone by explicitly parsing the parts
+    const [year, month, day] = deadline.split('-').map(Number);
+    const deadlineDate = new Date(year, month - 1, day); // month is 0-indexed
     const today = new Date();
+    
     // Reset time to midnight for both dates to avoid time comparison issues
     deadlineDate.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
+    
     // Calculate difference in milliseconds and convert to days
-    // Use Math.floor so '2 days left' means you have all of today and tomorrow before the deadline
     const diffTime = deadlineDate - today;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
