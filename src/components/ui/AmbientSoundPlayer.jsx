@@ -50,13 +50,34 @@ const soundConfigs = {
   }
 };
 
+// Global user interaction state to avoid multiple listeners
+let globalUserInteracted = false;
+const userInteractionCallbacks = new Set();
+
+const setupGlobalUserInteractionHandler = () => {
+  if (globalUserInteracted) return;
+  
+  const handleUserInteraction = () => {
+    globalUserInteracted = true;
+    userInteractionCallbacks.forEach(callback => callback());
+    userInteractionCallbacks.clear();
+    document.removeEventListener('click', handleUserInteraction);
+    document.removeEventListener('keydown', handleUserInteraction);
+    document.removeEventListener('touchstart', handleUserInteraction);
+  };
+
+  document.addEventListener('click', handleUserInteraction, { once: true });
+  document.addEventListener('keydown', handleUserInteraction, { once: true });
+  document.addEventListener('touchstart', handleUserInteraction, { once: true });
+};
+
 const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isActive, onPlayingChange }) => {
   // Use soundType if provided, otherwise fall back to soundId for backward compatibility
   const activeSoundId = soundType || soundId;
   const audioRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(globalUserInteracted);
   const [currentUrl, setCurrentUrl] = useState(null);
 
   const currentSound = soundConfigs[activeSoundId];
@@ -66,18 +87,17 @@ const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isAct
 
   // Handle user interaction for autoplay policy compliance
   useEffect(() => {
-    const handleUserInteraction = () => {
+    if (globalUserInteracted) {
       setHasUserInteracted(true);
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
-    };
+      return;
+    }
 
-    document.addEventListener('click', handleUserInteraction);
-    document.addEventListener('keydown', handleUserInteraction);
+    const callback = () => setHasUserInteracted(true);
+    userInteractionCallbacks.add(callback);
+    setupGlobalUserInteractionHandler();
 
     return () => {
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
+      userInteractionCallbacks.delete(callback);
     };
   }, []);
 
@@ -130,9 +150,20 @@ const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isAct
       setIsLoading(true);
       setError(null);
 
+      // Ensure we stop any existing playback first
+      audio.pause();
+      audio.currentTime = 0;
+
       tryLoadAudio(currentSound.urls)
         .then((successUrl) => {
           console.log(`Successfully loaded audio from: ${successUrl}`);
+          
+          // Double-check that we should still be playing (component might have updated)
+          if (!shouldPlay) {
+            setIsLoading(false);
+            return;
+          }
+          
           audio.volume = volume;
           audio.loop = true;
           
@@ -170,12 +201,13 @@ const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isAct
     }
   }, [volume]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount and better resource management
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
+        audioRef.current.load(); // Force cleanup
       }
     };
   }, []);
@@ -184,12 +216,16 @@ const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isAct
     return null;
   }
 
+  // Create a unique identifier for debugging
+  const playerId = `${activeSoundId}-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
-    <div className="ambient-sound-player">
+    <div className="ambient-sound-player" data-player-id={playerId}>
       <audio
         ref={audioRef}
         preload="none"
         className="hidden"
+        data-sound-type={activeSoundId}
       />
       
       {error && (
