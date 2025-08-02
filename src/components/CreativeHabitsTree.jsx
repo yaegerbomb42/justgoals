@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from './ui/Icon';
 import Button from './ui/Button';
@@ -9,302 +9,65 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [progressAmount, setProgressAmount] = useState('');
   const [showAdvancedProgress, setShowAdvancedProgress] = useState(false);
+  const scrollContainerRef = useRef(null);
 
-  // Generate enhanced habit-centric tree structure with central clustering and neural connections
-  const treeStructure = useMemo(() => {
-    if (!habits || habits.length === 0) return { nodes: [], branches: [], neuralConnections: [] };
-
-    const nodes = [];
-    const branches = [];
-    const neuralConnections = [];
-    const colors = [
-      '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', 
-      '#EF4444', '#06B6D4', '#84CC16', '#F97316',
-      '#EC4899', '#6366F1', '#14B8A6', '#F59E0B'
-    ];
-
-    // Helper function for date comparison
-    const isToday = (date) => {
-      return date === new Date().toISOString().split('T')[0];
-    };
-
-    const today = new Date().toISOString().split('T')[0];
-
-    // Create central root node representing the user's habit garden
-    const rootNode = {
-      id: 'root',
-      type: 'root',
-      date: today,
-      x: 400, // Center position
-      y: 250, // Center vertically
-      level: 0
-    };
-    nodes.push(rootNode);
-
-    // Calculate habit activity scores for clustering
-    const centerX = 400;
-    const centerY = 250;
+  // Generate days to display (past 7 days, today, future 7 days)
+  const days = useMemo(() => {
+    const today = new Date();
+    const daysArray = [];
     
-    // Calculate activity metrics for each habit
-    const habitMetrics = habits.map((habit, habitIndex) => {
-      if (!habit || !habit.treeNodes || !Array.isArray(habit.treeNodes)) {
-        return { habit, habitIndex, activityScore: 0, lastActivity: null, completionRate: 0 };
-      }
-
-      const sortedNodes = habit.treeNodes
-        .filter(node => node && node.date)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      // Calculate activity score based on recency and frequency
-      let activityScore = 0;
-      let completedDays = 0;
-      let totalDays = sortedNodes.length;
-      let lastActivity = null;
-
-      const now = new Date();
-      sortedNodes.forEach(node => {
-        const nodeDate = new Date(node.date);
-        const daysDiff = Math.max(0, (now - nodeDate) / (1000 * 60 * 60 * 24));
-        
-        if (node.status === 'completed' || 
-            (node.status === 'active' && (node.checks?.length > 0 || node.currentProgress > 0))) {
-          completedDays++;
-          lastActivity = nodeDate;
-          
-          // More recent activity scores higher, decay over time
-          const recencyMultiplier = Math.max(0.1, 1 - (daysDiff / 30)); // 30-day decay
-          activityScore += recencyMultiplier;
-        }
+    // Generate 7 days before today
+    for (let i = 7; i >= 1; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      daysArray.push({
+        date: date.toISOString().split('T')[0],
+        display: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        isToday: false,
+        isPast: true,
+        dayName: date.toLocaleDateString('en-US', { weekday: 'short' })
       });
-
-      const completionRate = totalDays > 0 ? completedDays / totalDays : 0;
-      
-      // Boost score for habits with recent activity
-      if (lastActivity) {
-        const recentDays = (now - lastActivity) / (1000 * 60 * 60 * 24);
-        if (recentDays <= 7) activityScore *= 2; // Double score for activity in last week
-      }
-
-      return { 
-        habit, 
-        habitIndex, 
-        activityScore, 
-        lastActivity, 
-        completionRate,
-        totalDays,
-        completedDays
-      };
-    }).filter(m => m.habit);
-
-    // Sort habits by activity score (most active first)
-    habitMetrics.sort((a, b) => b.activityScore - a.activityScore);
-
-    // Position habits in clusters based on activity
-    habitMetrics.forEach((metric, sortedIndex) => {
-      const { habit, habitIndex, activityScore, completionRate } = metric;
-      const habitColor = habit.color || colors[habitIndex % colors.length];
-      
-      // Central cluster for most active habits, outer rings for less active
-      let clusterRadius;
-      let clusterLayer;
-      
-      if (sortedIndex < Math.max(1, Math.floor(habitMetrics.length * 0.3))) {
-        // Top 30% - inner cluster (highly active)
-        clusterRadius = 120 + (sortedIndex * 15);
-        clusterLayer = 'inner';
-      } else if (sortedIndex < Math.max(2, Math.floor(habitMetrics.length * 0.6))) {
-        // Next 30% - middle cluster (moderately active)
-        clusterRadius = 180 + (sortedIndex * 20);
-        clusterLayer = 'middle';
-      } else {
-        // Remaining 40% - outer cluster (less active/one-time)
-        clusterRadius = 250 + (sortedIndex * 25);
-        clusterLayer = 'outer';
-      }
-      
-      // Distribute around circle for this cluster layer
-      const layerHabits = habitMetrics.filter((_, i) => {
-        if (clusterLayer === 'inner') return i < Math.floor(habitMetrics.length * 0.3);
-        if (clusterLayer === 'middle') return i >= Math.floor(habitMetrics.length * 0.3) && i < Math.floor(habitMetrics.length * 0.6);
-        return i >= Math.floor(habitMetrics.length * 0.6);
-      });
-      
-      const layerIndex = layerHabits.findIndex(m => m === metric);
-      const angleStep = (2 * Math.PI) / layerHabits.length;
-      const angle = layerIndex * angleStep - Math.PI / 2; // Start from top
-      
-      const habitNode = {
-        id: `habit-${habit.id}`,
-        type: 'habit',
-        habitId: habit.id,
-        habit: habit,
-        x: centerX + Math.cos(angle) * clusterRadius,
-        y: centerY + Math.sin(angle) * clusterRadius,
-        level: 1,
-        color: habitColor,
-        angle: angle,
-        clusterRadius: clusterRadius,
-        clusterLayer: clusterLayer,
-        activityScore: activityScore,
-        completionRate: completionRate,
-        streakLength: 0,
-        currentStreak: 0,
-        totalProgress: 0
-      };
-
-      // Calculate streak data
-      const sortedNodes = habit.treeNodes
-        .filter(node => node && node.date)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      // Calculate current streak (consecutive completed days from today backwards)
-      let currentStreak = 0;
-      let streakLength = 0;
-      let totalProgress = 0;
-
-      // Count total completed days
-      const completedDays = sortedNodes.filter(node => 
-        node.status === 'completed' || 
-        (node.status === 'active' && (node.checks?.length > 0 || node.currentProgress > 0))
-      );
-      
-      streakLength = completedDays.length;
-      totalProgress = sortedNodes.reduce((sum, node) => {
-        if (habit.trackingType === 'amount') {
-          return sum + (node.currentProgress || 0);
-        } else {
-          return sum + (node.checks?.length || 0);
-        }
-      }, 0);
-
-      // Calculate current streak (consecutive days from today backwards)
-      const todayDate = new Date();
-      let checkDate = new Date(todayDate);
-      
-      while (checkDate >= new Date(sortedNodes[0]?.date || todayDate)) {
-        const dateStr = checkDate.toISOString().split('T')[0];
-        const dayNode = sortedNodes.find(node => node.date === dateStr);
-        
-        if (dayNode && (dayNode.status === 'completed' || 
-                       (dayNode.status === 'active' && (dayNode.checks?.length > 0 || dayNode.currentProgress > 0)))) {
-          currentStreak++;
-        } else {
-          break;
-        }
-        checkDate.setDate(checkDate.getDate() - 1);
-      }
-
-      habitNode.streakLength = streakLength;
-      habitNode.currentStreak = currentStreak;
-      habitNode.totalProgress = totalProgress;
-
-      nodes.push(habitNode);
-
-      // Create enhanced branch from root to habit node with completion visualization
-      const rootBranchStrokeWidth = 3 + Math.min(currentStreak * 0.5, 6);
-      branches.push({
-        id: `branch-root-${habit.id}`,
-        from: rootNode,
-        to: habitNode,
-        color: habitColor,
-        animated: false,
-        strokeWidth: rootBranchStrokeWidth,
-        opacity: 0.8,
-        completionRate: completionRate
-      });
-
-      // Create streak branches extending from each habit
-      const recentDays = sortedNodes.slice(-7); // Last 7 days
-      
-      recentDays.forEach((node, dayIndex) => {
-        if (!node || !node.date) return;
-
-        // Position streak nodes along a branch extending from the habit
-        const branchLength = 80 + (dayIndex * 15);
-        const branchAngle = angle + (Math.PI / 4) * (dayIndex % 2 === 0 ? 1 : -1);
-        
-        const streakNode = {
-          id: `streak-${habit.id}-${node.id}`,
-          type: 'streak',
-          habitId: habit.id,
-          nodeId: node.id,
-          habit: habit,
-          node: node,
-          date: node.date,
-          x: habitNode.x + Math.cos(branchAngle) * branchLength,
-          y: habitNode.y + Math.sin(branchAngle) * branchLength,
-          level: 2,
-          color: habitColor,
-          isToday: isToday(node.date),
-          dayIndex: dayIndex
-        };
-
-        nodes.push(streakNode);
-
-        // Create branch from habit to streak node
-        branches.push({
-          id: `branch-${habit.id}-${node.id}`,
-          from: habitNode,
-          to: streakNode,
-          color: node.status === 'completed' ? '#10B981' : 
-                 node.status === 'failed' ? '#EF4444' : 
-                 habitColor,
-          animated: isToday(node.date) && node.status === 'active',
-          strokeWidth: node.status === 'completed' ? 3 : 2,
-          opacity: node.status === 'failed' ? 0.4 : 0.8
-        });
-      });
-    });
-
-    // Generate neural connections between habits based on completion patterns
-    // Look for habits that are often completed on the same days
-    const habitNodes = nodes.filter(n => n.type === 'habit');
-    
-    for (let i = 0; i < habitNodes.length; i++) {
-      for (let j = i + 1; j < habitNodes.length; j++) {
-        const habit1 = habitNodes[i];
-        const habit2 = habitNodes[j];
-        
-        // Find days where both habits were completed
-        const habit1Dates = habit1.habit.treeNodes
-          ?.filter(n => n.status === 'completed' || (n.status === 'active' && (n.checks?.length > 0 || n.currentProgress > 0)))
-          ?.map(n => n.date) || [];
-        
-        const habit2Dates = habit2.habit.treeNodes
-          ?.filter(n => n.status === 'completed' || (n.status === 'active' && (n.checks?.length > 0 || n.currentProgress > 0)))
-          ?.map(n => n.date) || [];
-        
-        const commonDates = habit1Dates.filter(date => habit2Dates.includes(date));
-        const connectionStrength = commonDates.length;
-        
-        // Only show neural connections if there's meaningful correlation (3+ shared completion days)
-        if (connectionStrength >= 3) {
-          const neuralOpacity = Math.min(connectionStrength / 20, 0.6); // Max opacity 0.6
-          const strokeWidth = Math.min(connectionStrength / 3, 4); // Max width 4
-          
-          neuralConnections.push({
-            id: `neural-${habit1.habitId}-${habit2.habitId}`,
-            from: habit1,
-            to: habit2,
-            strength: connectionStrength,
-            opacity: neuralOpacity,
-            strokeWidth: strokeWidth,
-            color: '#8B5CF6', // Neural connection color
-            animated: connectionStrength >= 10 // Animate strong connections
-          });
-        }
-      }
     }
+    
+    // Add today
+    daysArray.push({
+      date: today.toISOString().split('T')[0],
+      display: 'Today',
+      isToday: true,
+      isPast: false,
+      dayName: today.toLocaleDateString('en-US', { weekday: 'short' })
+    });
+    
+    // Generate 7 days after today
+    for (let i = 1; i <= 7; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      daysArray.push({
+        date: date.toISOString().split('T')[0],
+        display: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        isToday: false,
+        isPast: false,
+        dayName: date.toLocaleDateString('en-US', { weekday: 'short' })
+      });
+    }
+    
+    return daysArray;
+  }, []);
 
-    return { nodes, branches, neuralConnections };
-  }, [habits]);
+  // Auto-scroll to today on mount
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const todayIndex = days.findIndex(day => day.isToday);
+      const scrollLeft = todayIndex * 120 - (scrollContainerRef.current.clientWidth / 2) + 60;
+      scrollContainerRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  }, [days]);
 
-  const isToday = (date) => {
-    return date === new Date().toISOString().split('T')[0];
-  };
-
-  const getHabitProgress = (habit, node) => {
-    if (!habit || !node) return { current: 0, target: 1, percentage: 0, unit: '' };
+  const getHabitProgress = (habit, dateStr) => {
+    if (!habit || !habit.treeNodes) return { current: 0, target: 1, percentage: 0, unit: '', node: null };
+    
+    const node = habit.treeNodes.find(n => n.date === dateStr);
+    if (!node) return { current: 0, target: 1, percentage: 0, unit: '', node: null };
     
     if (habit.trackingType === 'amount') {
       const current = node.currentProgress || 0;
@@ -313,7 +76,8 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
         current,
         target,
         percentage: Math.min(Math.round((current / target) * 100), 100),
-        unit: habit.unit || ''
+        unit: habit.unit || '',
+        node
       };
     } else {
       const current = node.checks?.length || 0;
@@ -322,83 +86,87 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
         current,
         target,
         percentage: Math.min(Math.round((current / target) * 100), 100),
-        unit: 'completions'
+        unit: 'completions',
+        node
       };
     }
   };
 
-  const handleNodeClick = (node) => {
-    if (node.type === 'habit') {
-      // Clicked on main habit node - show habit overview or create today's entry
-      const todayNode = node.habit.treeNodes?.find(n => isToday(n.date));
-      if (todayNode) {
-        const streakNode = { ...node, node: todayNode, nodeId: todayNode.id };
-        setSelectedNode(streakNode);
-        if (node.habit.trackingType === 'amount') {
-          setShowProgressModal(true);
-          setProgressAmount('');
-        } else {
-          onCheckIn(node.habitId, todayNode.id);
-        }
-      }
-    } else if (node.type === 'streak' && isToday(node.date)) {
-      // Clicked on today's streak node
-      setSelectedNode(node);
-      if (node.habit.trackingType === 'amount') {
-        setShowProgressModal(true);
-        setProgressAmount('');
+  const getHabitStreak = (habit) => {
+    if (!habit.treeNodes) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    let checkDate = new Date(today);
+    
+    while (true) {
+      const dateStr = checkDate.toISOString().split('T')[0];
+      const node = habit.treeNodes.find(n => n.date === dateStr);
+      
+      if (!node) break;
+      
+      const progress = getHabitProgress(habit, dateStr);
+      if (progress.percentage >= 100) {
+        streak++;
       } else {
-        onCheckIn(node.habitId, node.nodeId);
+        break;
       }
+      
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    
+    return streak;
+  };
+
+  const handleHabitClick = (habit, day) => {
+    if (day.isPast && !day.isToday) return; // Can't modify past days
+    
+    const progress = getHabitProgress(habit, day.date);
+    if (!progress.node) return;
+    
+    setSelectedNode({ habit, node: progress.node, day });
+    
+    if (habit.trackingType === 'amount') {
+      setShowProgressModal(true);
+      setProgressAmount('');
+    } else {
+      onCheckIn(habit.id, progress.node.id);
     }
   };
 
-  const handleNodeRightClick = (e, node) => {
-    e.preventDefault();
-    if (node.type === 'habit') {
-      // Right-clicked on habit node - show management for today
-      const todayNode = node.habit.treeNodes?.find(n => isToday(n.date));
-      if (todayNode) {
-        const streakNode = { ...node, node: todayNode, nodeId: todayNode.id };
-        setSelectedNode(streakNode);
-        setShowAdvancedProgress(true);
-      }
-    } else if (node.type === 'streak') {
-      // Right-clicked on specific streak node
-      setSelectedNode(node);
-      setShowAdvancedProgress(true);
+  const handleProgressAdd = (habit, day, amount = 1) => {
+    const progress = getHabitProgress(habit, day.date);
+    if (!progress.node) return;
+    
+    if (habit.trackingType === 'amount') {
+      const newAmount = (progress.current || 0) + amount;
+      onCheckIn(habit.id, progress.node.id, 'default', newAmount);
+    } else {
+      onCheckIn(habit.id, progress.node.id);
     }
+  };
+
+  const handleProgressSubtract = (habit, day) => {
+    const progress = getHabitProgress(habit, day.date);
+    if (!progress.node) return;
+    
+    if (habit.trackingType === 'amount') {
+      const newAmount = Math.max(0, (progress.current || 0) - 1);
+      onCheckIn(habit.id, progress.node.id, 'default', newAmount);
+    }
+    // For check-based habits, we could implement removing checks here
   };
 
   const handleProgressSubmit = () => {
     if (selectedNode && progressAmount) {
       const amount = parseFloat(progressAmount);
       if (amount > 0) {
-        onCheckIn(selectedNode.habitId, selectedNode.nodeId, 'default', amount);
+        onCheckIn(selectedNode.habit.id, selectedNode.node.id, 'default', amount);
         setShowProgressModal(false);
         setSelectedNode(null);
         setProgressAmount('');
       }
     }
-  };
-
-  const handleAdvancedProgressClose = () => {
-    setShowAdvancedProgress(false);
-    setSelectedNode(null);
-  };
-
-  const handleAddProgress = (habitId, nodeId, type, amount) => {
-    onCheckIn(habitId, nodeId, type, amount);
-  };
-
-  const handleEditProgress = (habitId, nodeId, entryId, newAmount) => {
-    // This would need to be implemented in the habit service
-    console.log('Edit progress:', { habitId, nodeId, entryId, newAmount });
-  };
-
-  const handleDeleteProgress = (habitId, nodeId, entryId) => {
-    // This would need to be implemented in the habit service  
-    console.log('Delete progress:', { habitId, nodeId, entryId });
   };
 
   if (!habits || habits.length === 0) {
@@ -416,20 +184,20 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
             ease: "easeInOut"
           }}
         >
-          <Icon name="Sparkles" className="w-16 h-16 text-primary" />
+          <Icon name="TrendingUp" className="w-16 h-16 text-primary" />
         </motion.div>
-        <h3 className="text-2xl font-semibold text-text-primary mb-3">Your Neural Habits Garden Awaits</h3>
+        <h3 className="text-2xl font-semibold text-text-primary mb-3">Your Progressive Habit Lines Await</h3>
         <p className="text-text-secondary max-w-md mx-auto mb-6">
-          Create your first habit and watch your neural habit garden grow. Active habits cluster at the center, with neural connections forming between related habits. Watch your completion rates fill with color from red to green.
+          Create your first habit and watch your progressive lines grow day by day. Each habit starts at the top and progresses toward daily completion.
         </p>
         <div className="flex items-center justify-center gap-4 text-sm text-text-secondary">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-primary rounded-full"></div>
-            <span>Left click to add progress</span>
+            <span>Click to add progress</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-secondary rounded-full"></div>
-            <span>Right click to manage progress</span>
+            <div className="w-3 h-3 bg-success rounded-full"></div>
+            <span>Complete to reach the end node</span>
           </div>
         </div>
       </div>
@@ -437,7 +205,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
   }
 
   return (
-    <div className="relative w-full min-h-[600px] overflow-hidden bg-gradient-to-br from-surface to-surface-700 border border-border rounded-xl p-6">
+    <div className="relative w-full bg-gradient-to-br from-surface to-surface-700 border border-border rounded-xl p-6">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-text-primary mb-1 flex items-center">
@@ -446,428 +214,249 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
             animate={{ scale: [1, 1.5, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
-          Neural Habits Garden
+          Progressive Habit Lines
         </h2>
         <p className="text-sm text-text-secondary">
-          Active habits cluster at the center with neural connections showing completion relationships. Completion rates visualized with red-to-green gradients.
+          Track your daily progress with visual progression lines. Click habits to add progress, reach the end node to complete.
         </p>
       </div>
 
-      {/* Tree visualization container */}
-      <div className="relative w-full h-[500px] overflow-hidden rounded-lg">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 via-slate-800/30 to-slate-900/50" />
-      
-        {/* Tree visualization */}
-        <svg 
-          className="absolute inset-0 w-full h-full" 
-          viewBox="0 0 800 500"
-          style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
+      {/* Days header - horizontal scroll */}
+      <div className="mb-4">
+        <div 
+          ref={scrollContainerRef}
+          className="flex space-x-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent"
+          style={{ scrollbarWidth: 'thin' }}
         >
-        {/* Render neural connections first (behind branches) */}
-        <AnimatePresence>
-          {treeStructure.neuralConnections?.map((connection) => (
-            <motion.g key={connection.id}>
-              <motion.path
-                d={`M ${connection.from.x} ${connection.from.y} Q ${(connection.from.x + connection.to.x) / 2} ${(connection.from.y + connection.to.y) / 2 - 30} ${connection.to.x} ${connection.to.y}`}
-                stroke={connection.color}
-                strokeWidth={connection.strokeWidth}
-                fill="none"
-                opacity={connection.opacity}
-                strokeDasharray="4,8"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ 
-                  pathLength: 1, 
-                  opacity: connection.opacity,
-                  strokeDashoffset: connection.animated ? [0, -24, 0] : 0
-                }}
-                transition={{ 
-                  duration: 2, 
-                  ease: "easeInOut",
-                  repeat: connection.animated ? Infinity : 0,
-                  repeatDuration: 3
-                }}
-                style={{
-                  filter: connection.animated ? 'drop-shadow(0 0 6px currentColor)' : 'none'
-                }}
-              />
-              
-              {/* Connection strength indicator - small pulse at midpoint */}
-              {connection.strength >= 5 && (
-                <motion.circle
-                  cx={(connection.from.x + connection.to.x) / 2}
-                  cy={(connection.from.y + connection.to.y) / 2 - 30}
-                  r="2"
-                  fill={connection.color}
-                  opacity={0.8}
-                  animate={{
-                    r: [2, 4, 2],
-                    opacity: [0.8, 0.4, 0.8]
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
+          {days.map((day, index) => (
+            <div key={day.date} className="flex-shrink-0 w-28 text-center">
+              <div className={`text-xs font-medium mb-1 ${
+                day.isToday ? 'text-primary' : day.isPast ? 'text-text-secondary/70' : 'text-text-secondary'
+              }`}>
+                {day.dayName}
+              </div>
+              <div className={`text-sm font-semibold ${
+                day.isToday ? 'text-primary' : day.isPast ? 'text-text-secondary/70' : 'text-text-primary'
+              }`}>
+                {day.display}
+              </div>
+              {day.isToday && (
+                <motion.div
+                  className="w-2 h-2 bg-primary rounded-full mx-auto mt-1"
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
                 />
               )}
-            </motion.g>
+            </div>
           ))}
-        </AnimatePresence>
-
-        {/* Render branches */}
-        <AnimatePresence>
-          {treeStructure.branches.map((branch) => (
-            <motion.g key={branch.id}>
-              <motion.path
-                d={`M ${branch.from.x} ${branch.from.y} Q ${(branch.from.x + branch.to.x) / 2} ${branch.from.y + 20} ${branch.to.x} ${branch.to.y}`}
-                stroke={branch.color}
-                strokeWidth={branch.strokeWidth || 3}
-                fill="none"
-                opacity={branch.opacity || 0.8}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ 
-                  pathLength: 1, 
-                  opacity: branch.opacity || 0.8,
-                  strokeWidth: branch.animated ? [branch.strokeWidth || 3, (branch.strokeWidth || 3) + 2, branch.strokeWidth || 3] : branch.strokeWidth || 3
-                }}
-                transition={{ 
-                  duration: 1.5, 
-                  ease: "easeInOut",
-                  repeat: branch.animated ? Infinity : 0,
-                  repeatDuration: 2
-                }}
-                style={{
-                  filter: branch.animated ? 'drop-shadow(0 0 8px currentColor)' : 'none'
-                }}
-              />
-              
-              {/* Animated particles for active branches */}
-              {branch.animated && (
-                <motion.circle
-                  r="3"
-                  fill={branch.color}
-                  opacity={0.6}
-                >
-                  <animateMotion
-                    dur="2s"
-                    repeatCount="indefinite"
-                    path={`M ${branch.from.x} ${branch.from.y} Q ${(branch.from.x + branch.to.x) / 2} ${branch.from.y + 20} ${branch.to.x} ${branch.to.y}`}
-                  />
-                </motion.circle>
-              )}
-            </motion.g>
-          ))}
-        </AnimatePresence>
-        </svg>
-
-        {/* Render nodes */}
-        <AnimatePresence>
-          {treeStructure.nodes.map((node, index) => (
+        </div>
+      </div>
+      {/* Habits with progressive lines */}
+      <div className="space-y-6">
+        {habits.map((habit, habitIndex) => {
+          const streak = getHabitStreak(habit);
+          
+          return (
             <motion.div
-              key={node.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-              style={{ left: `${(node.x / 800) * 100}%`, top: `${(node.y / 500) * 100}%` }}
-              initial={{ scale: 0, opacity: 0, y: node.y + 20 }}
-              animate={{ scale: 1, opacity: 1, y: node.y }}
-              transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
-              whileHover={{ scale: 1.1 }}
-              onClick={() => handleNodeClick(node)}
-              onContextMenu={(e) => handleNodeRightClick(e, node)}
+              key={habit.id}
+              className="relative"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: habitIndex * 0.1 }}
             >
-            {node.type === 'root' && (
-              <motion.div 
-                className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full shadow-xl flex items-center justify-center border-4 border-white/20 relative"
-                animate={{
-                  boxShadow: [
-                    '0 0 0 0 rgba(59, 130, 246, 0.4)',
-                    '0 0 0 20px rgba(59, 130, 246, 0)',
-                    '0 0 0 0 rgba(59, 130, 246, 0)'
-                  ]
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <Icon name="Sparkles" className="w-10 h-10 text-white" />
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-                  <div className="text-sm font-semibold text-primary whitespace-nowrap">
-                    Habit Garden
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {node.type === 'habit' && (
-              <div className="text-center relative">
-                <motion.div 
-                  className="relative group"
-                  whileHover={{ scale: 1.15 }}
-                  animate={{
-                    scale: [1, 1.05, 1]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
-                  {/* Main habit node with completion rate visualization */}
+              {/* Habit header with icon and streak */}
+              <div className="flex items-center mb-3">
+                <div className="relative">
                   <div 
-                    className="w-16 h-16 rounded-full shadow-xl flex items-center justify-center border-4 transition-all relative overflow-hidden"
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-xl border-2 shadow-lg relative"
                     style={{ 
-                      backgroundColor: node.color + '30',
-                      borderColor: node.color,
-                      boxShadow: `0 8px 25px ${node.color}40`
+                      backgroundColor: habit.color + '20',
+                      borderColor: habit.color
                     }}
                   >
-                    {/* Completion rate fill with red-to-green gradient */}
-                    <motion.div
-                      className="absolute inset-0 rounded-full"
-                      style={{
-                        background: `conic-gradient(from 0deg, 
-                          ${node.completionRate <= 0.5 
-                            ? `hsl(${node.completionRate * 120}, 70%, 50%)` 
-                            : `hsl(${60 + (node.completionRate - 0.5) * 120}, 70%, 50%)`
-                          } ${node.completionRate * 360}deg, 
-                          transparent ${node.completionRate * 360}deg)`,
-                        opacity: 0.4
-                      }}
-                      initial={{ rotate: -90 }}
-                      animate={{ rotate: -90 }}
-                    />
+                    {habit.emoji}
                     
-                    {/* Semi-transparent overlay showing completion percentage */}
-                    <motion.div
-                      className="absolute inset-1 rounded-full"
-                      style={{
-                        background: `linear-gradient(135deg, 
-                          ${node.completionRate <= 0.5 
-                            ? `hsla(${node.completionRate * 120}, 70%, 50%, 0.3)` 
-                            : `hsla(${60 + (node.completionRate - 0.5) * 120}, 70%, 50%, 0.3)`
-                          }, 
-                          transparent)`,
-                      }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, duration: 0.8 }}
-                    />
-                    
-                    <span className="text-2xl relative z-10">{node.habit.emoji}</span>
-                    
-                    {/* Activity level indicator ring */}
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2"
-                      style={{
-                        borderColor: node.clusterLayer === 'inner' ? '#10B981' : 
-                                   node.clusterLayer === 'middle' ? '#F59E0B' : '#6B7280',
-                        borderStyle: 'dashed',
-                        opacity: 0.6
-                      }}
-                      animate={{
-                        rotate: [0, 360]
-                      }}
-                      transition={{
-                        duration: node.clusterLayer === 'inner' ? 20 : 
-                                 node.clusterLayer === 'middle' ? 30 : 40,
-                        repeat: Infinity,
-                        ease: "linear"
-                      }}
-                    />
-                    
-                    {/* Streak indicator */}
-                    {node.currentStreak > 0 && (
+                    {/* Streak counter */}
+                    {streak > 0 && (
                       <motion.div
-                        className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-success to-success/80 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-lg"
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ delay: 0.3 }}
+                        className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-success to-success/80 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-lg"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", delay: 0.2 }}
                       >
-                        {node.currentStreak}
+                        {streak}
                       </motion.div>
                     )}
                   </div>
-
-                  {/* Habit title and stats */}
-                  <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-center min-w-[120px]">
-                    <div className="text-sm font-semibold text-text-primary mb-1">
-                      {node.habit.title}
-                    </div>
-                    <div className="text-xs text-text-secondary">
-                      {node.currentStreak > 0 ? (
-                        <span className="text-success">🔥 {node.currentStreak} day streak</span>
-                      ) : (
-                        <span>Start your streak!</span>
-                      )}
-                    </div>
-                    {node.streakLength > 0 && (
-                      <div className="text-xs text-text-secondary">
-                        {node.streakLength} total completions
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Enhanced hover tooltip for habits with dynamic positioning */}
-                  <div className={`absolute mb-16 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 pointer-events-none ${
-                    // Dynamic positioning based on node position to avoid cutoff
-                    node.x < 200 ? 'left-0' : node.x > 600 ? 'right-0' : 'left-1/2 transform -translate-x-1/2'
-                  } ${
-                    node.y < 150 ? 'top-full mt-16' : 'bottom-full'
-                  }`}>
-                    <div className="bg-surface-700 border border-border rounded-lg p-4 shadow-xl min-w-[250px] relative">
-                      {/* Dynamic tooltip arrow */}
-                      {node.y >= 150 ? (
-                        <div className={`absolute top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-surface-700 ${
-                          node.x < 200 ? 'left-6' : node.x > 600 ? 'right-6' : 'left-1/2 transform -translate-x-1/2'
-                        }`}></div>
-                      ) : (
-                        <div className={`absolute bottom-full w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-surface-700 ${
-                          node.x < 200 ? 'left-6' : node.x > 600 ? 'right-6' : 'left-1/2 transform -translate-x-1/2'
-                        }`}></div>
-                      )}
-                      
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-2xl">{node.habit.emoji}</span>
-                        <div>
-                          <div className="text-base font-semibold text-text-primary">
-                            {node.habit.title}
-                          </div>
-                          <div className="text-xs text-text-secondary">
-                            {node.habit.trackingType === 'amount' ? 'Amount tracking' : 
-                             node.habit.trackingType === 'count' ? 'Count tracking' : 'Simple check'}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {node.habit.description && (
-                        <div className="text-sm text-text-secondary mb-3">
-                          {node.habit.description}
-                        </div>
-                      )}
-                      
-                      <div className="grid grid-cols-2 gap-3 text-center mb-3">
-                        <div className="bg-surface-600 rounded-lg p-2">
-                          <div className="text-lg font-bold text-success">{node.currentStreak}</div>
-                          <div className="text-xs text-text-secondary">Current Streak</div>
-                        </div>
-                        <div className="bg-surface-600 rounded-lg p-2">
-                          <div className="text-lg font-bold text-primary">{node.streakLength}</div>
-                          <div className="text-xs text-text-secondary">Total Days</div>
-                        </div>
-                      </div>
-                      
-                      <div className="pt-2 border-t border-border">
-                        <div className="flex items-center gap-1 text-xs text-primary mb-1">
-                          <Icon name="MousePointer" className="w-3 h-3" />
-                          <span>Left click: Quick update for today</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-secondary">
-                          <Icon name="Settings" className="w-3 h-3" />
-                          <span>Right click: Manage progress</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                </div>
+                
+                <div className="ml-3 flex-1">
+                  <h3 className="font-semibold text-text-primary">{habit.title}</h3>
+                  <p className="text-sm text-text-secondary">
+                    {habit.trackingType === 'amount' 
+                      ? `Target: ${habit.targetAmount} ${habit.unit || 'units'} daily`
+                      : 'Complete daily check-in'
+                    }
+                  </p>
+                </div>
               </div>
-            )}
 
-            {node.type === 'streak' && (
-              <div className="text-center relative">
-                <motion.div 
-                  className="relative group"
-                  whileHover={{ scale: 1.2 }}
-                  animate={node.isToday ? {
-                    scale: [1, 1.1, 1]
-                  } : {}}
-                  transition={{ duration: 2, repeat: Infinity }}
+              {/* Progressive line container */}
+              <div className="relative">
+                <div 
+                  className="flex space-x-4 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent"
+                  style={{ scrollbarWidth: 'thin' }}
                 >
-                  {/* Streak day node */}
-                  <div 
-                    className={`w-8 h-8 rounded-full shadow-lg flex items-center justify-center border-2 transition-all ${
-                      node.node.status === 'completed' 
-                        ? 'border-success bg-success/30 shadow-success/25' 
-                        : node.node.status === 'failed'
-                          ? 'border-error bg-error/20 opacity-75'
-                          : node.isToday
-                            ? 'border-primary bg-primary/30 shadow-primary/25'
-                            : 'border-gray-400 bg-gray-400/20'
-                    }`}
-                  >
-                    {node.node.status === 'completed' && (
-                      <Icon name="Check" className="w-4 h-4 text-success" />
-                    )}
-                    {node.node.status === 'failed' && (
-                      <Icon name="X" className="w-4 h-4 text-error" />
-                    )}
-                    {node.isToday && node.node.status === 'active' && (
-                      <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                    )}
-                    {!node.isToday && node.node.status === 'active' && (
-                      <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                    )}
-                  </div>
+                  {days.map((day, dayIndex) => {
+                    const progress = getHabitProgress(habit, day.date);
+                    const isCompleted = progress.percentage >= 100;
+                    const hasProgress = progress.current > 0;
+                    
+                    return (
+                      <div key={`${habit.id}-${day.date}`} className="flex-shrink-0 w-28">
+                        {/* Start node (habit icon) */}
+                        <div className="relative h-16 flex flex-col items-center">
+                          <motion.div
+                            className={`w-6 h-6 rounded-full border-2 cursor-pointer transition-all ${
+                              day.isPast && !day.isToday 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : 'hover:scale-110'
+                            }`}
+                            style={{ 
+                              backgroundColor: hasProgress ? habit.color : 'transparent',
+                              borderColor: habit.color,
+                              opacity: day.isPast && !day.isToday ? 0.5 : 1
+                            }}
+                            onClick={() => !day.isPast && handleHabitClick(habit, day)}
+                            whileHover={!day.isPast ? { scale: 1.1 } : {}}
+                            whileTap={!day.isPast ? { scale: 0.95 } : {}}
+                          >
+                            {hasProgress && (
+                              <div className="w-2 h-2 bg-white rounded-full mx-auto mt-1" />
+                            )}
+                          </motion.div>
 
-                  {/* Date label for today or recent days with progress for today */}
-                  {(node.isToday || node.dayIndex < 3) && (
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-                      <div className={`text-xs whitespace-nowrap ${
-                        node.isToday ? 'text-primary font-semibold' : 'text-text-secondary'
-                      }`}>
-                        {node.isToday ? 'Today' : new Date(node.date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
-                      </div>
-                      {/* Show current progress numbers for today */}
-                      {node.isToday && (
-                        <div className="text-xs text-text-secondary mt-1">
-                          {(() => {
-                            const progress = getHabitProgress(node.habit, node.node);
-                            return `${progress.current}/${progress.target}`;
-                          })()}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Progress tooltip for streak nodes */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-8 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 pointer-events-none">
-                    <div className="bg-surface-700 border border-border rounded-lg p-3 shadow-xl min-w-[180px] relative">
-                      {/* Tooltip arrow */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-surface-700"></div>
-                      
-                      <div className="text-center">
-                        <div className="text-sm font-medium text-text-primary mb-1">
-                          {new Date(node.date).toLocaleDateString()}
-                        </div>
-                        
-                        {(() => {
-                          const progress = getHabitProgress(node.habit, node.node);
-                          return (
-                            <div className="text-xs text-text-secondary">
-                              Progress: {progress.current}/{progress.target}
-                              {progress.unit && ` ${progress.unit}`}
-                            </div>
-                          );
-                        })()}
-                        
-                        <div className={`text-xs mt-1 capitalize ${
-                          node.node.status === 'completed' ? 'text-success' :
-                          node.node.status === 'failed' ? 'text-error' :
-                          node.isToday ? 'text-primary' : 'text-text-secondary'
-                        }`}>
-                          {node.node.status === 'active' && node.isToday ? 'In Progress' : node.node.status}
-                        </div>
-
-                        {node.isToday && (
-                          <div className="mt-2 pt-2 border-t border-border text-xs text-primary">
-                            Click to update progress
+                          {/* Progressive line */}
+                          <div className="w-1 flex-1 relative bg-gray-300 rounded-full overflow-hidden">
+                            {/* Progress fill */}
+                            <motion.div
+                              className="w-full rounded-full"
+                              style={{
+                                background: `linear-gradient(to bottom, ${habit.color}, ${habit.color}cc)`,
+                                boxShadow: hasProgress ? `0 0 8px ${habit.color}40` : 'none'
+                              }}
+                              initial={{ height: '0%' }}
+                              animate={{ 
+                                height: `${progress.percentage}%`,
+                                boxShadow: hasProgress && day.isToday ? [
+                                  `0 0 8px ${habit.color}40`,
+                                  `0 0 16px ${habit.color}60`,
+                                  `0 0 8px ${habit.color}40`
+                                ] : hasProgress ? `0 0 8px ${habit.color}40` : 'none'
+                              }}
+                              transition={{ 
+                                duration: 0.8, 
+                                ease: "easeOut",
+                                boxShadow: { duration: 2, repeat: Infinity }
+                              }}
+                            />
+                            
+                            {/* Glowing effect for today's active progress */}
+                            {day.isToday && hasProgress && !isCompleted && (
+                              <motion.div
+                                className="absolute top-0 left-0 w-full rounded-full"
+                                style={{
+                                  height: `${progress.percentage}%`,
+                                  background: `linear-gradient(to bottom, ${habit.color}80, transparent)`,
+                                  filter: 'blur(2px)'
+                                }}
+                                animate={{
+                                  opacity: [0.5, 1, 0.5]
+                                }}
+                                transition={{
+                                  duration: 2,
+                                  repeat: Infinity,
+                                  ease: "easeInOut"
+                                }}
+                              />
+                            )}
                           </div>
-                        )}
+
+                          {/* End node (target) */}
+                          <motion.div
+                            className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                              isCompleted 
+                                ? 'bg-success border-success text-white' 
+                                : 'border-gray-400 bg-gray-200'
+                            }`}
+                            animate={isCompleted ? {
+                              scale: [1, 1.2, 1],
+                              boxShadow: [
+                                '0 0 0 0 rgba(34, 197, 94, 0.4)',
+                                '0 0 0 10px rgba(34, 197, 94, 0)',
+                                '0 0 0 0 rgba(34, 197, 94, 0)'
+                              ]
+                            } : {}}
+                            transition={isCompleted ? { duration: 2, repeat: Infinity } : {}}
+                          >
+                            {isCompleted ? (
+                              <Icon name="Check" className="w-4 h-4" />
+                            ) : (
+                              <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                            )}
+                          </motion.div>
+
+                          {/* Progress text */}
+                          <div className="mt-2 text-center">
+                            <div className={`text-xs font-medium ${
+                              day.isToday ? 'text-primary' : 'text-text-secondary'
+                            }`}>
+                              {progress.current}/{progress.target}
+                            </div>
+                            {progress.unit && habit.trackingType === 'amount' && (
+                              <div className="text-xs text-text-secondary/70">
+                                {progress.unit}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Add/Subtract buttons for today */}
+                          {day.isToday && (
+                            <div className="flex items-center space-x-1 mt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleProgressSubtract(habit, day);
+                                }}
+                                className="w-6 h-6 p-0 text-xs"
+                                disabled={progress.current <= 0}
+                              >
+                                <Icon name="Minus" className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleProgressAdd(habit, day, 1);
+                                }}
+                                className="w-6 h-6 p-0 text-xs"
+                              >
+                                <Icon name="Plus" className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </motion.div>
+                    );
+                  })}
+                </div>
               </div>
-            )}
-          </motion.div>
-        ))}
-      </AnimatePresence>
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* Progress input modal */}
       <AnimatePresence>
@@ -892,7 +481,7 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                   {selectedNode.habit.title}
                 </h3>
                 <p className="text-sm text-text-secondary">
-                  Add your progress for today
+                  Add your progress for {selectedNode.day.display}
                 </p>
               </div>
 
@@ -931,22 +520,6 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Advanced Progress Management Modal */}
-      <AnimatePresence>
-        {showAdvancedProgress && selectedNode && (
-          <ProgressEntryModal
-            isOpen={showAdvancedProgress}
-            onClose={handleAdvancedProgressClose}
-            habit={selectedNode.habit}
-            node={selectedNode.node}
-            onAddProgress={handleAddProgress}
-            onEditProgress={handleEditProgress}
-            onDeleteProgress={handleDeleteProgress}
-          />
-        )}
-      </AnimatePresence>
-      </div>
     </div>
   );
 };
