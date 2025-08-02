@@ -11,6 +11,46 @@ import { NotificationProvider } from './context/NotificationContext';
 import { MealsProvider } from './context/MealsContext';
 import { TemporaryTodosProvider } from './context/TemporaryTodosContext';
 
+// Global error handling for better stability
+window.addEventListener('error', (event) => {
+  // Suppress known third-party errors that don't affect functionality
+  if (event.message && (
+    event.message.includes('mce-autosize-textarea') ||
+    event.message.includes('webcomponents-ce.js') ||
+    event.message.includes('overlay_bundle.js')
+  )) {
+    console.warn('Suppressed third-party error:', event.message);
+    event.preventDefault();
+    return false;
+  }
+});
+
+// Handle unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  // Log but don't crash the app for certain errors
+  if (event.reason && typeof event.reason === 'string') {
+    if (event.reason.includes('Cross-Origin-Opener-Policy') ||
+        event.reason.includes('identitytoolkit.googleapis.com')) {
+      console.warn('Suppressed known external service error:', event.reason);
+      event.preventDefault();
+      return;
+    }
+  }
+  console.error('Unhandled promise rejection:', event.reason);
+});
+
+// Prevent custom element re-registration errors
+const originalDefine = window.customElements?.define;
+if (originalDefine) {
+  window.customElements.define = function(name, constructor, options) {
+    if (!window.customElements.get(name)) {
+      return originalDefine.call(this, name, constructor, options);
+    } else {
+      console.warn(`Custom element '${name}' already defined, skipping re-registration`);
+    }
+  };
+}
+
 const container = document.getElementById("root");
 const root = createRoot(container);
 

@@ -1,78 +1,103 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
 
-const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange }) => {
+// Sound configurations with multiple fallback URLs - moved outside component to prevent recreation
+const soundConfigs = {
+  rain: {
+    name: 'Rain',
+    urls: [
+      '/assets/sounds/rain.mp3',
+      'https://www.soundjay.com/misc/sounds/rain-01.mp3',
+      'https://cdn.freesound.org/previews/2523/2523-lq.mp3', // Freesound rain sample
+      '/assets/sounds/rain.wav'
+    ]
+  },
+  forest: {
+    name: 'Forest',
+    urls: [
+      '/assets/sounds/forest.mp3',
+      'https://www.soundjay.com/nature/sounds/forest-01.mp3',
+      'https://cdn.freesound.org/previews/379/379-lq.mp3', // Freesound forest sample
+      '/assets/sounds/forest.wav'
+    ]
+  },
+  ocean: {
+    name: 'Ocean Waves',
+    urls: [
+      '/assets/sounds/ocean.mp3',
+      'https://www.soundjay.com/nature/sounds/ocean-01.mp3',
+      'https://cdn.freesound.org/previews/316/316-lq.mp3', // Freesound ocean sample
+      '/assets/sounds/ocean.wav'
+    ]
+  },
+  cafe: {
+    name: 'Coffee Shop',
+    urls: [
+      '/assets/sounds/cafe.mp3',
+      'https://www.soundjay.com/misc/sounds/cafe-01.mp3',
+      'https://cdn.freesound.org/previews/507/507-lq.mp3', // Freesound cafe sample
+      '/assets/sounds/cafe.wav'
+    ]
+  },
+  fire: {
+    name: 'Fireplace',
+    urls: [
+      '/assets/sounds/fire.mp3',
+      'https://www.soundjay.com/misc/sounds/fire-01.mp3',
+      'https://cdn.freesound.org/previews/31267/31267_270899-lq.mp3', // Freesound fire sample
+      '/assets/sounds/fire.wav'
+    ]
+  }
+};
+
+// Global user interaction state to avoid multiple listeners
+let globalUserInteracted = false;
+const userInteractionCallbacks = new Set();
+
+const setupGlobalUserInteractionHandler = () => {
+  if (globalUserInteracted) return;
+  
+  const handleUserInteraction = () => {
+    globalUserInteracted = true;
+    userInteractionCallbacks.forEach(callback => callback());
+    userInteractionCallbacks.clear();
+    document.removeEventListener('click', handleUserInteraction);
+    document.removeEventListener('keydown', handleUserInteraction);
+    document.removeEventListener('touchstart', handleUserInteraction);
+  };
+
+  document.addEventListener('click', handleUserInteraction, { once: true });
+  document.addEventListener('keydown', handleUserInteraction, { once: true });
+  document.addEventListener('touchstart', handleUserInteraction, { once: true });
+};
+
+const AmbientSoundPlayer = ({ soundType, soundId, volume = 0.5, isPlaying, isActive, onPlayingChange }) => {
+  // Use soundType if provided, otherwise fall back to soundId for backward compatibility
+  const activeSoundId = soundType || soundId;
   const audioRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(globalUserInteracted);
   const [currentUrl, setCurrentUrl] = useState(null);
 
-  // Sound configurations with multiple fallback URLs
-  const soundConfigs = {
-    rain: {
-      name: 'Rain',
-      urls: [
-        '/assets/sounds/rain.mp3',
-        '/sets/sounds/rain.mp3',
-        'https://www.soundjay.com/misc/sounds/rain-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3'
-      ]
-    },
-    forest: {
-      name: 'Forest',
-      urls: [
-        '/assets/sounds/forest.mp3',
-        '/sets/sounds/forest.mp3',
-        'https://www.soundjay.com/nature/sounds/forest-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2022/03/10/audio_84c0b49d93.mp3'
-      ]
-    },
-    ocean: {
-      name: 'Ocean Waves',
-      urls: [
-        '/assets/sounds/ocean.mp3',
-        '/sets/sounds/ocean.mp3',
-        'https://www.soundjay.com/nature/sounds/ocean-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2021/08/04/audio_12345abcde.mp3'
-      ]
-    },
-    cafe: {
-      name: 'Coffee Shop',
-      urls: [
-        '/assets/sounds/cafe.mp3',
-        '/sets/sounds/cafe.mp3',
-        'https://www.soundjay.com/misc/sounds/cafe-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2022/01/18/audio_cafe123456.mp3'
-      ]
-    },
-    fire: {
-      name: 'Fireplace',
-      urls: [
-        '/assets/sounds/fire.mp3',
-        '/sets/sounds/fire.mp3',
-        'https://www.soundjay.com/misc/sounds/fire-01.mp3',
-        'https://cdn.pixabay.com/download/audio/2021/11/08/audio_fire789012.mp3'
-      ]
-    }
-  };
-
-  const currentSound = soundConfigs[soundId];
+  const currentSound = soundConfigs[activeSoundId];
+  
+  // Use isActive if provided, otherwise fall back to isPlaying
+  const shouldPlay = isActive !== undefined ? isActive : isPlaying;
 
   // Handle user interaction for autoplay policy compliance
   useEffect(() => {
-    const handleUserInteraction = () => {
+    if (globalUserInteracted) {
       setHasUserInteracted(true);
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
-    };
+      return;
+    }
 
-    document.addEventListener('click', handleUserInteraction);
-    document.addEventListener('keydown', handleUserInteraction);
+    const callback = () => setHasUserInteracted(true);
+    userInteractionCallbacks.add(callback);
+    setupGlobalUserInteractionHandler();
 
     return () => {
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
+      userInteractionCallbacks.delete(callback);
     };
   }, []);
 
@@ -121,13 +146,24 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
 
     const audio = audioRef.current;
     
-    if (isPlaying && hasUserInteracted) {
+    if (shouldPlay && hasUserInteracted) {
       setIsLoading(true);
       setError(null);
+
+      // Ensure we stop any existing playback first
+      audio.pause();
+      audio.currentTime = 0;
 
       tryLoadAudio(currentSound.urls)
         .then((successUrl) => {
           console.log(`Successfully loaded audio from: ${successUrl}`);
+          
+          // Double-check that we should still be playing (component might have updated)
+          if (!shouldPlay) {
+            setIsLoading(false);
+            return;
+          }
+          
           audio.volume = volume;
           audio.loop = true;
           
@@ -152,11 +188,11 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
           setIsLoading(false);
           onPlayingChange?.(false);
         });
-    } else if (!isPlaying) {
+    } else if (!shouldPlay) {
       audio.pause();
       onPlayingChange?.(false);
     }
-  }, [isPlaying, soundId, hasUserInteracted, volume, currentSound, onPlayingChange]);
+  }, [shouldPlay, activeSoundId, hasUserInteracted, volume, onPlayingChange]);
 
   // Update volume when it changes
   useEffect(() => {
@@ -165,12 +201,13 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
     }
   }, [volume]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount and better resource management
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
+        audioRef.current.load(); // Force cleanup
       }
     };
   }, []);
@@ -179,12 +216,16 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
     return null;
   }
 
+  // Create a unique identifier for debugging
+  const playerId = `${activeSoundId}-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
-    <div className="ambient-sound-player">
+    <div className="ambient-sound-player" data-player-id={playerId}>
       <audio
         ref={audioRef}
         preload="none"
         className="hidden"
+        data-sound-type={activeSoundId}
       />
       
       {error && (
@@ -201,7 +242,7 @@ const AmbientSoundPlayer = ({ soundId, volume = 0.5, isPlaying, onPlayingChange 
         </div>
       )}
       
-      {!hasUserInteracted && isPlaying && (
+      {!hasUserInteracted && shouldPlay && (
         <div className="text-xs text-accent mb-2 p-2 bg-accent/10 rounded border border-accent/20">
           <Icon name="Info" className="w-3 h-3 inline mr-1" />
           Click anywhere to enable ambient sounds

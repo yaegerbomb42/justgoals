@@ -1,14 +1,14 @@
 // Unified AI Service for JustGoals
 // Provides a single Drift personality and shared memory for all AI interactions
 
-import ContextAggregationService from './contextAggregationService';
+import contextAggregationService from './contextAggregationService';
 import { geminiService } from './geminiService';
 
 class UnifiedAIService {
   constructor() {
     this.personality = 'Drift'; // Consistent AI name
     this.conversationHistory = []; // Shared memory for all AI tabs
-    this.contextService = new ContextAggregationService();
+    this.contextService = contextAggregationService;
     this.maxHistoryLength = 100; // Limit memory size for performance
   }
 

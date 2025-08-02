@@ -65,15 +65,15 @@ const AppearanceSection = () => {
   ];
 
   return (
-    <div className="bg-surface rounded-lg p-6 border border-border">
-      {/* Live Preview Bar */}
-      <div className="flex items-center space-x-4 mb-6">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-lg border-2 ${theme === 'dark' ? 'bg-slate-900 border-primary' : theme === 'light' ? 'bg-slate-50 border-accent' : 'bg-gradient-to-r from-slate-900 to-slate-50 border-secondary'}`}>
+    <div className="bg-surface rounded-lg p-6 border border-border transition-colors duration-200" style={{ minHeight: '600px' }}>
+      {/* Live Preview Bar - Fixed height to prevent layout shift */}
+      <div className="flex items-center space-x-4 mb-6 min-h-[60px]">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-lg border-2 transition-all duration-200 ${theme === 'dark' ? 'bg-slate-900 border-primary' : theme === 'light' ? 'bg-slate-50 border-accent' : 'bg-gradient-to-r from-slate-900 to-slate-50 border-secondary'}`}>
           <Icon name={theme === 'dark' ? 'Moon' : theme === 'light' ? 'Sun' : 'Monitor'} size={20} color={theme === 'light' ? '#0F172A' : '#FFFFFF'} />
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-xs text-text-secondary">Accent:</span>
-          <span className="w-5 h-5 rounded-full border border-border" style={{ backgroundColor: palettes.find(p => p.id === accentColor)?.colors[0] || '#6366F1' }}></span>
+          <span className="w-5 h-5 rounded-full border border-border transition-colors duration-200" style={{ backgroundColor: palettes.find(p => p.id === accentColor)?.colors[0] || '#6366F1' }}></span>
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-xs text-text-secondary">Effect:</span>

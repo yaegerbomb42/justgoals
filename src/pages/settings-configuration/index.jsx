@@ -50,19 +50,19 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-colors duration-200" style={{ scrollBehavior: 'smooth' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-heading-bold text-text-primary mb-2">Settings</h1>
-          <p className="text-text-secondary">Customize your JustGoals experience</p>
+        {/* Header - Fixed height to prevent shift */}
+        <div className="mb-8 min-h-[80px]">
+          <h1 className="text-3xl font-heading-bold text-text-primary mb-2 transition-colors duration-200">Settings</h1>
+          <p className="text-text-secondary transition-colors duration-200">Customize your JustGoals experience</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Navigation */}
           <div className={`lg:w-64 ${isMobile ? 'order-2' : 'order-1'}`}>
-            <div className="bg-surface rounded-lg border border-border p-4">
-              <h2 className="text-lg font-heading-semibold text-text-primary mb-4">Categories</h2>
+            <div className="bg-surface rounded-lg border border-border p-4 transition-colors duration-200">
+              <h2 className="text-lg font-heading-semibold text-text-primary mb-4 transition-colors duration-200">Categories</h2>
               
               {isMobile ? (
                 // Mobile: Horizontal scrollable tabs
@@ -144,9 +144,11 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1">
-            {renderSection()}
+          {/* Main Content - Enhanced stabilization */}
+          <div className="flex-1 min-h-[600px] transition-all duration-200" style={{ contain: 'layout' }}>
+            <div className="min-h-full">
+              {renderSection()}
+            </div>
           </div>
         </div>
       </div>
