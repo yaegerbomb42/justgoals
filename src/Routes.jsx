@@ -25,6 +25,7 @@ import MealsPage from "pages/meals";
 import TemporaryTodosPage from "pages/temp-todos";
 import Oauth2Callback from './pages/oauth2callback';
 import ThemeDemo from 'components/ThemeDemo';
+import GoogleCalendarDebug from './components/GoogleCalendarDebug';
 import ProgressDemo from './pages/ProgressDemo';
 
 // ProtectedRoute component
@@ -55,6 +56,9 @@ const Routes = () => {
 
         {/* Theme demo route - public access for testing */}
         <Route path="/theme-demo" element={<ThemeDemo />} />
+
+        {/* Google Calendar debug route - public access for testing */}
+        <Route path="/google-calendar-debug" element={<GoogleCalendarDebug />} />
 
         {/* Progress demo route - public access for showcasing new features */}
         <Route path="/progress-demo" element={<ProgressDemo />} />

@@ -1158,8 +1158,8 @@ class AchievementService {
   }
 
   // Get achievement state with detailed information
-  getAchievementState(userId, achievementId) {
-    const progress = this.getAchievementProgress(userId, achievementId);
+  async getAchievementState(userId, achievementId) {
+    const progress = await this.getAchievementProgress({ uid: userId }, achievementId);
     const achievement = this.achievements[achievementId];
     
     return {
@@ -1287,11 +1287,12 @@ class AchievementService {
       
       return {
         ...achievement,
-        earned: !!userAchievement,
+        earned: progress.state === 'completed',
         earnedAt: userAchievement?.awardedAt,
         progress: progress.progress,
         total: progress.total,
-        percentage: progress.percentage
+        percentage: progress.percentage,
+        state: progress.state
       };
     }));
   }

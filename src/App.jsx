@@ -7,9 +7,11 @@ import AchievementProvider from './context/AchievementContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { MealsProvider } from './context/MealsContext';
 import { TemporaryTodosProvider } from './context/TemporaryTodosContext';
+import { DriftCharacterProvider } from './context/DriftCharacterContext';
 import Routes from './Routes';
 import Header from './components/ui/Header';
 import NotificationDisplay from './components/ui/NotificationDisplay';
+import DriftCharacter from './components/ui/DriftCharacter';
 import { useNotifications } from './hooks/useNotifications';
 import { useNotificationContext } from './context/NotificationContext';
 import inAppNotificationService from './services/inAppNotificationService';
@@ -18,6 +20,7 @@ import FlowingParticlesBackground from './components/ui/FlowingParticlesBackgrou
 import AmbientSoundPlayer from './components/ui/AmbientSoundPlayer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useSettings } from './context/SettingsContext';
+import { useDriftCharacter } from './context/DriftCharacterContext';
 
 // Notification wrapper component
 const NotificationWrapper = ({ children }) => {
@@ -84,6 +87,21 @@ const GlobalBackgroundMusic = () => {
   );
 };
 
+// Drift Character Wrapper Component
+const DriftCharacterWrapper = () => {
+  const { isVisible, isChatOpen, openChat, characterMood } = useDriftCharacter();
+  
+  if (!isVisible) return null;
+  
+  return (
+    <DriftCharacter 
+      onOpenChat={openChat}
+      isChatOpen={isChatOpen}
+      mood={characterMood}
+    />
+  );
+};
+
 const App = () => {
   const { settings } = useSettings();
   
@@ -103,7 +121,8 @@ const App = () => {
   return (
     <Router>
       <ErrorBoundary>
-        <NotificationWrapper>
+        <DriftCharacterProvider>
+          <NotificationWrapper>
           {/* Background effects layer */}
           {settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none' ? (
             <ErrorBoundary>
@@ -124,8 +143,10 @@ const App = () => {
             <Routes />
             {/* In-app notification display */}
             <NotificationDisplay />
+            <DriftCharacterWrapper />
           </div>
         </NotificationWrapper>
+        </DriftCharacterProvider>
       </ErrorBoundary>
     </Router>
   );

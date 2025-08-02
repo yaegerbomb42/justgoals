@@ -139,17 +139,15 @@ const Journal = () => {
   const handleDeleteEntry = async (entryId) => {
     if (!user) return;
     
-    if (window.confirm('Are you sure you want to delete this entry?')) {
-      try {
-        setError(null);
-        const success = await entityService.deleteJournalEntry(user, entryId);
-        if (success) {
-          setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
-        }
-      } catch (error) {
-        console.error('Error deleting journal entry:', error);
-        setError('Failed to delete journal entry. Please try again.');
+    try {
+      setError(null);
+      const success = await entityService.deleteJournalEntry(user, entryId);
+      if (success) {
+        setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
       }
+    } catch (error) {
+      console.error('Error deleting journal entry:', error);
+      setError('Failed to delete journal entry. Please try again.');
     }
   };
 

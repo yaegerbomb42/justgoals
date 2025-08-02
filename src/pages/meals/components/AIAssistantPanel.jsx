@@ -151,23 +151,26 @@ What would you like me to help you with today?`,
     const mealPlans = Array.isArray(mealData.mealPlans) ? mealData.mealPlans : [];
 
     // Enhanced system prompt for better action generation
-    const systemPrompt = `You are a practical nutrition assistant. Give concise, helpful meal planning advice.
+    const systemPrompt = `You are an expert nutritionist and meal planning assistant. Create comprehensive, practical meal plans that are easy to follow and nutritionally balanced.
 
 User context:
 - Goal: ${context.mealData?.preferences?.goal || 'general health'}
 - Daily Calories: ${context.mealData?.preferences?.dailyCalories || 'not set'}
 - Restrictions: ${context.mealData?.preferences?.dietaryRestrictions?.join(', ') || 'none'}
 - Macros: P${context.mealData?.preferences?.macroTargets?.protein || 0}g C${context.mealData?.preferences?.macroTargets?.carbs || 0}g F${context.mealData?.preferences?.macroTargets?.fat || 0}g
+- Allergens: ${context.mealData?.preferences?.allergens?.join(', ') || 'none'}
+- Cooking Time: ${context.mealData?.preferences?.cookingTime || 'medium'}
+- Meals per Day: ${context.mealData?.preferences?.preferredMealCount || 3}
 
 IMPORTANT: When the user asks for meal plans, recipes, or meal creation, ALWAYS include an action at the end.
 
-For meal plans use this EXACT format:
-[ACTION]{"type": "create_meal_plan", "data": {"title": "Weekly Meal Plan", "description": "AI generated meal plan", "targetCalories": ${context.mealData?.preferences?.dailyCalories || 2000}, "duration": 7, "days": [{"day": "Monday", "breakfast": "Meal name", "lunch": "Meal name", "dinner": "Meal name"}, ...]}}[/ACTION]
+For meal plans use this EXACT format with detailed recipes:
+[ACTION]{"type": "create_meal_plan", "data": {"title": "Weekly Meal Plan", "description": "AI generated meal plan", "targetCalories": ${context.mealData?.preferences?.dailyCalories || 2000}, "duration": 7, "days": [{"day": "Monday", "breakfast": {"name": "Meal name", "calories": 400, "ingredients": ["ingredient1", "ingredient2"], "instructions": "Step by step cooking instructions", "prepTime": 10, "cookTime": 20}, "lunch": {...}, "dinner": {...}}, ...]}}[/ACTION]
 
 For individual meals use:
-[ACTION]{"type": "create_meal", "data": {"title": "Meal Name", "calories": 400, "macros": {"protein": 30, "carbs": 45, "fat": 15}, "ingredients": ["ingredient1", "ingredient2"], "instructions": "Cooking steps"}}[/ACTION]
+[ACTION]{"type": "create_meal", "data": {"title": "Meal Name", "calories": 400, "macros": {"protein": 30, "carbs": 45, "fat": 15}, "ingredients": ["ingredient1", "ingredient2"], "instructions": "Cooking steps", "prepTime": 10, "cookTime": 20}}[/ACTION]
 
-Respond naturally first, then add the action.`;
+Always include detailed recipes with ingredients, instructions, and nutritional info. Respond naturally first, then add the action.`;
 
     try {
       const fullPrompt = `${systemPrompt}\n\nUser: ${message}\n\nAssistant:`;
@@ -220,13 +223,60 @@ Respond naturally first, then add the action.`;
             targetCalories: context.mealData?.preferences?.dailyCalories || 2000,
             duration: 7,
             days: [
-              { day: "Monday", breakfast: "Greek yogurt with berries", lunch: "Chicken salad sandwich", dinner: "Baked salmon with vegetables" },
-              { day: "Tuesday", breakfast: "Oatmeal with banana", lunch: "Turkey wrap", dinner: "Grilled chicken with rice" },
-              { day: "Wednesday", breakfast: "Smoothie bowl", lunch: "Quinoa salad", dinner: "Fish tacos" },
-              { day: "Thursday", breakfast: "Eggs and toast", lunch: "Soup and salad", dinner: "Stir-fry with brown rice" },
-              { day: "Friday", breakfast: "Yogurt parfait", lunch: "Leftover stir-fry", dinner: "Pizza night" },
-              { day: "Saturday", breakfast: "Weekend pancakes", lunch: "Brunch", dinner: "BBQ chicken" },
-              { day: "Sunday", breakfast: "French toast", lunch: "Light salad", dinner: "Meal prep for week" }
+              { 
+                day: "Monday", 
+                breakfast: {
+                  name: "Greek Yogurt with Berries",
+                  calories: 300,
+                  ingredients: ["Greek yogurt", "Mixed berries", "Honey", "Granola"],
+                  instructions: "Mix yogurt with berries, drizzle with honey, top with granola",
+                  prepTime: 5,
+                  cookTime: 0
+                },
+                lunch: {
+                  name: "Chicken Salad Sandwich",
+                  calories: 450,
+                  ingredients: ["Chicken breast", "Mixed greens", "Tomato", "Whole grain bread", "Olive oil"],
+                  instructions: "Grill chicken, assemble sandwich with greens and tomato",
+                  prepTime: 10,
+                  cookTime: 15
+                },
+                dinner: {
+                  name: "Baked Salmon with Vegetables",
+                  calories: 550,
+                  ingredients: ["Salmon fillet", "Broccoli", "Carrots", "Olive oil", "Lemon"],
+                  instructions: "Season salmon, bake at 400°F for 20 minutes with vegetables",
+                  prepTime: 15,
+                  cookTime: 20
+                }
+              },
+              { 
+                day: "Tuesday", 
+                breakfast: {
+                  name: "Oatmeal with Banana",
+                  calories: 350,
+                  ingredients: ["Oats", "Banana", "Cinnamon", "Milk", "Honey"],
+                  instructions: "Cook oats with milk, top with sliced banana and honey",
+                  prepTime: 5,
+                  cookTime: 10
+                },
+                lunch: {
+                  name: "Turkey Wrap",
+                  calories: 400,
+                  ingredients: ["Turkey slices", "Tortilla", "Lettuce", "Tomato", "Mustard"],
+                  instructions: "Layer turkey and vegetables on tortilla, roll and serve",
+                  prepTime: 8,
+                  cookTime: 0
+                },
+                dinner: {
+                  name: "Grilled Chicken with Rice",
+                  calories: 500,
+                  ingredients: ["Chicken breast", "Brown rice", "Mixed vegetables", "Soy sauce"],
+                  instructions: "Grill chicken, cook rice, stir-fry vegetables",
+                  prepTime: 10,
+                  cookTime: 25
+                }
+              }
             ]
           }
         };

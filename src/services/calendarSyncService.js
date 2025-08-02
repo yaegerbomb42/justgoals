@@ -104,8 +104,13 @@ class CalendarSyncService {
   async checkGoogleAuth() {
     try {
       const token = await this.getGoogleAccessToken();
-      if (!token) return false;
+      if (!token) {
+        console.log('No Google access token available');
+        return false;
+      }
 
+      console.log('Testing Google Calendar API access...');
+      
       // Test API call
       const response = await fetch(`${this.googleCalendarApi}/users/me/calendarList`, {
         headers: {
@@ -114,7 +119,18 @@ class CalendarSyncService {
         }
       });
 
-      return response.ok;
+      if (response.ok) {
+        console.log('Google Calendar API access confirmed');
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error('Google Calendar API test failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        return false;
+      }
     } catch (error) {
       console.error('Error checking Google Calendar auth:', error);
       return false;
@@ -125,12 +141,32 @@ class CalendarSyncService {
   async getGoogleAccessToken() {
     try {
       const token = localStorage.getItem('google_access_token');
-      if (token) return token;
+      if (token) {
+        console.log('Found Google access token in localStorage');
+        return token;
+      }
+      
+      // Check if we have token data that might need refresh
+      const tokenData = localStorage.getItem('google_token_data');
+      if (tokenData) {
+        const parsed = JSON.parse(tokenData);
+        console.log('Found token data, checking if refresh needed...', { 
+          hasAccessToken: !!parsed.access_token,
+          hasRefreshToken: !!parsed.refresh_token,
+          expiresIn: parsed.expires_in 
+        });
+        
+        if (parsed.access_token) {
+          return parsed.access_token;
+        }
+      }
+      
+      console.log('No Google access token found');
+      return null;
     } catch (e) {
       console.warn('CalendarSyncService: Failed to get Google access token:', e);
+      return null;
     }
-    // In a real app, integrate with Google OAuth flow here
-    return null;
   }
 
   // Start auto-sync
@@ -539,38 +575,74 @@ class CalendarSyncService {
 
   // Get Google OAuth URL for user to authenticate
   getGoogleAuthUrl(redirectUri) {
+    console.log('Generating Google OAuth URL...', { redirectUri });
+    
     // Check if we have a proper client ID configured
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     
+    console.log('Environment check:', {
+      hasClientId: !!clientId,
+      clientIdPrefix: clientId?.substring(0, 20) + '...',
+      isDefaultValue: clientId === 'your-google-client-id-here',
+      hasGoogleDomain: clientId?.includes('googleusercontent.com')
+    });
+    
     if (!clientId || clientId === 'your-google-client-id-here' || !clientId.includes('googleusercontent.com')) {
-      console.warn('Google OAuth not configured. To enable calendar sync:');
-      console.warn('1. Create a Google Cloud project at https://console.cloud.google.com');
-      console.warn('2. Enable the Google Calendar API');
-      console.warn('3. Create OAuth 2.0 credentials');
-      console.warn('4. Set VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_CLIENT_SECRET in your environment');
+      console.error('Google OAuth not configured. To enable calendar sync:');
+      console.error('1. Create a Google Cloud project at https://console.cloud.google.com');
+      console.error('2. Enable the Google Calendar API');
+      console.error('3. Create OAuth 2.0 credentials');
+      console.error('4. Set VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_CLIENT_SECRET in your environment');
+      console.error('5. Create a .env.local file with the credentials');
       throw new Error('Google OAuth client ID not properly configured. Please check the console for setup instructions.');
     }
     
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email');
+    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly');
     const state = Math.random().toString(36).substring(2, 15); // Optionally store for CSRF
-    return `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+    
+    console.log('Generated OAuth URL:', {
+      clientId: clientId.substring(0, 20) + '...',
+      redirectUri,
+      scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
+      state
+    });
+    
+    return authUrl;
   }
 
   // Handle OAuth callback: exchange code for tokens via Vercel API
   async handleOAuthCallback(code, redirectUri) {
     try {
+      console.log('Starting OAuth token exchange...', { hasCode: !!code, redirectUri });
+      
       const response = await fetch('/api/googleOAuth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, redirectUri })
       });
-      if (!response.ok) throw new Error('OAuth token exchange failed');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OAuth token exchange failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`OAuth token exchange failed: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('OAuth token exchange successful, storing tokens...');
+      
       // Store tokens in localStorage (or Firestore for production)
       if (data.access_token) localStorage.setItem('google_access_token', data.access_token);
       if (data.refresh_token) localStorage.setItem('google_refresh_token', data.refresh_token);
       if (data.id_token) localStorage.setItem('google_id_token', data.id_token);
       localStorage.setItem('google_token_data', JSON.stringify(data));
+      
+      console.log('Tokens stored successfully');
       return data;
     } catch (error) {
       console.error('Error handling Google OAuth callback:', error);

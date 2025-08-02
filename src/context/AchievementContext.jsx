@@ -27,9 +27,9 @@ const AchievementProvider = React.memo(({ children }) => {
   }, [isAuthenticated, user]);
 
   useEffect(() => {
-    if (user && user.id) {
+    if (user && user.uid) {
       setSyncStatus('syncing');
-      firestoreService.syncToLocalStorage(user.id)
+      firestoreService.syncToLocalStorage(user.uid)
         .then(() => {
           setSyncStatus('success');
           setLastSync(new Date());
@@ -44,10 +44,10 @@ const AchievementProvider = React.memo(({ children }) => {
   }, [user]);
 
   const loadUserAchievements = async () => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
     try {
       const userAchievements = await achievementService.getAllAchievementsWithProgress(user);
-      const points = achievementService.getUserPoints(user.id);
+      const points = achievementService.getUserPoints(user.uid);
       setAchievements(Array.isArray(userAchievements) ? userAchievements : []);
       setUserPoints(points);
     } catch (e) {
@@ -59,7 +59,7 @@ const AchievementProvider = React.memo(({ children }) => {
 
   // Check for new achievements
   const checkAchievements = async () => {
-    if (!user?.id) return [];
+    if (!user?.uid) return [];
 
     const newAchievements = await achievementService.checkAchievements(user);
     
@@ -68,7 +68,7 @@ const AchievementProvider = React.memo(({ children }) => {
       // Don't show modal anymore - only in-app notifications
       
       // Update points
-      const updatedPoints = achievementService.getUserPoints(user.id);
+      const updatedPoints = achievementService.getUserPoints(user.uid);
       setUserPoints(updatedPoints);
       
       // Reload achievements
@@ -140,33 +140,29 @@ const AchievementProvider = React.memo(({ children }) => {
 
   // Get achievement progress
   const getAchievementProgress = (achievementId) => {
-    if (!user?.id) return { progress: 0, total: 0, percentage: 0, state: 'not-started' };
-    return achievementService.getAchievementProgress(user.id, achievementId);
+    if (!user?.uid) return { progress: 0, total: 0, percentage: 0, state: 'not-started' };
+    return achievementService.getAchievementProgress(user.uid, achievementId);
   };
 
   // Get detailed achievement state
-  const getAchievementState = (achievementId) => {
-    if (!user?.id) return null;
-    return achievementService.getAchievementState(user.id, achievementId);
+  const getAchievementState = async (achievementId) => {
+    if (!user?.uid) return null;
+    return await achievementService.getAchievementState(user.uid, achievementId);
   };
 
   // Get achievements by state
   const getAchievementsByState = () => {
-    if (!user?.id) return { completed: [], inProgress: [], notStarted: [] };
+    if (!user?.uid) return { completed: [], inProgress: [], notStarted: [] };
     
-    const allAchievements = Object.keys(achievementService.achievements);
     const categorized = { completed: [], inProgress: [], notStarted: [] };
     
-    allAchievements.forEach(achievementId => {
-      const state = getAchievementState(achievementId);
-      if (state) {
-        if (state.state === 'completed') {
-          categorized.completed.push(state);
-        } else if (state.state === 'in-progress') {
-          categorized.inProgress.push(state);
-        } else {
-          categorized.notStarted.push(state);
-        }
+    achievements.forEach(achievement => {
+      if (achievement.state === 'completed') {
+        categorized.completed.push(achievement);
+      } else if (achievement.state === 'in-progress') {
+        categorized.inProgress.push(achievement);
+      } else {
+        categorized.notStarted.push(achievement);
       }
     });
     
@@ -175,7 +171,7 @@ const AchievementProvider = React.memo(({ children }) => {
 
   // Get progress summary
   const getProgressSummary = () => {
-    if (!user?.id) return { total: 0, completed: 0, inProgress: 0, notStarted: 0, completionRate: 0 };
+    if (!user?.uid) return { total: 0, completed: 0, inProgress: 0, notStarted: 0, completionRate: 0 };
     
     const byState = getAchievementsByState();
     const total = byState.completed.length + byState.inProgress.length + byState.notStarted.length;

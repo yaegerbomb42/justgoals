@@ -51,7 +51,7 @@ const AnalyticsDashboard = () => {
   useEffect(() => {
     setIsLoading(true);
     // Always fetch analytics data, even for unauthenticated users (demo data)
-    analyticsService.getUserAnalytics(user?.id, timeRange)
+    analyticsService.getUserAnalytics(user?.uid, timeRange)
       .then(fetchedData => {
         setAnalyticsData({
           heatmap: Array.isArray(fetchedData.heatmap) ? fetchedData.heatmap : [],
