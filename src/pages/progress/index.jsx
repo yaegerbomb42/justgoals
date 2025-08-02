@@ -13,10 +13,12 @@ import DateHeader from './components/DateHeader';
 import GoalSelector from './components/GoalSelector';
 import ProgressVisualization from './components/ProgressVisualization';
 import TimelineProgressVisualization from './components/TimelineProgressVisualization';
+import EnhancedTimelineProgressVisualization from './components/EnhancedTimelineProgressVisualization';
 import AddMilestoneModal from './components/AddMilestoneModal';
 import AIAssistantPanel from './components/AIAssistantPanel';
 import ProgressAIAssistant from './components/ProgressAIAssistant';
 import ReflectionPrompt from './components/ReflectionPrompt';
+import aiProgressJourneyService from '../../services/aiProgressJourneyService';
 
 const Progress = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -30,6 +32,8 @@ const Progress = () => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [editingMilestone, setEditingMilestone] = useState(null);
   const [error, setError] = useState(null);
+  const [aiJourney, setAiJourney] = useState([]);
+  const [useAIJourney, setUseAIJourney] = useState(true);
 
   // Load goals using entityService instead of mock data
   const [goals, setGoals] = useState([]);
@@ -129,6 +133,14 @@ const Progress = () => {
     });
   };
 
+  // Determine which progress data to use
+  const getActiveProgressData = () => {
+    if (useAIJourney && aiJourney.length > 0) {
+      return aiJourney.filter(milestone => selectedGoalId ? milestone.goalId === selectedGoalId : true);
+    }
+    return getFilteredMilestones();
+  };
+
   const handleToggleComplete = async (milestoneId) => {
     if (user) {
       const milestone = milestones.find(m => m.id === milestoneId);
@@ -220,6 +232,45 @@ const Progress = () => {
     }
   };
 
+  const handleCreateAIJourney = (journey) => {
+    setAiJourney(journey);
+    // Optionally save to milestones storage
+    if (user && journey.length > 0) {
+      journey.forEach(milestone => {
+        const milestonePayload = {
+          ...milestone,
+          date: selectedDate.toISOString().split('T')[0],
+          createdAt: new Date()
+        };
+        
+        const createdMilestone = entityService.createMilestone(user, milestonePayload);
+        if (createdMilestone) {
+          setMilestones(prevMilestones => [...prevMilestones, { ...createdMilestone, createdAt: new Date(createdMilestone.createdAt) }]);
+        }
+      });
+    }
+  };
+
+  const handleUpdateAIProgress = (milestoneId, updates) => {
+    setAiJourney(prevJourney => 
+      prevJourney.map(milestone => 
+        milestone.id === milestoneId ? { ...milestone, ...updates } : milestone
+      )
+    );
+    
+    // Also update in regular milestones if stored there
+    if (user) {
+      const updatedMilestone = entityService.updateMilestone(user, milestoneId, updates);
+      if (updatedMilestone) {
+        setMilestones(prevMilestones =>
+          prevMilestones.map(m =>
+            m.id === milestoneId ? { ...updatedMilestone, createdAt: new Date(updatedMilestone.createdAt) } : m
+          )
+        );
+      }
+    }
+  };
+
   const handleOpenEditModal = (milestone) => {
     setEditingMilestone(milestone);
     setIsAddModalOpen(true);
@@ -237,8 +288,9 @@ const Progress = () => {
   };
 
   const filteredMilestones = getFilteredMilestones();
-  const completedCount = Array.isArray(filteredMilestones) ? filteredMilestones.filter(m => m.completed).length : 0;
-  const totalCount = Array.isArray(filteredMilestones) ? filteredMilestones.length : 0;
+  const activeProgressData = getActiveProgressData();
+  const completedCount = Array.isArray(activeProgressData) ? activeProgressData.filter(m => m.completed).length : 0;
+  const totalCount = Array.isArray(activeProgressData) ? activeProgressData.length : 0;
   const selectedGoal = Array.isArray(goals) ? goals.find(goal => goal.id === selectedGoalId) : null;
 
   // Calculate real weekly progress and streak
@@ -246,10 +298,11 @@ const Progress = () => {
   const streakData = user ? calculateUserStreak(user.id) : { currentStreak: 0 };
   const streakCount = streakData.currentStreak;
 
-  // Defensive: ensure milestones, goals, and filteredMilestones are always arrays
+  // Defensive: ensure milestones, goals, and activeProgressData are always arrays
   const safeMilestones = Array.isArray(milestones) ? milestones : [];
   const safeGoals = Array.isArray(goals) ? goals : [];
   const safeFilteredMilestones = Array.isArray(filteredMilestones) ? filteredMilestones : [];
+  const safeActiveProgressData = Array.isArray(activeProgressData) ? activeProgressData : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -273,36 +326,61 @@ const Progress = () => {
                 onGoalSelect={setSelectedGoalId}
               />
 
-              {/* Timeline Progress Visualization */}
-              <TimelineProgressVisualization
-                completedCount={completedCount}
-                totalCount={totalCount}
-                streakCount={streakCount}
-                weeklyProgress={weeklyProgress}
+              {/* Enhanced Timeline Progress Visualization */}
+              <EnhancedTimelineProgressVisualization
                 selectedGoal={selectedGoal}
-                progressMarks={safeFilteredMilestones}
+                progressMarks={safeActiveProgressData}
+                onUpdateProgress={handleUpdateAIProgress}
+                onCreateAIJourney={handleCreateAIJourney}
               />
+
+              {/* Toggle between AI and Manual Mode */}
+              <div className="flex items-center justify-between p-4 bg-surface rounded-lg border border-border">
+                <div className="flex items-center space-x-3">
+                  <Icon name="Bot" size={20} className="text-primary" />
+                  <div>
+                    <div className="text-sm font-medium text-text-primary">AI Progress Mode</div>
+                    <div className="text-xs text-text-secondary">
+                      {useAIJourney ? 'Using AI-generated milestones' : 'Using manual milestones'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setUseAIJourney(!useAIJourney)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    useAIJourney ? 'bg-primary' : 'bg-surface-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useAIJourney ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
 
               {/* Milestones List */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-heading-medium text-text-primary">
-                    Progress Journey
+                    {useAIJourney ? 'AI Progress Journey' : 'Manual Progress Steps'}
                   </h2>
                   
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-text-secondary">
                       {completedCount}/{totalCount} completed
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsAddModalOpen(true)}
-                      iconName="Plus"
-                      className="text-text-secondary hover:text-primary"
-                    >
-                      Add Step
-                    </Button>
+                    {!useAIJourney && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsAddModalOpen(true)}
+                        iconName="Plus"
+                        className="text-text-secondary hover:text-primary"
+                      >
+                        Add Step
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -310,33 +388,39 @@ const Progress = () => {
                   <div className="p-4 bg-error/10 border border-error/20 rounded text-error text-center mb-4">{error}</div>
                 )}
 
-                {safeFilteredMilestones.length === 0 ? (
+                {safeActiveProgressData.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 bg-surface-700 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Icon name="Target" size={24} className="text-text-secondary" />
                     </div>
                     <h3 className="text-lg font-heading-medium text-text-primary mb-2">
-                      Start Your Progress Journey
+                      {useAIJourney ? 'Generate Your AI Progress Journey' : 'Start Your Progress Journey'}
                     </h3>
                     <p className="text-text-secondary mb-4">
-                      Create progression marks to track your journey toward your goals
+                      {useAIJourney 
+                        ? 'Let AI analyze your patterns and create personalized milestones'
+                        : 'Create progression marks to track your journey toward your goals'
+                      }
                     </p>
                     <Button
                       variant="primary"
-                      onClick={() => setIsAddModalOpen(true)}
-                      iconName="Plus"
+                      onClick={() => useAIJourney ? null : setIsAddModalOpen(true)}
+                      iconName={useAIJourney ? "Bot" : "Plus"}
                       iconPosition="left"
                     >
-                      Add Progress Step
+                      {useAIJourney ? 'AI will auto-generate when you select a goal' : 'Add Progress Step'}
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {safeFilteredMilestones.map((milestone) => (
+                    {safeActiveProgressData.map((milestone) => (
                       <MilestoneCard
                         key={milestone.id}
                         milestone={milestone}
-                        onToggleComplete={handleToggleComplete}
+                        onToggleComplete={useAIJourney ? 
+                          (id) => handleUpdateAIProgress(id, { completed: !milestone.completed }) :
+                          handleToggleComplete
+                        }
                         onStartFocus={handleStartFocus}
                         onEdit={handleOpenEditModal}
                         onDelete={handleDeleteMilestone}
@@ -372,7 +456,9 @@ const Progress = () => {
                     className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700 transition-colors duration-fast"
                   >
                     <Icon name="Bot" size={20} className="text-secondary mb-2" />
-                    <span className="text-xs font-caption text-text-secondary">Progress AI</span>
+                    <span className="text-xs font-caption text-text-secondary">
+                      {useAIJourney ? 'AI Journey' : 'Progress AI'}
+                    </span>
                   </button>
                   
                   <Link
@@ -392,7 +478,7 @@ const Progress = () => {
                 isExpanded={isAIExpanded}
                 onToggle={() => setIsAIExpanded(!isAIExpanded)}
                 selectedGoal={selectedGoal}
-                progressMarks={safeFilteredMilestones}
+                progressMarks={safeActiveProgressData}
                 onCreateProgressPath={handleCreateProgressPath}
               />
             </div>
@@ -406,7 +492,7 @@ const Progress = () => {
           isExpanded={isAIExpanded}
           onToggle={() => setIsAIExpanded(!isAIExpanded)}
           selectedGoal={selectedGoal}
-          progressMarks={safeFilteredMilestones}
+          progressMarks={safeActiveProgressData}
           onCreateProgressPath={handleCreateProgressPath}
         />
       </div>

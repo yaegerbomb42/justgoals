@@ -25,6 +25,7 @@ import MealsPage from "pages/meals";
 import TemporaryTodosPage from "pages/temp-todos";
 import Oauth2Callback from './pages/oauth2callback';
 import ThemeDemo from 'components/ThemeDemo';
+import ProgressDemo from './pages/ProgressDemo';
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -54,6 +55,9 @@ const Routes = () => {
 
         {/* Theme demo route - public access for testing */}
         <Route path="/theme-demo" element={<ThemeDemo />} />
+
+        {/* Progress demo route - public access for showcasing new features */}
+        <Route path="/progress-demo" element={<ProgressDemo />} />
 
         {/* OAuth2 callback route */}
         <Route path="/oauth2callback" element={<Oauth2Callback />} />
