@@ -129,79 +129,44 @@ const MealPreferences = ({ preferences = {}, onError }) => {
     }
   };
 
-  // Wrapper function for MacroSlider compatibility
-  const handleMacroSliderChange = (newMacroTargets) => {
-    try {
-      // Ensure all values are integers and properly bounded
-      const protein = Math.max(5, Math.min(80, Math.round(parseInt(newMacroTargets.protein) || 0)));
-      const carbs = Math.max(5, Math.min(80, Math.round(parseInt(newMacroTargets.carbs) || 0)));
-      const fat = Math.max(5, Math.min(80, Math.round(parseInt(newMacroTargets.fat) || 0)));
-      
-      const cleanedTargets = { protein, carbs, fat };
-      const total = protein + carbs + fat;
-      
-      // If total is close to 100 (within 3%), normalize to 100
-      if (Math.abs(total - 100) <= 3) {
-        const diff = 100 - total;
-        const largestMacro = Object.entries(cleanedTargets)
-          .reduce((a, b) => cleanedTargets[a[0]] > cleanedTargets[b[0]] ? a : b)[0];
-        cleanedTargets[largestMacro] += diff;
-      }
-      
-      setFormData(prev => ({
-        ...prev,
-        macroTargets: cleanedTargets
-      }));
-      
-      // Clear any error
-      if (onError) {
-        onError(null);
-      }
-    } catch (error) {
-      console.error('Error updating macro targets from slider:', error);
-      // Don't show error to user for slider interactions
-    }
-  };
+
 
   const handleMacroChange = (macro, value) => {
     try {
-      // Parse and ensure integer value
       const numValue = Math.round(parseInt(value) || 0);
+      const currentTargets = formData.macroTargets || { protein: 25, carbs: 45, fat: 30 };
       
-      // Validate individual macro range with more forgiving bounds
-      if (numValue < 5 || numValue > 80) {
-        console.warn(`${macro} percentage should be between 5-80%`);
+      // Get the other two macros
+      const otherMacros = ['protein', 'carbs', 'fat'].filter(m => m !== macro);
+      const remaining = 100 - numValue;
+      
+      // Calculate proportional distribution of remaining percentage
+      const currentOthersTotal = otherMacros.reduce((sum, m) => sum + (currentTargets[m] || 0), 0);
+      
+      let newMacroTargets = { ...currentTargets, [macro]: numValue };
+      
+      if (currentOthersTotal > 0) {
+        // Proportionally distribute the remaining percentage
+        otherMacros.forEach(otherMacro => {
+          const proportion = (currentTargets[otherMacro] || 0) / currentOthersTotal;
+          newMacroTargets[otherMacro] = Math.max(5, Math.round(remaining * proportion));
+        });
+      } else {
+        // Default distribution if others are 0
+        if (macro !== 'protein') newMacroTargets.protein = Math.round(remaining * 0.25);
+        if (macro !== 'carbs') newMacroTargets.carbs = Math.round(remaining * 0.45);
+        if (macro !== 'fat') newMacroTargets.fat = Math.round(remaining * 0.30);
       }
       
-      const newMacroTargets = {
-        ...formData.macroTargets,
-        [macro]: numValue
-      };
-      
-      // Calculate total - be more lenient with validation
-      const total = (newMacroTargets.protein || 0) + (newMacroTargets.carbs || 0) + (newMacroTargets.fat || 0);
-      
-      // Auto-adjust other macros if total exceeds 100
-      if (total > 100) {
-        const excess = total - 100;
-        const otherMacros = Object.keys(newMacroTargets).filter(m => m !== macro);
-        
-        // Proportionally reduce other macros
-        otherMacros.forEach(otherMacro => {
-          const currentValue = newMacroTargets[otherMacro] || 0;
-          const reduction = Math.floor((currentValue / (total - numValue)) * excess);
-          newMacroTargets[otherMacro] = Math.max(5, currentValue - reduction);
-        });
-        
-        // Recalculate to ensure we're at 100 or close
-        const newTotal = Object.values(newMacroTargets).reduce((sum, val) => sum + val, 0);
-        if (newTotal !== 100) {
-          const diff = 100 - newTotal;
-          // Add/subtract the difference to the largest macro
-          const largestMacro = Object.entries(newMacroTargets)
-            .reduce((a, b) => newMacroTargets[a[0]] > newMacroTargets[b[0]] ? a : b)[0];
-          newMacroTargets[largestMacro] = Math.max(5, newMacroTargets[largestMacro] + diff);
-        }
+      // Ensure total equals exactly 100
+      const total = Object.values(newMacroTargets).reduce((sum, val) => sum + val, 0);
+      if (total !== 100) {
+        const diff = 100 - total;
+        // Add the difference to the largest macro (excluding the one being changed)
+        const largestMacro = otherMacros.reduce((a, b) => 
+          (newMacroTargets[a] || 0) > (newMacroTargets[b] || 0) ? a : b
+        );
+        newMacroTargets[largestMacro] = Math.max(5, (newMacroTargets[largestMacro] || 0) + diff);
       }
       
       setFormData(prev => ({
@@ -209,13 +174,11 @@ const MealPreferences = ({ preferences = {}, onError }) => {
         macroTargets: newMacroTargets
       }));
       
-      // Clear any error since we auto-corrected
       if (onError) {
         onError(null);
       }
     } catch (error) {
       console.error('Error updating macro targets:', error);
-      // Don't show error to user, just log it
     }
   };
 
@@ -390,13 +353,53 @@ const MealPreferences = ({ preferences = {}, onError }) => {
           <span>Macro Distribution</span>
         </h3>
         
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-6">
+          {/* Visual Macro Distribution */}
+          <div className="grid grid-cols-3 gap-4">
             {/* Protein */}
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="font-semibold text-green-700 mb-2">Protein</div>
+              <div className="text-2xl font-bold text-green-800 mb-1">
+                {Math.round(formData.macroTargets?.protein || 25)}%
+              </div>
+              <div className="text-sm text-green-600">
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.protein || 25) / 100) / 4)}g
+              </div>
+            </div>
+            
+            {/* Carbs */}
+            <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="font-semibold text-yellow-700 mb-2">Carbs</div>
+              <div className="text-2xl font-bold text-yellow-800 mb-1">
+                {Math.round(formData.macroTargets?.carbs || 45)}%
+              </div>
+              <div className="text-sm text-yellow-600">
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.carbs || 45) / 100) / 4)}g
+              </div>
+            </div>
+            
+            {/* Fat */}
+            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="font-semibold text-blue-700 mb-2">Fat</div>
+              <div className="text-2xl font-bold text-blue-800 mb-1">
+                {Math.round(formData.macroTargets?.fat || 30)}%
+              </div>
+              <div className="text-sm text-blue-600">
+                {Math.round((formData.dailyCalories * (formData.macroTargets?.fat || 30) / 100) / 9)}g
+              </div>
+            </div>
+          </div>
+
+          {/* Simple Sliders */}
+          <div className="space-y-4">
+            {/* Protein Slider */}
             <div>
-              <label className="block text-sm font-medium text-green-600 mb-2">
-                Protein ({Math.round(formData.macroTargets?.protein || 25)}%)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-green-600">Protein</label>
+                <span className="text-sm font-bold text-green-600">
+                  {Math.round(formData.macroTargets?.protein || 25)}%
+                </span>
+              </div>
               <input
                 type="range"
                 min="10"
@@ -409,16 +412,16 @@ const MealPreferences = ({ preferences = {}, onError }) => {
                   background: `linear-gradient(to right, #10b981 0%, #10b981 ${((formData.macroTargets?.protein || 25) - 10) / 50 * 100}%, #e5e7eb ${((formData.macroTargets?.protein || 25) - 10) / 50 * 100}%, #e5e7eb 100%)`
                 }}
               />
-              <div className="text-sm text-text-secondary mt-1">
-                {Math.round((formData.dailyCalories * (formData.macroTargets?.protein || 25) / 100) / 4)}g protein
-              </div>
             </div>
 
-            {/* Carbs */}
+            {/* Carbs Slider */}
             <div>
-              <label className="block text-sm font-medium text-yellow-600 mb-2">
-                Carbs ({Math.round(formData.macroTargets?.carbs || 45)}%)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-yellow-600">Carbs</label>
+                <span className="text-sm font-bold text-yellow-600">
+                  {Math.round(formData.macroTargets?.carbs || 45)}%
+                </span>
+              </div>
               <input
                 type="range"
                 min="20"
@@ -431,16 +434,16 @@ const MealPreferences = ({ preferences = {}, onError }) => {
                   background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${((formData.macroTargets?.carbs || 45) - 20) / 50 * 100}%, #e5e7eb ${((formData.macroTargets?.carbs || 45) - 20) / 50 * 100}%, #e5e7eb 100%)`
                 }}
               />
-              <div className="text-sm text-text-secondary mt-1">
-                {Math.round((formData.dailyCalories * (formData.macroTargets?.carbs || 45) / 100) / 4)}g carbs
-              </div>
             </div>
 
-            {/* Fat */}
+            {/* Fat Slider */}
             <div>
-              <label className="block text-sm font-medium text-blue-600 mb-2">
-                Fat ({Math.round(formData.macroTargets?.fat || 30)}%)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-blue-600">Fat</label>
+                <span className="text-sm font-bold text-blue-600">
+                  {Math.round(formData.macroTargets?.fat || 30)}%
+                </span>
+              </div>
               <input
                 type="range"
                 min="15"
@@ -453,53 +456,27 @@ const MealPreferences = ({ preferences = {}, onError }) => {
                   background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((formData.macroTargets?.fat || 30) - 15) / 35 * 100}%, #e5e7eb ${((formData.macroTargets?.fat || 30) - 15) / 35 * 100}%, #e5e7eb 100%)`
                 }}
               />
-              <div className="text-sm text-text-secondary mt-1">
-                {Math.round((formData.dailyCalories * (formData.macroTargets?.fat || 30) / 100) / 9)}g fat
-              </div>
             </div>
           </div>
 
-          {/* Macro Total Info */}
-          <div className={`p-3 rounded-lg border ${
-            Math.abs(macroTotal - 100) <= 2 
-              ? 'bg-green-50 border-green-200' 
-              : Math.abs(macroTotal - 100) <= 5
-              ? 'bg-yellow-50 border-yellow-200'
-              : 'bg-red-50 border-red-200'
+          {/* Total Display */}
+          <div className={`p-3 rounded-lg border text-center ${
+            Math.abs(macroTotal - 100) <= 1 
+              ? 'bg-green-50 border-green-200 text-green-700' 
+              : 'bg-yellow-50 border-yellow-200 text-yellow-700'
           }`}>
-            <div className="flex items-center space-x-2">
-              {Math.abs(macroTotal - 100) <= 2 ? (
-                <Icon name="CheckCircle" className="w-4 h-4 text-green-600" />
-              ) : Math.abs(macroTotal - 100) <= 5 ? (
-                <Icon name="AlertTriangle" className="w-4 h-4 text-yellow-600" />
+            <div className="flex items-center justify-center space-x-2">
+              {Math.abs(macroTotal - 100) <= 1 ? (
+                <Icon name="CheckCircle" className="w-4 h-4" />
               ) : (
-                <Icon name="XCircle" className="w-4 h-4 text-red-600" />
+                <Icon name="AlertTriangle" className="w-4 h-4" />
               )}
-              <span className={`text-sm ${
-                Math.abs(macroTotal - 100) <= 2 
-                  ? 'text-green-700' 
-                  : Math.abs(macroTotal - 100) <= 5
-                  ? 'text-yellow-700'
-                  : 'text-red-700'
-              }`}>
-                {Math.abs(macroTotal - 100) <= 2 
-                  ? `Perfect! Macro percentages total ${macroTotal}%` 
-                  : `Macro percentages total ${macroTotal}%. Target is 100% (±2% acceptable)`
-                }
+              <span className="text-sm font-medium">
+                Total: {macroTotal}% {Math.abs(macroTotal - 100) <= 1 ? '(Perfect!)' : '(Auto-adjusting others)'}
               </span>
             </div>
-            {Math.abs(macroTotal - 100) > 2 && (
-              <div className="text-xs text-gray-600 mt-1">
-                Tip: Adjusting any macro will automatically balance the others to reach 100%
-              </div>
-            )}
           </div>
         </div>
-        <SimpleMacroSlider
-          macroTargets={formData.macroTargets || { protein: 25, carbs: 45, fat: 30 }}
-          dailyCalories={formData.dailyCalories || 2000}
-          onChange={handleMacroSliderChange}
-        />
       </div>
 
       {/* Dietary Preferences */}

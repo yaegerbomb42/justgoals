@@ -116,10 +116,11 @@ const getAnimationVariants = (animationType, position) => {
     },
     exit: {
       opacity: 0,
-      scale: 0.9,
-      y: isTop ? -20 : 20,
+      scale: 0.95,
+      y: isTop ? -10 : 10,
       transition: {
-        duration: 0.2
+        duration: 0.8,
+        ease: "easeOut"
       }
     }
   };
@@ -165,6 +166,7 @@ const NotificationToast = ({ notification, onRemove, onSnooze, position, animati
   const [timeLeft, setTimeLeft] = useState(null);
   const [startTime, setStartTime] = useState(null);
   const [pausedTime, setPausedTime] = useState(null);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   
   const Icon = getNotificationIcon(notification.type);
   const colors = getNotificationColors(notification.type, notification.priority);
@@ -203,9 +205,14 @@ const NotificationToast = ({ notification, onRemove, onSnooze, position, animati
 
       if (remaining <= 0) {
         clearInterval(interval);
-        onRemove(notification.id);
+        // Start fade-out animation
+        setIsFadingOut(true);
+        // Remove after fade-out animation completes
+        setTimeout(() => {
+          onRemove(notification.id);
+        }, 800); // Match the exit animation duration
       }
-    }, 100);
+    }, 50); // More frequent updates for smoother progress bar
 
     return () => clearInterval(interval);
   }, [notification.persistent, notification.timeout, isHovered, pausedTime, onRemove, notification.id]);
@@ -226,7 +233,7 @@ const NotificationToast = ({ notification, onRemove, onSnooze, position, animati
       layout
       variants={variants}
       initial="initial"
-      animate="animate"
+      animate={isFadingOut ? "exit" : "animate"}
       exit="exit"
       className={`
         relative overflow-hidden rounded-lg shadow-lg backdrop-blur-sm
@@ -234,6 +241,7 @@ const NotificationToast = ({ notification, onRemove, onSnooze, position, animati
         min-w-80 max-w-96 p-4 mb-3
         transform cursor-pointer
         border border-white/20
+        transition-opacity duration-800
       `}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -242,13 +250,24 @@ const NotificationToast = ({ notification, onRemove, onSnooze, position, animati
     >
       {/* Progress bar for timeout */}
       {!notification.persistent && notification.timeout > 0 && (
-        <div className="absolute bottom-0 left-0 h-1 bg-white/30 w-full">
+        <div className="absolute bottom-0 left-0 h-1.5 bg-white/20 w-full">
           <motion.div
-            className="h-full bg-white/60"
+            className={`h-full rounded-r-full transition-colors ${
+              isHovered ? 'bg-white/90' : 'bg-white/70'
+            }`}
             initial={{ width: '100%' }}
             animate={{ width: `${progressPercentage}%` }}
-            transition={{ duration: 0.1 }}
+            transition={{ duration: 0.1, ease: "linear" }}
           />
+          {isHovered && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute -top-6 left-0 text-xs text-white/80 bg-black/20 px-2 py-1 rounded"
+            >
+              Paused
+            </motion.div>
+          )}
         </div>
       )}
 
@@ -344,7 +363,7 @@ const NotificationToast = ({ notification, onRemove, onSnooze, position, animati
 const NotificationDisplay = () => {
   const { notifications, settings, removeNotification, snoozeNotification } = useNotificationContext();
 
-  // Position classes
+  // Position classes - using viewport-relative positioning
   const getPositionClasses = (position) => {
     const positions = {
       'top-left': 'top-4 left-4',
@@ -361,7 +380,7 @@ const NotificationDisplay = () => {
 
   return (
     <div className={`
-      fixed z-50 pointer-events-none
+      notification-container
       ${getPositionClasses(settings.position)}
     `}>
       <div className="pointer-events-auto">

@@ -81,7 +81,7 @@ const Header = () => {
             <h1 className={`font-heading-bold text-text-primary transition-all duration-200 ${
               compactHeader && isMobile ? 'text-lg' : 'text-xl'
             }`}>
-              JustGoals
+              Just Goals
             </h1>
           </div>
 

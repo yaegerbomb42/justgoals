@@ -3,9 +3,5 @@
     { "source": "/__/auth/handler", "destination": "/index.html" },
     { "source": "/assets/:match*", "destination": "/assets/:match*" },
     { "source": "/:path((?!assets/|favicon\\.ico|manifest\\.json|robots\\.txt|sw\\.js|.*\\.[a-zA-Z0-9]+$).+)", "destination": "/index.html" }
-  ],
-  "crons": [{
-    "path": "/api/cron-notifications",
-    "schedule": "0 * * * *"
-  }]
+  ]
 }

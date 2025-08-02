@@ -29,18 +29,32 @@ export const NOTIFICATION_PRIORITY = {
   URGENT: 'urgent'
 };
 
-// Initial state
-const initialState = {
-  notifications: [],
-  settings: {
+// Load settings from localStorage or use defaults
+const loadSettings = () => {
+  try {
+    const saved = localStorage.getItem('justgoals-notification-settings');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error('Error loading notification settings:', error);
+  }
+  
+  return {
     enabled: true,
     position: 'top-left', // top-left, top-right, bottom-left, bottom-right
     animation: 'slide', // slide, fade, bounce
     maxConcurrent: 3,
-    defaultTimeout: 5000,
+    defaultTimeout: 5000, // 5 seconds
     soundEnabled: false,
     priorityQueue: true
-  },
+  };
+};
+
+// Initial state
+const initialState = {
+  notifications: [],
+  settings: loadSettings(),
   queue: []
 };
 
@@ -194,7 +208,16 @@ export const NotificationProvider = ({ children }) => {
   // Update settings
   const updateSettings = useCallback((newSettings) => {
     dispatch({ type: 'UPDATE_SETTINGS', payload: newSettings });
-  }, []);
+    
+    // Persist to localStorage
+    try {
+      const currentSettings = state.settings;
+      const updatedSettings = { ...currentSettings, ...newSettings };
+      localStorage.setItem('justgoals-notification-settings', JSON.stringify(updatedSettings));
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+    }
+  }, [state.settings]);
 
   // Snooze notification
   const snoozeNotification = useCallback((id, duration = 300000) => { // Default 5 minutes

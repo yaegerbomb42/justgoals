@@ -297,37 +297,35 @@ const TemporaryTodosPage = () => {
                 </Button>
               </div>
             </div>
-            {/* Suggestions: make this take up space and push content down */}
-            <div style={{ minHeight: showSuggestions ? '120px' : 0, transition: 'min-height 0.2s' }}>
-              <AnimatePresence>
-                {showSuggestions && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-2 bg-surface/95 backdrop-blur-md border border-border/60 rounded-xl shadow-xl z-10 max-h-64 overflow-y-auto"
-                  >
-                    <div className="p-4">
-                      <p className="text-sm text-text-muted mb-3">Quick suggestions:</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {quickSuggestions.map((suggestion, index) => (
-                          <motion.button
-                            key={index}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.03 }}
-                            onClick={() => handleSuggestionClick(suggestion)}
-                            className="text-left p-2 text-sm bg-surface/50 hover:bg-primary/10 rounded-lg transition-all duration-200 hover:scale-102"
-                          >
-                            {suggestion}
-                          </motion.button>
-                        ))}
-                      </div>
+            {/* Suggestions: positioned absolutely to avoid layout shifts */}
+            <AnimatePresence>
+              {showSuggestions && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-surface/95 backdrop-blur-md border border-border/60 rounded-xl shadow-xl z-20 max-h-64 overflow-y-auto"
+                >
+                  <div className="p-4">
+                    <p className="text-sm text-text-muted mb-3">Quick suggestions:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {quickSuggestions.map((suggestion, index) => (
+                        <motion.button
+                          key={index}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.03 }}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="text-left p-2 text-sm bg-surface/50 hover:bg-primary/10 rounded-lg transition-all duration-200 hover:scale-102"
+                        >
+                          {suggestion}
+                        </motion.button>
+                      ))}
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
         </motion.div>
 

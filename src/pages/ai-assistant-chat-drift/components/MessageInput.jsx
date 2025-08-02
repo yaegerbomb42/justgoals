@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Icon from '../../../components/ui/Icon';
 import { motion } from 'framer-motion';
 
-const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type your message..." }) => {
+const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type your message...", onClearChat, onClearAllHistory, hasMessages = false }) => {
   const [message, setMessage] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
@@ -75,11 +75,32 @@ const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type your messa
         </motion.button>
       </div>
       
-      {/* Character count and status */}
+      {/* Character count, status, and clear buttons */}
       <div className="flex justify-between items-center mt-2 px-1">
-        <span className="text-xs text-text-secondary">
-          {message.length}/2000
-        </span>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-text-secondary">
+            {message.length}/2000
+          </span>
+          {hasMessages && (
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={onClearChat}
+                className="text-xs text-text-secondary hover:text-text-primary transition-colors px-2 py-1 rounded hover:bg-surface-700"
+                title="Clear chat display"
+              >
+                Clear Chat
+              </button>
+              <span className="text-text-muted">•</span>
+              <button
+                onClick={onClearAllHistory}
+                className="text-xs text-error hover:text-error/80 transition-colors px-2 py-1 rounded hover:bg-error/10"
+                title="Clear all history and AI memory"
+              >
+                Clear All
+              </button>
+            </div>
+          )}
+        </div>
         <div className="flex items-center space-x-2">
           {isLoading && (
             <motion.div

@@ -58,6 +58,7 @@ const FocusMode = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { settings, updateFocusModeSettings } = useSettings();
+  const audioRef = useRef(null);
 
   // Unlock audio on first user interaction
   useEffect(() => {

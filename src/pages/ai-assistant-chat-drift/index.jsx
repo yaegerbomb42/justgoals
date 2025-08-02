@@ -201,7 +201,7 @@ const DriftChat = () => {
           notifications: settings?.notifications,
           focusMode: settings?.focusMode,
         },
-        conversationHistory: conversationHistory.slice(-10),
+        conversationHistory: conversationHistory.slice(-20), // Use more history for better context
         persona, // Pass persona to AI
       };
 
@@ -214,6 +214,7 @@ const DriftChat = () => {
       );
 
       addMessage(aiResponse, 'assistant');
+      // Always update conversation history for AI memory, regardless of display state
       setConversationHistory(prev => [...prev, { role: 'user', content: message }, { role: 'assistant', content: aiResponse }]);
     } catch (error) {
       console.error('Error processing message:', error);
@@ -404,9 +405,25 @@ const DriftChat = () => {
   };
 
   const clearConversation = () => {
+    // Clear only the display messages, but keep the conversation history for AI memory
+    setMessages([]);
+    // Don't clear conversationHistory - this maintains AI memory
+    // Don't clear localStorage - this maintains persistence
+    // Only clear the visual display
+  };
+
+  const clearAllHistory = async () => {
+    // This will clear everything including AI memory
     setMessages([]);
     setConversationHistory([]);
     localStorage.removeItem(`drift-conversation-${user?.uid}`);
+    
+    // Also clear from Firestore
+    try {
+      await firestoreService.clearDriftMemory(user?.uid);
+    } catch (error) {
+      console.error('Error clearing drift memory from Firestore:', error);
+    }
   };
 
   if (!user?.id) {
@@ -491,13 +508,6 @@ const DriftChat = () => {
                 {messages.length} messages
               </span>
             )}
-            <button
-              onClick={clearConversation}
-              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors"
-              title="Clear conversation"
-            >
-              <Icon name="Trash2" className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>
@@ -506,7 +516,17 @@ const DriftChat = () => {
       <div className="flex-1 overflow-hidden">
         <div ref={chatContainerRef} className="h-full overflow-y-auto p-3 space-y-3">
           {messages.length === 0 ? (
-            <WelcomeScreen onQuickAction={handleQuickAction} />
+            <div>
+              <WelcomeScreen onQuickAction={handleQuickAction} />
+              {conversationHistory.length > 0 && (
+                <div className="mt-4 p-3 bg-surface-700/50 rounded-lg border border-border/50">
+                  <div className="flex items-center space-x-2 text-xs text-text-secondary">
+                    <Icon name="Brain" className="w-3 h-3" />
+                    <span>Drift remembers {conversationHistory.length} previous messages</span>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <AnimatePresence>
               {messages.map((message) => (
@@ -576,6 +596,9 @@ const DriftChat = () => {
           onSendMessage={processUserMessage}
           isLoading={isLoading}
           placeholder="Ask Drift anything..."
+          onClearChat={clearConversation}
+          onClearAllHistory={clearAllHistory}
+          hasMessages={messages.length > 0}
         />
       </div>
     </div>

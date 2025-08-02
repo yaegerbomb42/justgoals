@@ -31,6 +31,11 @@ const NotificationSection = () => {
   const handleInAppSettingChange = (key, value) => {
     if (notificationContext?.updateSettings) {
       notificationContext.updateSettings({ [key]: value });
+      // Show a brief success indicator
+      setTestStatus(prev => ({ ...prev, 'settings-saved': 'success' }));
+      setTimeout(() => {
+        setTestStatus(prev => ({ ...prev, 'settings-saved': null }));
+      }, 2000);
     }
   };
 
@@ -381,7 +386,15 @@ const NotificationSection = () => {
             <div className="space-y-4">
               {/* Position Setting */}
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">Position</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-text-primary">Position</label>
+                  {testStatus['settings-saved'] === 'success' && (
+                    <div className="flex items-center text-success text-xs">
+                      <Icon name="Check" className="w-3 h-3 mr-1" />
+                      Saved
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { value: 'top-left', label: 'Top Left' },
@@ -406,7 +419,15 @@ const NotificationSection = () => {
 
               {/* Animation Setting */}
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">Animation Style</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-text-primary">Animation Style</label>
+                  {testStatus['settings-saved'] === 'success' && (
+                    <div className="flex items-center text-success text-xs">
+                      <Icon name="Check" className="w-3 h-3 mr-1" />
+                      Saved
+                    </div>
+                  )}
+                </div>
                 <div className="flex space-x-2">
                   {[
                     { value: 'slide', label: 'Slide' },
@@ -430,17 +451,39 @@ const NotificationSection = () => {
 
               {/* Max Concurrent Notifications */}
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Max Concurrent: {inAppSettings.maxConcurrent}
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={inAppSettings.maxConcurrent}
-                  onChange={(e) => handleInAppSettingChange('maxConcurrent', parseInt(e.target.value))}
-                  className="w-full h-2 bg-surface-600 rounded-lg appearance-none cursor-pointer"
-                />
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-text-primary">
+                    Max Concurrent Notifications: <span className="text-primary font-bold">{inAppSettings.maxConcurrent}</span>
+                  </label>
+                  {testStatus['settings-saved'] === 'success' && (
+                    <div className="flex items-center text-success text-xs">
+                      <Icon name="Check" className="w-3 h-3 mr-1" />
+                      Saved
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={inAppSettings.maxConcurrent}
+                    onChange={(e) => handleInAppSettingChange('maxConcurrent', parseInt(e.target.value))}
+                    className="w-full h-3 bg-surface-600 rounded-lg appearance-none cursor-pointer slider-custom"
+                    style={{
+                      background: `linear-gradient(to right, 
+                        rgb(var(--color-primary-500)) 0%, 
+                        rgb(var(--color-primary-500)) ${(inAppSettings.maxConcurrent - 1) * 11.11}%, 
+                        rgb(var(--color-surface-600)) ${(inAppSettings.maxConcurrent - 1) * 11.11}%, 
+                        rgb(var(--color-surface-600)) 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-text-muted mt-1">
+                    <span>1</span>
+                    <span>5</span>
+                    <span>10</span>
+                  </div>
+                </div>
               </div>
 
               {/* Test Buttons */}
