@@ -10,12 +10,13 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
   const [progressAmount, setProgressAmount] = useState('');
   const [showAdvancedProgress, setShowAdvancedProgress] = useState(false);
 
-  // Generate habit-centric tree structure where habits are main nodes and streaks are branches
+  // Generate enhanced habit-centric tree structure with central clustering and neural connections
   const treeStructure = useMemo(() => {
-    if (!habits || habits.length === 0) return { nodes: [], branches: [] };
+    if (!habits || habits.length === 0) return { nodes: [], branches: [], neuralConnections: [] };
 
     const nodes = [];
     const branches = [];
+    const neuralConnections = [];
     const colors = [
       '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', 
       '#EF4444', '#06B6D4', '#84CC16', '#F97316',
@@ -40,30 +41,112 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
     };
     nodes.push(rootNode);
 
-    // Calculate habit positions in a radial pattern around the center
+    // Calculate habit activity scores for clustering
     const centerX = 400;
     const centerY = 250;
-    const habitRadius = 150; // Distance from center to habit nodes
+    
+    // Calculate activity metrics for each habit
+    const habitMetrics = habits.map((habit, habitIndex) => {
+      if (!habit || !habit.treeNodes || !Array.isArray(habit.treeNodes)) {
+        return { habit, habitIndex, activityScore: 0, lastActivity: null, completionRate: 0 };
+      }
 
-    habits.forEach((habit, habitIndex) => {
-      if (!habit || !habit.treeNodes || !Array.isArray(habit.treeNodes)) return;
+      const sortedNodes = habit.treeNodes
+        .filter(node => node && node.date)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // Calculate activity score based on recency and frequency
+      let activityScore = 0;
+      let completedDays = 0;
+      let totalDays = sortedNodes.length;
+      let lastActivity = null;
+
+      const now = new Date();
+      sortedNodes.forEach(node => {
+        const nodeDate = new Date(node.date);
+        const daysDiff = Math.max(0, (now - nodeDate) / (1000 * 60 * 60 * 24));
+        
+        if (node.status === 'completed' || 
+            (node.status === 'active' && (node.checks?.length > 0 || node.currentProgress > 0))) {
+          completedDays++;
+          lastActivity = nodeDate;
+          
+          // More recent activity scores higher, decay over time
+          const recencyMultiplier = Math.max(0.1, 1 - (daysDiff / 30)); // 30-day decay
+          activityScore += recencyMultiplier;
+        }
+      });
+
+      const completionRate = totalDays > 0 ? completedDays / totalDays : 0;
       
+      // Boost score for habits with recent activity
+      if (lastActivity) {
+        const recentDays = (now - lastActivity) / (1000 * 60 * 60 * 24);
+        if (recentDays <= 7) activityScore *= 2; // Double score for activity in last week
+      }
+
+      return { 
+        habit, 
+        habitIndex, 
+        activityScore, 
+        lastActivity, 
+        completionRate,
+        totalDays,
+        completedDays
+      };
+    }).filter(m => m.habit);
+
+    // Sort habits by activity score (most active first)
+    habitMetrics.sort((a, b) => b.activityScore - a.activityScore);
+
+    // Position habits in clusters based on activity
+    habitMetrics.forEach((metric, sortedIndex) => {
+      const { habit, habitIndex, activityScore, completionRate } = metric;
       const habitColor = habit.color || colors[habitIndex % colors.length];
       
-      // Position habits in a circle around the center
-      const angleStep = (2 * Math.PI) / habits.length;
-      const angle = habitIndex * angleStep - Math.PI / 2; // Start from top
+      // Central cluster for most active habits, outer rings for less active
+      let clusterRadius;
+      let clusterLayer;
+      
+      if (sortedIndex < Math.max(1, Math.floor(habitMetrics.length * 0.3))) {
+        // Top 30% - inner cluster (highly active)
+        clusterRadius = 120 + (sortedIndex * 15);
+        clusterLayer = 'inner';
+      } else if (sortedIndex < Math.max(2, Math.floor(habitMetrics.length * 0.6))) {
+        // Next 30% - middle cluster (moderately active)
+        clusterRadius = 180 + (sortedIndex * 20);
+        clusterLayer = 'middle';
+      } else {
+        // Remaining 40% - outer cluster (less active/one-time)
+        clusterRadius = 250 + (sortedIndex * 25);
+        clusterLayer = 'outer';
+      }
+      
+      // Distribute around circle for this cluster layer
+      const layerHabits = habitMetrics.filter((_, i) => {
+        if (clusterLayer === 'inner') return i < Math.floor(habitMetrics.length * 0.3);
+        if (clusterLayer === 'middle') return i >= Math.floor(habitMetrics.length * 0.3) && i < Math.floor(habitMetrics.length * 0.6);
+        return i >= Math.floor(habitMetrics.length * 0.6);
+      });
+      
+      const layerIndex = layerHabits.findIndex(m => m === metric);
+      const angleStep = (2 * Math.PI) / layerHabits.length;
+      const angle = layerIndex * angleStep - Math.PI / 2; // Start from top
       
       const habitNode = {
         id: `habit-${habit.id}`,
         type: 'habit',
         habitId: habit.id,
         habit: habit,
-        x: centerX + Math.cos(angle) * habitRadius,
-        y: centerY + Math.sin(angle) * habitRadius,
+        x: centerX + Math.cos(angle) * clusterRadius,
+        y: centerY + Math.sin(angle) * clusterRadius,
         level: 1,
         color: habitColor,
         angle: angle,
+        clusterRadius: clusterRadius,
+        clusterLayer: clusterLayer,
+        activityScore: activityScore,
+        completionRate: completionRate,
         streakLength: 0,
         currentStreak: 0,
         totalProgress: 0
@@ -117,27 +200,28 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
 
       nodes.push(habitNode);
 
-      // Create branch from root to habit node
+      // Create enhanced branch from root to habit node with completion visualization
+      const rootBranchStrokeWidth = 3 + Math.min(currentStreak * 0.5, 6);
       branches.push({
         id: `branch-root-${habit.id}`,
         from: rootNode,
         to: habitNode,
         color: habitColor,
         animated: false,
-        strokeWidth: 3 + Math.min(currentStreak * 0.5, 6), // Thicker branches for longer streaks
-        opacity: 0.8
+        strokeWidth: rootBranchStrokeWidth,
+        opacity: 0.8,
+        completionRate: completionRate
       });
 
       // Create streak branches extending from each habit
-      // Show recent activity days as smaller nodes along the streak branches
       const recentDays = sortedNodes.slice(-7); // Last 7 days
       
       recentDays.forEach((node, dayIndex) => {
         if (!node || !node.date) return;
 
         // Position streak nodes along a branch extending from the habit
-        const branchLength = 80 + (dayIndex * 15); // Extend outward
-        const branchAngle = angle + (Math.PI / 4) * (dayIndex % 2 === 0 ? 1 : -1); // Alternate sides
+        const branchLength = 80 + (dayIndex * 15);
+        const branchAngle = angle + (Math.PI / 4) * (dayIndex % 2 === 0 ? 1 : -1);
         
         const streakNode = {
           id: `streak-${habit.id}-${node.id}`,
@@ -172,7 +256,47 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
       });
     });
 
-    return { nodes, branches };
+    // Generate neural connections between habits based on completion patterns
+    // Look for habits that are often completed on the same days
+    const habitNodes = nodes.filter(n => n.type === 'habit');
+    
+    for (let i = 0; i < habitNodes.length; i++) {
+      for (let j = i + 1; j < habitNodes.length; j++) {
+        const habit1 = habitNodes[i];
+        const habit2 = habitNodes[j];
+        
+        // Find days where both habits were completed
+        const habit1Dates = habit1.habit.treeNodes
+          ?.filter(n => n.status === 'completed' || (n.status === 'active' && (n.checks?.length > 0 || n.currentProgress > 0)))
+          ?.map(n => n.date) || [];
+        
+        const habit2Dates = habit2.habit.treeNodes
+          ?.filter(n => n.status === 'completed' || (n.status === 'active' && (n.checks?.length > 0 || n.currentProgress > 0)))
+          ?.map(n => n.date) || [];
+        
+        const commonDates = habit1Dates.filter(date => habit2Dates.includes(date));
+        const connectionStrength = commonDates.length;
+        
+        // Only show neural connections if there's meaningful correlation (3+ shared completion days)
+        if (connectionStrength >= 3) {
+          const neuralOpacity = Math.min(connectionStrength / 20, 0.6); // Max opacity 0.6
+          const strokeWidth = Math.min(connectionStrength / 3, 4); // Max width 4
+          
+          neuralConnections.push({
+            id: `neural-${habit1.habitId}-${habit2.habitId}`,
+            from: habit1,
+            to: habit2,
+            strength: connectionStrength,
+            opacity: neuralOpacity,
+            strokeWidth: strokeWidth,
+            color: '#8B5CF6', // Neural connection color
+            animated: connectionStrength >= 10 // Animate strong connections
+          });
+        }
+      }
+    }
+
+    return { nodes, branches, neuralConnections };
   }, [habits]);
 
   const isToday = (date) => {
@@ -294,9 +418,9 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
         >
           <Icon name="Sparkles" className="w-16 h-16 text-primary" />
         </motion.div>
-        <h3 className="text-2xl font-semibold text-text-primary mb-3">Your Habit Garden Awaits</h3>
+        <h3 className="text-2xl font-semibold text-text-primary mb-3">Your Neural Habits Garden Awaits</h3>
         <p className="text-text-secondary max-w-md mx-auto mb-6">
-          Create your first habit and watch your personal growth garden flourish. Each habit becomes a tree with branches representing your daily streaks and achievements.
+          Create your first habit and watch your neural habit garden grow. Active habits cluster at the center, with neural connections forming between related habits. Watch your completion rates fill with color from red to green.
         </p>
         <div className="flex items-center justify-center gap-4 text-sm text-text-secondary">
           <div className="flex items-center gap-2">
@@ -322,10 +446,10 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
             animate={{ scale: [1, 1.5, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
-          Creative Habits Tree
+          Neural Habits Garden
         </h2>
         <p className="text-sm text-text-secondary">
-          Each habit grows as a tree with branches showing your streaks and progress
+          Active habits cluster at the center with neural connections showing completion relationships. Completion rates visualized with red-to-green gradients.
         </p>
       </div>
 
@@ -340,6 +464,57 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
           viewBox="0 0 800 500"
           style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
         >
+        {/* Render neural connections first (behind branches) */}
+        <AnimatePresence>
+          {treeStructure.neuralConnections?.map((connection) => (
+            <motion.g key={connection.id}>
+              <motion.path
+                d={`M ${connection.from.x} ${connection.from.y} Q ${(connection.from.x + connection.to.x) / 2} ${(connection.from.y + connection.to.y) / 2 - 30} ${connection.to.x} ${connection.to.y}`}
+                stroke={connection.color}
+                strokeWidth={connection.strokeWidth}
+                fill="none"
+                opacity={connection.opacity}
+                strokeDasharray="4,8"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ 
+                  pathLength: 1, 
+                  opacity: connection.opacity,
+                  strokeDashoffset: connection.animated ? [0, -24, 0] : 0
+                }}
+                transition={{ 
+                  duration: 2, 
+                  ease: "easeInOut",
+                  repeat: connection.animated ? Infinity : 0,
+                  repeatDuration: 3
+                }}
+                style={{
+                  filter: connection.animated ? 'drop-shadow(0 0 6px currentColor)' : 'none'
+                }}
+              />
+              
+              {/* Connection strength indicator - small pulse at midpoint */}
+              {connection.strength >= 5 && (
+                <motion.circle
+                  cx={(connection.from.x + connection.to.x) / 2}
+                  cy={(connection.from.y + connection.to.y) / 2 - 30}
+                  r="2"
+                  fill={connection.color}
+                  opacity={0.8}
+                  animate={{
+                    r: [2, 4, 2],
+                    opacity: [0.8, 0.4, 0.8]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              )}
+            </motion.g>
+          ))}
+        </AnimatePresence>
+
         {/* Render branches */}
         <AnimatePresence>
           {treeStructure.branches.map((branch) => (
@@ -431,16 +606,68 @@ const CreativeHabitsTree = ({ habits, onCheckIn, onEditHabit, onDeleteHabit, onP
                   }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
-                  {/* Main habit node */}
+                  {/* Main habit node with completion rate visualization */}
                   <div 
-                    className="w-16 h-16 rounded-full shadow-xl flex items-center justify-center border-4 transition-all relative"
+                    className="w-16 h-16 rounded-full shadow-xl flex items-center justify-center border-4 transition-all relative overflow-hidden"
                     style={{ 
                       backgroundColor: node.color + '30',
                       borderColor: node.color,
                       boxShadow: `0 8px 25px ${node.color}40`
                     }}
                   >
-                    <span className="text-2xl">{node.habit.emoji}</span>
+                    {/* Completion rate fill with red-to-green gradient */}
+                    <motion.div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: `conic-gradient(from 0deg, 
+                          ${node.completionRate <= 0.5 
+                            ? `hsl(${node.completionRate * 120}, 70%, 50%)` 
+                            : `hsl(${60 + (node.completionRate - 0.5) * 120}, 70%, 50%)`
+                          } ${node.completionRate * 360}deg, 
+                          transparent ${node.completionRate * 360}deg)`,
+                        opacity: 0.4
+                      }}
+                      initial={{ rotate: -90 }}
+                      animate={{ rotate: -90 }}
+                    />
+                    
+                    {/* Semi-transparent overlay showing completion percentage */}
+                    <motion.div
+                      className="absolute inset-1 rounded-full"
+                      style={{
+                        background: `linear-gradient(135deg, 
+                          ${node.completionRate <= 0.5 
+                            ? `hsla(${node.completionRate * 120}, 70%, 50%, 0.3)` 
+                            : `hsla(${60 + (node.completionRate - 0.5) * 120}, 70%, 50%, 0.3)`
+                          }, 
+                          transparent)`,
+                      }}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, duration: 0.8 }}
+                    />
+                    
+                    <span className="text-2xl relative z-10">{node.habit.emoji}</span>
+                    
+                    {/* Activity level indicator ring */}
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2"
+                      style={{
+                        borderColor: node.clusterLayer === 'inner' ? '#10B981' : 
+                                   node.clusterLayer === 'middle' ? '#F59E0B' : '#6B7280',
+                        borderStyle: 'dashed',
+                        opacity: 0.6
+                      }}
+                      animate={{
+                        rotate: [0, 360]
+                      }}
+                      transition={{
+                        duration: node.clusterLayer === 'inner' ? 20 : 
+                                 node.clusterLayer === 'middle' ? 30 : 40,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    />
                     
                     {/* Streak indicator */}
                     {node.currentStreak > 0 && (
