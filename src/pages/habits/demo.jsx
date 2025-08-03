@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import AddHabitModal from '../../components/AddHabitModal';
-import HabitsTreeVisualization from '../../components/HabitsTreeVisualization';
 import CreativeHabitsTree from '../../components/CreativeHabitsTree';
 import habitService from '../../services/habitService';
 
@@ -14,7 +13,7 @@ const HabitsPageDemo = () => {
   const [editingHabit, setEditingHabit] = useState(null);
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('creative'); // 'creative', 'tree', or 'compact'
+  // Progressive habit lines view only
 
   // Mock user for demo
   const demoUser = { id: 'demo-user' };
@@ -67,10 +66,93 @@ const HabitsPageDemo = () => {
   };
 
   const createDemoHabits = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Generate the past week of data for demo habits
+    const generateWeekNodes = (habitId, trackingType, targetAmount, targetChecks) => {
+      const nodes = [];
+      
+      for (let i = 7; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const isToday = i === 0;
+        
+        if (trackingType === 'amount') {
+          // Simulate varying progress over the week
+          let progress = 0;
+          let status = 'active';
+          
+          if (!isToday) {
+            const rand = Math.random();
+            if (rand > 0.8) {
+              // 20% failed
+              progress = Math.floor(targetAmount * (0.3 + Math.random() * 0.4)); // 30-70% of target
+              status = 'failed';
+            } else {
+              // 80% completed
+              progress = Math.floor(targetAmount * (1 + Math.random() * 0.3)); // 100-130% of target
+              status = 'completed';
+            }
+          } else {
+            // Today's progress (partial)
+            progress = Math.floor(targetAmount * (0.2 + Math.random() * 0.4)); // 20-60% of target
+            status = 'active';
+          }
+          
+          nodes.push({
+            id: `${habitId}-${dateStr}`,
+            date: dateStr,
+            checks: [],
+            currentProgress: progress,
+            status: status,
+            parentId: i === 7 ? null : `${habitId}-${new Date(date.getTime() - 24*60*60*1000).toISOString().split('T')[0]}`,
+            createdAt: dateStr
+          });
+        } else {
+          // Check-based tracking
+          let checks = [];
+          let status = 'active';
+          
+          if (!isToday) {
+            const rand = Math.random();
+            if (rand > 0.75) {
+              // 25% failed
+              checks = [];
+              status = 'failed';
+            } else {
+              // 75% completed
+              checks = Array(targetChecks).fill(null).map((_, idx) => ({
+                id: idx + 1,
+                type: 'default',
+                timestamp: new Date(date.getTime() + idx * 60000).toISOString(),
+                completed: true
+              }));
+              status = 'completed';
+            }
+          } else {
+            // Today's progress (might be incomplete)
+            if (Math.random() > 0.5) {
+              checks = [{ id: 1, type: 'default', timestamp: new Date().toISOString(), completed: true }];
+            }
+            status = 'active';
+          }
+          
+          nodes.push({
+            id: `${habitId}-${dateStr}`,
+            date: dateStr,
+            checks: checks,
+            currentProgress: 0,
+            status: status,
+            parentId: i === 7 ? null : `${habitId}-${new Date(date.getTime() - 24*60*60*1000).toISOString().split('T')[0]}`,
+            createdAt: dateStr
+          });
+        }
+      }
+      
+      return nodes;
+    };
     
     return [
       {
@@ -84,27 +166,8 @@ const HabitsPageDemo = () => {
         unit: 'glasses',
         color: '#3B82F6',
         emoji: '💧',
-        createdAt: yesterdayStr,
-        treeNodes: [
-          {
-            id: 'node-1-yesterday',
-            date: yesterdayStr,
-            checks: [],
-            currentProgress: 8,
-            status: 'completed',
-            parentId: null,
-            createdAt: yesterdayStr
-          },
-          {
-            id: 'node-1-today',
-            date: today,
-            checks: [],
-            currentProgress: 2,
-            status: 'active',
-            parentId: null,
-            createdAt: today
-          }
-        ]
+        createdAt: new Date(today.getTime() - 7*24*60*60*1000).toISOString().split('T')[0],
+        treeNodes: generateWeekNodes('demo-habit-1', 'amount', 8, 1)
       },
       {
         id: 'demo-habit-2',
@@ -117,27 +180,8 @@ const HabitsPageDemo = () => {
         unit: 'steps',
         color: '#10B981',
         emoji: '🚶‍♂️',
-        createdAt: yesterdayStr,
-        treeNodes: [
-          {
-            id: 'node-2-yesterday',
-            date: yesterdayStr,
-            checks: [],
-            currentProgress: 12500,
-            status: 'completed',
-            parentId: null,
-            createdAt: yesterdayStr
-          },
-          {
-            id: 'node-2-today',
-            date: today,
-            checks: [],
-            currentProgress: 3400,
-            status: 'active',
-            parentId: null,
-            createdAt: today
-          }
-        ]
+        createdAt: new Date(today.getTime() - 7*24*60*60*1000).toISOString().split('T')[0],
+        treeNodes: generateWeekNodes('demo-habit-2', 'amount', 10000, 1)
       },
       {
         id: 'demo-habit-3',
@@ -150,27 +194,8 @@ const HabitsPageDemo = () => {
         unit: 'minutes',
         color: '#8B5CF6',
         emoji: '📖',
-        createdAt: yesterdayStr,
-        treeNodes: [
-          {
-            id: 'node-3-yesterday',
-            date: yesterdayStr,
-            checks: [],
-            currentProgress: 45,
-            status: 'completed',
-            parentId: null,
-            createdAt: yesterdayStr
-          },
-          {
-            id: 'node-3-today',
-            date: today,
-            checks: [],
-            currentProgress: 0,
-            status: 'active',
-            parentId: null,
-            createdAt: today
-          }
-        ]
+        createdAt: new Date(today.getTime() - 7*24*60*60*1000).toISOString().split('T')[0],
+        treeNodes: generateWeekNodes('demo-habit-3', 'amount', 30, 1)
       },
       {
         id: 'demo-habit-4',
@@ -182,29 +207,8 @@ const HabitsPageDemo = () => {
         targetChecks: 1,
         color: '#F59E0B',
         emoji: '🧘‍♂️',
-        createdAt: yesterdayStr,
-        treeNodes: [
-          {
-            id: 'node-4-yesterday',
-            date: yesterdayStr,
-            checks: [
-              { id: 1, type: 'default', timestamp: new Date().toISOString(), completed: true }
-            ],
-            currentProgress: 0,
-            status: 'completed',
-            parentId: null,
-            createdAt: yesterdayStr
-          },
-          {
-            id: 'node-4-today',
-            date: today,
-            checks: [],
-            currentProgress: 0,
-            status: 'active',
-            parentId: null,
-            createdAt: today
-          }
-        ]
+        createdAt: new Date(today.getTime() - 7*24*60*60*1000).toISOString().split('T')[0],
+        treeNodes: generateWeekNodes('demo-habit-4', 'check', 1, 1)
       }
     ];
   };
@@ -277,27 +281,40 @@ const HabitsPageDemo = () => {
       const yesterdayStr = yesterday.toISOString().split('T')[0];
       
       const updatedHabits = habits.map(habit => {
-        // Mark yesterday's incomplete habits as failed
+        // Mark yesterday's progress based on completion
         const updatedTreeNodes = habit.treeNodes.map(node => {
           if (node.date === yesterdayStr && node.status === 'active') {
-            const completed = node.checks?.length || 0;
-            const target = habit.targetChecks || 1;
-            if (completed < target) {
-              return { ...node, status: 'failed' };
+            // Check if habit was completed yesterday
+            if (habit.trackingType === 'amount') {
+              const completed = node.currentProgress || 0;
+              const target = habit.targetAmount || 1;
+              return { 
+                ...node, 
+                status: completed >= target ? 'completed' : 'failed' 
+              };
+            } else {
+              const completed = node.checks?.length || 0;
+              const target = habit.targetChecks || 1;
+              return { 
+                ...node, 
+                status: completed >= target ? 'completed' : 'failed' 
+              };
             }
           }
           return node;
         });
         
-        // Add today's node if it doesn't exist
+        // Add today's node if it doesn't exist (starting fresh from yesterday's end)
         const todayNodeExists = updatedTreeNodes.some(node => node.date === today);
         if (!todayNodeExists) {
+          const yesterdayNode = updatedTreeNodes.find(node => node.date === yesterdayStr);
           updatedTreeNodes.push({
             id: Date.now() + Math.random(),
             date: today,
             checks: [],
+            currentProgress: 0, // Start fresh each day
             status: 'active',
-            parentId: null,
+            parentId: yesterdayNode?.id || null, // Link to previous day for carry-over visualization
             createdAt: new Date().toISOString()
           });
         }
@@ -372,37 +389,9 @@ const HabitsPageDemo = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-heading-bold text-text-primary mb-2">Habits (Demo)</h1>
-            <p className="text-text-secondary">Build lasting habits with tree-based tracking</p>
+            <p className="text-text-secondary">Progressive habit lines with daily tracking</p>
           </div>
           <div className="flex items-center space-x-3">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-surface border border-border rounded-lg p-1">
-              <Button
-                size="sm"
-                variant={viewMode === 'creative' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('creative')}
-                className="px-3 py-1"
-              >
-                <Icon name="Trees" size={16} />
-              </Button>
-              <Button
-                size="sm"
-                variant={viewMode === 'tree' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('tree')}
-                className="px-3 py-1"
-              >
-                <Icon name="GitBranch" size={16} />
-              </Button>
-              <Button
-                size="sm"
-                variant={viewMode === 'compact' ? 'default' : 'ghost'}
-                onClick={() => setViewMode('compact')}
-                className="px-3 py-1"
-              >
-                <Icon name="List" size={16} />
-              </Button>
-            </div>
-            
             <Button
               onClick={() => setShowAddModal(true)}
               iconName="Plus"
@@ -413,87 +402,13 @@ const HabitsPageDemo = () => {
           </div>
         </div>
 
-        {/* Main Content */}
-        {viewMode === 'creative' ? (
-          /* Creative Tree Visualization */
-          <CreativeHabitsTree 
-            habits={habits}
-            onCheckIn={handleCheckIn}
-            onEditHabit={handleEditHabit}
-            onDeleteHabit={handleDeleteHabit}
-          />
-        ) : viewMode === 'tree' ? (
-          /* Original Tree Visualization */
-          <HabitsTreeVisualization 
-            habits={habits}
-            onCheckIn={handleCheckIn}
-            onEditHabit={handleEditHabit}
-            onDeleteHabit={handleDeleteHabit}
-          />
-        ) : (
-          /* Compact View - Show individual habit cards */
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-text-primary">Today's Habits</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {habits.map((habit) => {
-                const progress = getHabitProgress(habit);
-                const streak = getHabitStreak(habit);
-                
-                return (
-                  <div key={habit.id} className="bg-surface border border-border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xl">{habit.emoji}</span>
-                        <div>
-                          <h3 className="font-medium text-text-primary text-sm">{habit.title}</h3>
-                          <p className="text-xs text-text-secondary">
-                            {progress.completed}/{progress.total} {progress.unit || ''}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {(() => {
-                        const today = new Date().toISOString().split('T')[0];
-                        const activeNode = habit.treeNodes?.find(node => 
-                          node.date === today && node.status === 'active'
-                        );
-                        const isCompleted = progress.percentage >= 100;
-                        
-                        return !isCompleted && activeNode ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleCheckIn(habit.id, activeNode.id)}
-                            className="px-3 py-1"
-                          >
-                            <Icon name="Plus" size={12} />
-                          </Button>
-                        ) : isCompleted ? (
-                          <Icon name="CheckCircle" className="w-4 h-4 text-success" />
-                        ) : null;
-                      })()}
-                    </div>
-                    
-                    <div className="w-full bg-surface-700 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full transition-all ${
-                          progress.percentage >= 100 ? 'bg-success' : 'bg-primary'
-                        }`}
-                        style={{ width: `${progress.percentage}%` }}
-                      />
-                    </div>
-                    
-                    {streak > 0 && (
-                      <div className="flex items-center mt-2 text-xs text-orange-400">
-                        <Icon name="Flame" size={12} className="mr-1" />
-                        {streak} day streak
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Progressive Habit Lines Visualization */}
+        <CreativeHabitsTree 
+          habits={habits}
+          onCheckIn={handleCheckIn}
+          onEditHabit={handleEditHabit}
+          onDeleteHabit={handleDeleteHabit}
+        />
       </div>
 
       {/* Add Habit Modal */}
