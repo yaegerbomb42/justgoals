@@ -3,212 +3,124 @@ import { motion } from 'framer-motion';
 import Icon from '../../../components/ui/Icon';
 
 const WelcomeScreen = ({ onQuickAction }) => {
-  const capabilities = [
-    {
-      icon: 'Target',
-      title: 'Create & Manage Goals',
-      description: 'Set new goals, track progress, and get personalized recommendations',
-      color: 'from-blue-500 to-cyan-500',
-    },
-    {
-      icon: 'CheckSquare',
-      title: 'Set Milestones',
-      description: 'Break down goals into achievable milestones with deadlines',
-      color: 'from-green-500 to-emerald-500',
-    },
-    {
-      icon: 'BookOpen',
-      title: 'Journal & Reflect',
-      description: 'Add journal entries, track mood, and reflect on your journey',
-      color: 'from-purple-500 to-pink-500',
-    },
-    {
-      icon: 'Repeat',
-      title: 'Build Habits',
-      description: 'Create and track habits to build lasting positive behaviors',
-      color: 'from-orange-500 to-red-500',
-    },
-    {
-      icon: 'BarChart3',
-      title: 'Analyze Progress',
-      description: 'Get insights on your progress and areas for improvement',
-      color: 'from-indigo-500 to-blue-500',
-    },
-    {
-      icon: 'Zap',
-      title: 'Focus Sessions',
-      description: 'Start focused work sessions and track your productivity',
-      color: 'from-yellow-500 to-orange-500',
-    },
-  ];
-
   const quickActions = [
     {
       id: 'create_goal',
-      label: 'Create a Goal',
+      label: 'Set a New Goal',
       icon: 'Target',
-      description: 'Set a new goal to work towards',
+      description: 'Define your vision and track success',
+      gradient: 'from-blue-500/20 to-cyan-500/20',
+      iconColor: 'text-cyan-400'
     },
     {
       id: 'check_progress',
       label: 'Check Progress',
       icon: 'BarChart3',
-      description: 'See how you\'re doing with your goals',
-    },
-    {
-      id: 'add_milestone',
-      label: 'Add Milestone',
-      icon: 'CheckSquare',
-      description: 'Break down a goal into smaller steps',
-    },
-    {
-      id: 'journal_entry',
-      label: 'Journal Entry',
-      icon: 'BookOpen',
-      description: 'Reflect on your day and progress',
+      description: 'Review your achievements and growth',
+      gradient: 'from-purple-500/20 to-pink-500/20',
+      iconColor: 'text-pink-400'
     },
     {
       id: 'focus_session',
-      label: 'Start Focus Session',
+      label: 'Focus Session',
       icon: 'Zap',
-      description: 'Begin a focused work session',
+      description: 'Start a deep work session',
+      gradient: 'from-amber-500/20 to-orange-500/20',
+      iconColor: 'text-amber-400'
     },
     {
-      id: 'habit_tracker',
-      label: 'Track Habits',
-      icon: 'Repeat',
-      description: 'Check in on your daily habits',
-    },
+      id: 'journal_entry',
+      label: 'Daily Reflection',
+      icon: 'BookOpen',
+      description: 'Log your thoughts and mood',
+      gradient: 'from-emerald-500/20 to-teal-500/20',
+      iconColor: 'text-emerald-400'
+    }
   ];
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Compact Welcome Message */}
+    <div className="flex flex-col items-center justify-center max-w-3xl mx-auto px-4 py-8">
+      {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-3"
+        className="text-center mb-12"
       >
-        <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto">
-          <Icon name="MessageCircle" className="w-8 h-8 text-white" />
+        <div className="w-20 h-20 bg-gradient-to-tr from-primary-400 to-secondary-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary/30 rotate-3">
+          <Icon name="Bot" className="w-10 h-10 text-white" />
         </div>
-        <div>
-          <h1 className="text-xl font-heading-bold text-text-primary mb-1">
-            Welcome to Drift AI Assistant
-          </h1>
-          <p className="text-text-secondary text-sm max-w-md mx-auto">
-            I'm your personal goal achievement companion. Let's get started!
-          </p>
-        </div>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 tracking-tight">
+          Hello, I'm <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-secondary-400">Drift</span>
+        </h1>
+        <p className="text-lg text-text-secondary max-w-lg mx-auto leading-relaxed">
+          I'm your personal AI companion for goals, habits, and growth. How can I support you today?
+        </p>
       </motion.div>
 
-      {/* Compact Capabilities Grid */}
+      {/* Quick Actions Grid */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 md:grid-cols-3 gap-3"
+        className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-12"
       >
-        {capabilities.slice(0, 6).map((capability, index) => (
-          <motion.div
-            key={capability.title}
-            initial={{ opacity: 0, scale: 0.9 }}
+        {quickActions.map((action, index) => (
+          <motion.button
+            key={action.id}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 + index * 0.05 }}
-            className="bg-surface-700 rounded-lg p-3 border border-border hover:border-primary/30 transition-all duration-200"
+            transition={{ delay: 0.3 + index * 0.1 }}
+            onClick={() => onQuickAction(action.id)}
+            className="group relative overflow-hidden glass-card rounded-2xl p-5 text-left hover:bg-surface/60 transition-all duration-300 hover:scale-[1.02] border border-white/5"
           >
-            <div className={`w-8 h-8 bg-gradient-to-br ${capability.color} rounded-lg flex items-center justify-center mb-2`}>
-              <Icon name={capability.icon} className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-medium text-text-primary text-sm mb-1">{capability.title}</h3>
-            <p className="text-xs text-text-secondary line-clamp-2">{capability.description}</p>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* Compact Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="space-y-3"
-      >
-        <h2 className="text-lg font-heading-semibold text-text-primary text-center">
-          Quick Start
-        </h2>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {quickActions.slice(0, 6).map((action, index) => (
-            <motion.button
-              key={action.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + index * 0.05 }}
-              onClick={() => onQuickAction(action.id)}
-              className="flex items-center space-x-2 p-3 bg-surface-700 rounded-lg border border-border hover:border-primary/50 hover:bg-surface-600 transition-all duration-200 text-left group"
-            >
-              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <Icon name={action.icon} className="w-4 h-4 text-primary" />
+            <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            
+            <div className="relative flex items-center space-x-4">
+              <div className={`w-12 h-12 rounded-xl bg-surface/50 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform duration-300 ${action.iconColor}`}>
+                <Icon name={action.icon} className="w-6 h-6" />
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-text-primary group-hover:text-primary transition-colors text-sm">
+              <div>
+                <h3 className="font-semibold text-white mb-1 group-hover:text-primary-300 transition-colors">
                   {action.label}
                 </h3>
-                <p className="text-xs text-text-secondary truncate">
+                <p className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">
                   {action.description}
                 </p>
               </div>
-            </motion.button>
-          ))}
-        </div>
+              <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
+                <Icon name="ArrowRight" className="w-5 h-5 text-white/50" />
+              </div>
+            </div>
+          </motion.button>
+        ))}
       </motion.div>
 
-      {/* Compact Example Prompts */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="space-y-3"
-      >
-        <h2 className="text-sm font-heading-semibold text-text-primary text-center">
-          Try asking me...
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {[
-            "Create a goal to learn Spanish",
-            "Add a workout milestone",
-            "Help me plan my day",
-            "Analyze my progress"
-          ].map((prompt, index) => (
-            <motion.button
-              key={prompt}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 + index * 0.05 }}
-              onClick={() => onQuickAction('custom', prompt)}
-              className="p-2 bg-surface-700 rounded-lg border border-border hover:border-primary/30 hover:bg-surface-600 transition-all duration-200 text-left text-xs text-text-secondary hover:text-text-primary"
-            >
-              "{prompt}"
-            </motion.button>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Compact Memory Notice */}
+      {/* Suggested Prompts */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="text-center p-3 bg-primary/5 border border-primary/20 rounded-lg"
+        transition={{ delay: 0.6 }}
+        className="text-center space-y-4"
       >
-        <div className="flex items-center justify-center space-x-2 text-primary mb-1">
-          <Icon name="Brain" className="w-3 h-3" />
-          <span className="text-xs font-medium">Conversation Memory</span>
-        </div>
-        <p className="text-xs text-text-secondary">
-          I remember our conversations to provide personalized assistance.
+        <p className="text-sm font-medium text-text-muted uppercase tracking-wider">
+          Or try asking me...
         </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          {[
+            "Help me plan my week",
+            "Analyze my recent progress",
+            "Give me motivation",
+            "Suggest a healthy meal"
+          ].map((prompt, index) => (
+            <button
+              key={prompt}
+              onClick={() => onQuickAction('custom', prompt)}
+              className="px-4 py-2 rounded-full bg-surface/30 border border-white/10 hover:bg-white/5 text-sm text-text-secondary hover:text-white transition-all hover:border-white/20"
+            >
+              "{prompt}"
+            </button>
+          ))}
+        </div>
       </motion.div>
     </div>
   );

@@ -9,7 +9,7 @@ import { MealsProvider } from './context/MealsContext';
 import { TemporaryTodosProvider } from './context/TemporaryTodosContext';
 import { DriftCharacterProvider } from './context/DriftCharacterContext';
 import Routes from './Routes';
-import Header from './components/ui/Header';
+import AppLayout from './components/layout/AppLayout';
 import NotificationDisplay from './components/ui/NotificationDisplay';
 import DriftCharacter from './components/ui/DriftCharacter';
 import { useNotifications } from './hooks/useNotifications';
@@ -45,26 +45,6 @@ const NotificationWrapper = ({ children }) => {
   
   return children;
 };
-
-// Utility to unlock/resume audio context on user interaction
-function unlockAudioContext(audioRef) {
-  if (!audioRef.current) return;
-  const audio = audioRef.current;
-  // Try to play a silent sound to unlock
-  const playSilent = () => {
-    audio.volume = 0;
-    audio.play().catch(() => {});
-    setTimeout(() => { audio.volume = 0.5; }, 100);
-  };
-  // Resume context if suspended
-  if (window.AudioContext || window.webkitAudioContext) {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
-  }
-  playSilent();
-}
 
 const GlobalBackgroundMusic = () => {
   const { settings, isMusicMuted } = useSettings();
@@ -123,29 +103,25 @@ const App = () => {
       <ErrorBoundary>
         <DriftCharacterProvider>
           <NotificationWrapper>
-          {/* Background effects layer */}
-          {settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none' ? (
-            <ErrorBoundary>
-              <FlowingParticlesBackground effect={settings.appearance.backgroundEffect} />
-            </ErrorBoundary>
-          ) : null}
-          <GlobalBackgroundMusic />
-          {/* Main content with transparent background when effects are active */}
-          <div 
-            className={`min-h-screen text-text-primary ${
-              settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none'
-                ? 'bg-background/70 backdrop-blur-[1px]'
-                : 'bg-background'
-            }`}
-            style={{ position: 'relative' }}
-          >
-            <Header />
-            <Routes />
-            {/* In-app notification display */}
-            <NotificationDisplay />
-            <DriftCharacterWrapper />
-          </div>
-        </NotificationWrapper>
+            {/* Background effects layer */}
+            {settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none' ? (
+              <ErrorBoundary>
+                <FlowingParticlesBackground effect={settings.appearance.backgroundEffect} />
+              </ErrorBoundary>
+            ) : null}
+            <GlobalBackgroundMusic />
+            
+            <AppLayout>
+              <Routes />
+            </AppLayout>
+
+            {/* Global Overlays */}
+            <div className="z-50 relative">
+              <NotificationDisplay />
+              <DriftCharacterWrapper />
+            </div>
+
+          </NotificationWrapper>
         </DriftCharacterProvider>
       </ErrorBoundary>
     </Router>

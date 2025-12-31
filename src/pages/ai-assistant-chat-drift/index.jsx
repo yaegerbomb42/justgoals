@@ -11,15 +11,13 @@ import firestoreService from '../../services/firestoreService';
 import Icon from '../../components/ui/Icon';
 import MessageBubble from './components/MessageBubble';
 import MessageInput from './components/MessageInput';
-import QuickActionChips from './components/QuickActionChips';
 import WelcomeScreen from './components/WelcomeScreen';
 import unifiedAIService from '../../services/unifiedAIService';
 
 const DriftChat = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
-  const { goals, addGoal, updateGoal, deleteGoal } = usePlanData();
-  const { addAchievement } = useAchievements();
+  const { goals, addGoal, updateGoal } = usePlanData();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -72,6 +70,7 @@ const DriftChat = () => {
 
     loadContext();
   }, [user?.uid, goals, settings, apiKeyStatus]);
+  
   // Load conversation history from both localStorage and Firestore
   useEffect(() => {
     const loadConversationHistory = async () => {
@@ -131,12 +130,6 @@ const DriftChat = () => {
     const timer = setTimeout(saveConversationHistory, 1000);
     return () => clearTimeout(timer);
   }, [messages, conversationHistory, user?.uid]);
-
-  // Update context with current app state
-  useEffect(() => {
-    // This effect is now handled by the comprehensive context loading above
-    // Keeping for backward compatibility but may be removed later
-  }, [goals, settings]);
 
   const getRecentActivity = () => {
     // Get recent activity from localStorage or other sources
@@ -221,43 +214,6 @@ const DriftChat = () => {
       addMessage('I apologize, but I encountered an error processing your request. Please try again.', 'assistant');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const processActions = async (actions) => {
-    for (const action of actions) {
-      try {
-        switch (action.type) {
-          case 'create_goal':
-            await handleCreateGoal(action.data);
-            break;
-          case 'update_goal':
-            await handleUpdateGoal(action.data);
-            break;
-          case 'create_milestone':
-            await handleCreateMilestone(action.data);
-            break;
-          case 'add_journal_entry':
-            await handleAddJournalEntry(action.data);
-            break;
-          case 'create_habit':
-            await handleCreateHabit(action.data);
-            break;
-          case 'show_goal_ui':
-          case 'show_habit_ui':
-            // These actions are handled directly by the MessageBubble component
-            // They don't need processing here as they trigger UI components
-            break;
-          case 'analyze_progress':
-            await handleAnalyzeProgress(action.data);
-            break;
-          case 'navigate_to':
-            navigate(action.data.path);
-            break;
-        }
-      } catch (error) {
-        console.error(`Error processing action ${action.type}:`, error);
-      }
     }
   };
 
@@ -364,7 +320,6 @@ const DriftChat = () => {
       switch (actionType) {
         case 'create_goal':
           await handleCreateGoal(data);
-          // Clear context cache to refresh data
           contextAggregationService.clearCache(user?.uid);
           break;
         case 'create_habit':
@@ -376,7 +331,6 @@ const DriftChat = () => {
           contextAggregationService.clearCache(user?.uid);
           break;
         case 'edit_habit':
-          // Handle habit editing
           const existingHabits = JSON.parse(localStorage.getItem('habits') || '[]');
           const updatedHabits = existingHabits.map(h => h.id === data.id ? data : h);
           localStorage.setItem('habits', JSON.stringify(updatedHabits));
@@ -405,20 +359,13 @@ const DriftChat = () => {
   };
 
   const clearConversation = () => {
-    // Clear only the display messages, but keep the conversation history for AI memory
     setMessages([]);
-    // Don't clear conversationHistory - this maintains AI memory
-    // Don't clear localStorage - this maintains persistence
-    // Only clear the visual display
   };
 
   const clearAllHistory = async () => {
-    // This will clear everything including AI memory
     setMessages([]);
     setConversationHistory([]);
     localStorage.removeItem(`drift-conversation-${user?.uid}`);
-    
-    // Also clear from Firestore
     try {
       await firestoreService.clearDriftMemory(user?.uid);
     } catch (error) {
@@ -428,10 +375,10 @@ const DriftChat = () => {
 
   if (!user?.id) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-full flex items-center justify-center">
+        <div className="glass-panel p-8 rounded-2xl text-center max-w-md">
           <Icon name="AlertCircle" className="w-16 h-16 mx-auto text-error mb-4" />
-          <h3 className="text-xl font-semibold text-text-primary mb-2">Sign In Required</h3>
+          <h3 className="text-xl font-bold text-text-primary mb-2">Sign In Required</h3>
           <p className="text-text-secondary">Please sign in to use the Drift AI Assistant.</p>
         </div>
       </div>
@@ -440,14 +387,14 @@ const DriftChat = () => {
 
   if (!settings?.geminiApiKey) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
+      <div className="min-h-full flex items-center justify-center">
+        <div className="glass-panel p-8 rounded-2xl text-center max-w-md">
           <Icon name="Key" className="w-16 h-16 mx-auto text-warning mb-4" />
-          <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
-          <p className="text-text-secondary mb-4">Please configure your Gemini API key in Settings to use Drift.</p>
+          <h3 className="text-xl font-bold text-text-primary mb-2">API Key Required</h3>
+          <p className="text-text-secondary mb-6">Please configure your Gemini API key in Settings to use Drift.</p>
           <button
             onClick={() => navigate('/settings')}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            className="glass-button px-6 py-3 rounded-xl w-full"
           >
             Go to Settings
           </button>
@@ -456,32 +403,15 @@ const DriftChat = () => {
     );
   }
 
-  if (apiKeyStatus === 'invalid') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <Icon name="AlertCircle" className="w-16 h-16 mx-auto text-error mb-4" />
-          <h3 className="text-xl font-semibold text-text-primary mb-2">Invalid API Key</h3>
-          <p className="text-text-secondary mb-4">Your Gemini API key appears to be invalid. Please check your settings.</p>
-          <button
-            onClick={() => navigate('/settings')}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Update Settings
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (apiKeyStatus === 'checking') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-16 h-16 mx-auto mb-4 relative">
+            <div className="absolute inset-0 border-4 border-primary/30 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h3 className="text-xl font-semibold text-text-primary mb-2">Initializing Drift</h3>
+          <h3 className="text-xl font-bold text-text-primary mb-2">Initializing Drift</h3>
           <p className="text-text-secondary">Connecting to AI services...</p>
         </div>
       </div>
@@ -489,52 +419,52 @@ const DriftChat = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background max-w-6xl mx-auto">
-      {/* Compact Header */}
-      <div className="bg-surface border-b border-border px-4 py-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <Icon name="MessageCircle" className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-heading-bold text-text-primary">Drift AI Assistant</h1>
-              <p className="text-xs text-text-secondary">Your personal goal companion</p>
-            </div>
+    <div className="flex flex-col h-[calc(100vh-2rem)] md:h-[calc(100vh-3rem)] max-w-5xl mx-auto rounded-3xl overflow-hidden glass-panel border border-white/5 relative z-10">
+      
+      {/* Header */}
+      <div className="bg-surface/30 border-b border-white/5 px-6 py-4 flex items-center justify-between backdrop-blur-md">
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+            <Icon name="Bot" className="w-6 h-6 text-white" />
           </div>
-          <div className="flex items-center space-x-1">
-            {messages.length > 0 && (
-              <span className="text-xs text-text-secondary px-2 py-1 bg-surface-700 rounded-full">
-                {messages.length} messages
+          <div>
+            <h1 className="text-lg font-bold text-text-primary flex items-center space-x-2">
+              <span>Drift AI</span>
+              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+                Beta
               </span>
-            )}
+            </h1>
+            <p className="text-xs text-text-secondary">Your personal growth companion</p>
           </div>
+        </div>
+        <div className="flex items-center space-x-2">
+           {messages.length > 0 && (
+             <button 
+                onClick={clearConversation}
+                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-700/50 rounded-lg transition-colors"
+                title="Clear conversation"
+              >
+                <Icon name="Trash2" className="w-4 h-4" />
+             </button>
+           )}
         </div>
       </div>
 
-      {/* Compact Chat Container */}
-      <div className="flex-1 overflow-hidden">
-        <div ref={chatContainerRef} className="h-full overflow-y-auto p-3 space-y-3">
+      {/* Chat Area */}
+      <div className="flex-1 overflow-hidden relative bg-surface/20">
+        <div ref={chatContainerRef} className="h-full overflow-y-auto p-4 md:p-6 space-y-6">
           {messages.length === 0 ? (
-            <div>
+            <div className="h-full flex flex-col items-center justify-center">
               <WelcomeScreen onQuickAction={handleQuickAction} />
-              {conversationHistory.length > 0 && (
-                <div className="mt-4 p-3 bg-surface-700/50 rounded-lg border border-border/50">
-                  <div className="flex items-center space-x-2 text-xs text-text-secondary">
-                    <Icon name="Brain" className="w-3 h-3" />
-                    <span>Drift remembers {conversationHistory.length} previous messages</span>
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {messages.map((message) => (
                 <motion.div
                   key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                 >
                   <MessageBubble 
@@ -548,16 +478,14 @@ const DriftChat = () => {
           
           {isLoading && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center space-x-2 text-text-secondary"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center space-x-3 text-text-secondary ml-2"
             >
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-8 h-8 rounded-full bg-surface-700/50 flex items-center justify-center">
+                 <Icon name="Loader2" className="w-4 h-4 animate-spin" />
               </div>
-              <span className="text-sm">Drift is thinking...</span>
+              <span className="text-sm font-medium">Drift is thinking...</span>
             </motion.div>
           )}
           
@@ -565,22 +493,20 @@ const DriftChat = () => {
         </div>
       </div>
 
-      {/* Compact Quick Actions */}
+      {/* Quick Actions (if active conversation) */}
       {messages.length > 0 && (
-        <div className="px-3 py-2 border-t border-border bg-surface/50">
-          <div className="flex flex-wrap gap-1">
-            {[
-              { id: 'create_goal', label: 'Goal', icon: 'Target' },
+        <div className="px-4 py-2 border-t border-white/5 bg-surface/30 backdrop-blur-sm overflow-x-auto">
+          <div className="flex space-x-2 min-w-max pb-1">
+             {[
+              { id: 'create_goal', label: 'New Goal', icon: 'Target' },
               { id: 'check_progress', label: 'Progress', icon: 'BarChart3' },
-              { id: 'add_milestone', label: 'Milestone', icon: 'CheckSquare' },
-              { id: 'journal_entry', label: 'Journal', icon: 'BookOpen' },
               { id: 'focus_session', label: 'Focus', icon: 'Zap' },
-              { id: 'habit_tracker', label: 'Habits', icon: 'Repeat' },
+              { id: 'journal_entry', label: 'Journal', icon: 'BookOpen' },
             ].map((action) => (
               <button
                 key={action.id}
                 onClick={() => handleQuickAction(action.id)}
-                className="flex items-center space-x-1 px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 rounded-md transition-colors"
+                className="flex items-center space-x-2 px-3 py-1.5 text-xs font-medium bg-surface-700/50 hover:bg-surface-600/50 border border-white/5 rounded-full transition-all hover:scale-105 active:scale-95 text-text-secondary hover:text-text-primary"
               >
                 <Icon name={action.icon} className="w-3 h-3" />
                 <span>{action.label}</span>
@@ -590,12 +516,12 @@ const DriftChat = () => {
         </div>
       )}
 
-      {/* Compact Message Input */}
-      <div className="p-3 border-t border-border bg-surface/30">
+      {/* Input Area */}
+      <div className="p-4 bg-surface/40 border-t border-white/5 backdrop-blur-md">
         <MessageInput
           onSendMessage={processUserMessage}
           isLoading={isLoading}
-          placeholder="Ask Drift anything..."
+          placeholder="Ask anything, set goals, or just chat..."
           onClearChat={clearConversation}
           onClearAllHistory={clearAllHistory}
           hasMessages={messages.length > 0}
