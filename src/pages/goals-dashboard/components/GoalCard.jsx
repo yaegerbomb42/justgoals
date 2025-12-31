@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import { formatDate, getDaysUntilDeadline, updateGoal, deleteGoal } from '../../../utils/goalUtils';
@@ -8,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext';
 const GoalCard = ({ goal, onGoalUpdate, onGoalDelete }) => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [editData, setEditData] = useState({
     title: goal.title,
     description: goal.description || '',
@@ -18,36 +19,40 @@ const GoalCard = ({ goal, onGoalUpdate, onGoalDelete }) => {
     unit: goal.unit || ''
   });
 
-  const getPriorityColor = (priority) => {
+  const getPriorityConfig = (priority) => {
     switch (priority) {
-      case 'high': return 'text-error';
-      case 'medium': return 'text-warning';
-      case 'low': return 'text-success';
-      default: return 'text-text-secondary';
+      case 'high': return { color: 'text-error', bg: 'bg-error/10', border: 'border-error/30', label: 'High Priority' };
+      case 'medium': return { color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30', label: 'Medium' };
+      case 'low': return { color: 'text-success', bg: 'bg-success/10', border: 'border-success/30', label: 'Low' };
+      default: return { color: 'text-text-secondary', bg: 'bg-surface-700', border: 'border-border', label: 'Normal' };
     }
   };
 
-  const getCategoryIcon = (category) => {
-    const iconMap = {
-      'Learning': 'BookOpen',
-      'Health & Fitness': 'Activity',
-      'Career & Work': 'Briefcase',
-      'Personal Development': 'User',
-      'Relationships': 'Heart',
-      'Hobbies & Recreation': 'Gamepad2',
-      'Financial': 'DollarSign',
-      'General': 'Target'
+  const getCategoryConfig = (category) => {
+    const configs = {
+      'Learning': { icon: 'BookOpen', gradient: 'from-blue-500 to-cyan-500' },
+      'Health & Fitness': { icon: 'Activity', gradient: 'from-green-500 to-emerald-500' },
+      'Career & Work': { icon: 'Briefcase', gradient: 'from-violet-500 to-purple-500' },
+      'Personal Development': { icon: 'User', gradient: 'from-pink-500 to-rose-500' },
+      'Relationships': { icon: 'Heart', gradient: 'from-red-500 to-pink-500' },
+      'Hobbies & Recreation': { icon: 'Gamepad2', gradient: 'from-orange-500 to-amber-500' },
+      'Financial': { icon: 'DollarSign', gradient: 'from-yellow-500 to-lime-500' },
+      'General': { icon: 'Target', gradient: 'from-primary to-secondary' }
     };
-    return iconMap[category] || 'Target';
+    return configs[category] || configs['General'];
   };
 
   const getProgressColor = (progress) => {
-    if (progress >= 80) return 'text-success';
-    if (progress >= 50) return 'text-warning';
-    return 'text-error';
+    if (progress >= 80) return 'from-green-500 to-emerald-400';
+    if (progress >= 50) return 'from-yellow-500 to-amber-400';
+    if (progress >= 25) return 'from-orange-500 to-amber-500';
+    return 'from-primary to-secondary';
   };
 
   const daysUntilDeadline = getDaysUntilDeadline(goal.deadline);
+  const priorityConfig = getPriorityConfig(goal.priority);
+  const categoryConfig = getCategoryConfig(goal.category);
+  const progress = goal.progress || 0;
 
   const handleSave = async () => {
     try {
@@ -79,38 +84,39 @@ const GoalCard = ({ goal, onGoalUpdate, onGoalDelete }) => {
   if (isEditing) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-surface rounded-lg p-6 border border-border"
+        layout
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-card p-6"
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-body-medium text-text-primary mb-2">Title</label>
+            <label className="block text-sm font-medium text-text-primary mb-2">Title</label>
             <input
               type="text"
               value={editData.title}
               onChange={(e) => setEditData({...editData, title: e.target.value})}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-surface-700 text-text-primary"
+              className="input-modern"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-body-medium text-text-primary mb-2">Description</label>
+            <label className="block text-sm font-medium text-text-primary mb-2">Description</label>
             <textarea
               value={editData.description}
               onChange={(e) => setEditData({...editData, description: e.target.value})}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-surface-700 text-text-primary"
+              className="input-modern min-h-[80px] resize-none"
               rows={3}
             />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-body-medium text-text-primary mb-2">Category</label>
+              <label className="block text-sm font-medium text-text-primary mb-2">Category</label>
               <select
                 value={editData.category}
                 onChange={(e) => setEditData({...editData, category: e.target.value})}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-surface-700 text-text-primary"
+                className="input-modern"
               >
                 <option value="Learning">Learning</option>
                 <option value="Health & Fitness">Health & Fitness</option>
@@ -124,11 +130,11 @@ const GoalCard = ({ goal, onGoalUpdate, onGoalDelete }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-body-medium text-text-primary mb-2">Priority</label>
+              <label className="block text-sm font-medium text-text-primary mb-2">Priority</label>
               <select
                 value={editData.priority}
                 onChange={(e) => setEditData({...editData, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-surface-700 text-text-primary"
+                className="input-modern"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -138,52 +144,44 @@ const GoalCard = ({ goal, onGoalUpdate, onGoalDelete }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-body-medium text-text-primary mb-2">Deadline</label>
+            <label className="block text-sm font-medium text-text-primary mb-2">Deadline</label>
             <input
               type="date"
               value={editData.deadline}
               onChange={(e) => setEditData({...editData, deadline: e.target.value})}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-surface-700 text-text-primary"
+              className="input-modern"
             />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-body-medium text-text-primary mb-2">Target Value</label>
+              <label className="block text-sm font-medium text-text-primary mb-2">Target Value</label>
               <input
                 type="text"
                 value={editData.targetValue}
                 onChange={(e) => setEditData({...editData, targetValue: e.target.value})}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-surface-700 text-text-primary"
-                placeholder="e.g., 10, 5km, fluent"
+                className="input-modern"
+                placeholder="e.g., 10, 5km"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-body-medium text-text-primary mb-2">Unit</label>
+              <label className="block text-sm font-medium text-text-primary mb-2">Unit</label>
               <input
                 type="text"
                 value={editData.unit}
                 onChange={(e) => setEditData({...editData, unit: e.target.value})}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-surface-700 text-text-primary"
-                placeholder="e.g., books, km, level"
+                className="input-modern"
+                placeholder="e.g., books, km"
               />
             </div>
           </div>
           
-          <div className="flex space-x-3">
-            <Button
-              onClick={handleSave}
-              variant="primary"
-              className="flex-1"
-            >
+          <div className="flex space-x-3 pt-2">
+            <Button onClick={handleSave} variant="primary" className="flex-1">
               Save Changes
             </Button>
-            <Button
-              onClick={() => setIsEditing(false)}
-              variant="outline"
-              className="flex-1"
-            >
+            <Button onClick={() => setIsEditing(false)} variant="outline" className="flex-1">
               Cancel
             </Button>
           </div>
@@ -194,99 +192,164 @@ const GoalCard = ({ goal, onGoalUpdate, onGoalDelete }) => {
 
   return (
     <motion.div
+      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-surface rounded-lg p-6 border border-border hover:border-border-strong transition-colors"
+      whileHover={{ y: -4 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      className="relative group"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-            <Icon name={getCategoryIcon(goal.category)} size={20} color="#FFFFFF" />
+      {/* Glow effect on hover */}
+      <div className={`absolute -inset-0.5 bg-gradient-to-r ${categoryConfig.gradient} rounded-2xl blur opacity-0 group-hover:opacity-30 transition-all duration-500`} />
+      
+      <div className="relative glass-card overflow-hidden">
+        {/* Progress indicator line at top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-surface-700/50">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+            className={`h-full bg-gradient-to-r ${getProgressColor(progress)}`}
+          />
+        </div>
+
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className={`w-12 h-12 bg-gradient-to-br ${categoryConfig.gradient} rounded-xl flex items-center justify-center shadow-lg`}
+              >
+                <Icon name={categoryConfig.icon} size={24} color="#FFFFFF" />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-text-primary truncate">{goal.title}</h3>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${priorityConfig.bg} ${priorityConfig.color} ${priorityConfig.border} border`}>
+                    {priorityConfig.label}
+                  </span>
+                  <span className="text-xs text-text-muted">{goal.category}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <AnimatePresence>
+              {isHovered && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="flex items-center space-x-1"
+                >
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-2 rounded-lg bg-surface-700/50 text-text-secondary hover:text-text-primary hover:bg-surface-600 transition-all"
+                  >
+                    <Icon name="Edit" size={14} />
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="p-2 rounded-lg bg-surface-700/50 text-text-secondary hover:text-error hover:bg-error/10 transition-all"
+                  >
+                    <Icon name="Trash2" size={14} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <div>
-            <h3 className="text-lg font-heading-medium text-text-primary">{goal.title}</h3>
-            <div className="flex items-center space-x-2">
-              <span className={`text-sm font-caption ${getPriorityColor(goal.priority)}`}>
-                {goal.priority} priority
-              </span>
-              <span className="text-sm text-text-muted">•</span>
-              <span className="text-sm text-text-muted">{goal.category}</span>
+
+          {/* Description */}
+          {goal.description && (
+            <p className="text-sm text-text-secondary mb-4 line-clamp-2">{goal.description}</p>
+          )}
+
+          {/* Progress Section */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-text-primary">Progress</span>
+              <div className="flex items-center space-x-2">
+                <span className={`text-sm font-bold bg-gradient-to-r ${getProgressColor(progress)} bg-clip-text text-transparent`}>
+                  {progress}%
+                </span>
+                {progress >= 100 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="w-5 h-5 bg-success rounded-full flex items-center justify-center"
+                  >
+                    <Icon name="Check" size={12} color="#FFFFFF" />
+                  </motion.div>
+                )}
+              </div>
+            </div>
+            <div className="progress-bar">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                className={`progress-fill bg-gradient-to-r ${getProgressColor(progress)}`}
+              />
             </div>
           </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsEditing(true)}
-            className="p-2 rounded-lg bg-surface-700 text-text-secondary hover:bg-surface-600 transition-colors"
-          >
-            <Icon name="Edit" size={16} />
-          </button>
-          <button
-            onClick={handleDelete}
-            className="p-2 rounded-lg bg-surface-700 text-text-secondary hover:bg-error hover:text-white transition-colors"
-          >
-            <Icon name="Trash2" size={16} />
-          </button>
-        </div>
-      </div>
 
-      {goal.description && (
-        <p className="text-text-secondary mb-4">{goal.description}</p>
-      )}
+          {/* Meta Info */}
+          <div className="space-y-2">
+            {/* Target */}
+            {goal.targetValue && (
+              <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                <Icon name="Target" size={14} className="text-primary" />
+                <span>Target: <span className="text-text-primary font-medium">{goal.targetValue} {goal.unit}</span></span>
+              </div>
+            )}
 
-      <div className="space-y-3">
-        {/* Progress */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-body-medium text-text-primary">Progress</span>
-            <span className={`text-sm font-body-medium ${getProgressColor(goal.progress || 0)}`}>
-              {goal.progress || 0}%
-            </span>
+            {/* Deadline */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                <Icon name="Calendar" size={14} />
+                <span>{formatDate(goal.deadline)}</span>
+              </div>
+              {daysUntilDeadline !== null && (
+                <motion.span 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    daysUntilDeadline < 0 
+                      ? 'bg-error/20 text-error border border-error/30' 
+                      : daysUntilDeadline <= 7 
+                        ? 'bg-warning/20 text-warning border border-warning/30' 
+                        : 'bg-success/20 text-success border border-success/30'
+                  }`}
+                >
+                  {daysUntilDeadline < 0 
+                    ? `${Math.abs(daysUntilDeadline)}d overdue` 
+                    : daysUntilDeadline === 0 
+                      ? 'Due today' 
+                      : `${daysUntilDeadline}d left`
+                  }
+                </motion.span>
+              )}
+            </div>
           </div>
-          <div className="w-full bg-surface-700 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${goal.progress || 0}%` }}
-            />
-          </div>
-        </div>
 
-        {/* Target */}
-        {goal.targetValue && (
-          <div className="flex items-center space-x-2 text-sm text-text-secondary">
-            <Icon name="Target" size={14} />
-            <span>Target: {goal.targetValue} {goal.unit}</span>
-          </div>
-        )}
-
-        {/* Deadline */}
-        <div className="flex items-center space-x-2 text-sm">
-          <Icon name="Calendar" size={14} className="text-text-secondary" />
-          <span className="text-text-secondary">Deadline: {formatDate(goal.deadline)}</span>
-          {daysUntilDeadline !== null && (
-            <span className={`text-xs px-2 py-1 rounded-full ${
-              daysUntilDeadline < 0 
-                ? 'bg-error text-white' 
-                : daysUntilDeadline <= 7 
-                  ? 'bg-warning text-white' 
-                  : 'bg-success text-white'
-            }`}>
-              {daysUntilDeadline < 0 
-                ? `${Math.abs(daysUntilDeadline)} days overdue` 
-                : daysUntilDeadline === 0 
-                  ? 'Due today' 
-                  : `${daysUntilDeadline} days left`
-              }
-            </span>
+          {/* AI Score Badge (if available) */}
+          {goal.aiPriorityScore && (
+            <div className="mt-4 pt-4 border-t border-border/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-xs text-text-muted">
+                  <Icon name="Sparkles" size={12} className="text-secondary" />
+                  <span>AI Priority Score</span>
+                </div>
+                <span className="text-sm font-bold text-secondary">{goal.aiPriorityScore}/100</span>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Created Date */}
-        <div className="flex items-center space-x-2 text-sm text-text-muted">
-          <Icon name="Clock" size={14} />
-          <span>Created: {formatDate(goal.createdAt)}</span>
-        </div>
+        {/* Bottom gradient accent */}
+        <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${categoryConfig.gradient} opacity-50`} />
       </div>
     </motion.div>
   );

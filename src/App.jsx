@@ -1,13 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { SettingsProvider } from './context/SettingsContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { PlanDataProvider } from './context/PlanDataContext';
 import AchievementProvider from './context/AchievementContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { MealsProvider } from './context/MealsContext';
 import { TemporaryTodosProvider } from './context/TemporaryTodosContext';
 import { DriftCharacterProvider } from './context/DriftCharacterContext';
+import { UnifiedAIProvider } from './context/UnifiedAIContext';
 import Routes from './Routes';
 import Header from './components/ui/Header';
 import NotificationDisplay from './components/ui/NotificationDisplay';
@@ -19,26 +20,21 @@ import './styles/index.css';
 import FlowingParticlesBackground from './components/ui/FlowingParticlesBackground';
 import AmbientSoundPlayer from './components/ui/AmbientSoundPlayer';
 import ErrorBoundary from './components/ErrorBoundary';
-import { useSettings } from './context/SettingsContext';
 import { useDriftCharacter } from './context/DriftCharacterContext';
 
 // Notification wrapper component
 const NotificationWrapper = ({ children }) => {
   const notificationContext = useNotificationContext();
   
-  // Initialize notifications
   useNotifications();
   
-  // Initialize in-app notification service
   React.useEffect(() => {
     if (notificationContext) {
       inAppNotificationService.init(notificationContext);
       
-      // Add test functions for development
       if (process.env.NODE_ENV === 'development') {
         window.testNotification = () => inAppNotificationService.showTest();
         window.inAppNotificationService = inAppNotificationService;
-        console.log('Development mode: Use window.testNotification() to test notifications');
       }
     }
   }, [notificationContext]);
@@ -46,17 +42,15 @@ const NotificationWrapper = ({ children }) => {
   return children;
 };
 
-// Utility to unlock/resume audio context on user interaction
+// Utility to unlock/resume audio context
 function unlockAudioContext(audioRef) {
   if (!audioRef.current) return;
   const audio = audioRef.current;
-  // Try to play a silent sound to unlock
   const playSilent = () => {
     audio.volume = 0;
     audio.play().catch(() => {});
     setTimeout(() => { audio.volume = 0.5; }, 100);
   };
-  // Resume context if suspended
   if (window.AudioContext || window.webkitAudioContext) {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') {
@@ -71,11 +65,9 @@ const GlobalBackgroundMusic = () => {
   const music = settings?.appearance?.backgroundMusic || 'none';
   const volume = settings?.appearance?.backgroundMusicVolume ?? 0.5;
   
-  // Check if focus mode is active by looking at the URL
   const location = window.location.pathname;
   const isFocusMode = location.startsWith('/focus-mode');
   
-  // Don't play global music if focus mode is active or music is muted
   const shouldPlay = !isMusicMuted && !isFocusMode && music !== 'none';
 
   return (
@@ -87,7 +79,7 @@ const GlobalBackgroundMusic = () => {
   );
 };
 
-// Drift Character Wrapper Component
+// Drift Character Wrapper
 const DriftCharacterWrapper = () => {
   const { isVisible, isChatOpen, openChat, characterMood } = useDriftCharacter();
   
@@ -102,7 +94,7 @@ const DriftCharacterWrapper = () => {
   );
 };
 
-const App = () => {
+const AppContent = () => {
   const { settings } = useSettings();
   
   React.useEffect(() => {
@@ -119,35 +111,45 @@ const App = () => {
   }, [settings?.appearance?.backgroundEffect]);
 
   return (
-    <Router>
-      <ErrorBoundary>
-        <DriftCharacterProvider>
+    <ErrorBoundary>
+      <DriftCharacterProvider>
+        <UnifiedAIProvider>
           <NotificationWrapper>
-          {/* Background effects layer */}
-          {settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none' ? (
-            <ErrorBoundary>
-              <FlowingParticlesBackground effect={settings.appearance.backgroundEffect} />
-            </ErrorBoundary>
-          ) : null}
-          <GlobalBackgroundMusic />
-          {/* Main content with transparent background when effects are active */}
-          <div 
-            className={`min-h-screen text-text-primary ${
-              settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none'
-                ? 'bg-background/70 backdrop-blur-[1px]'
-                : 'bg-background'
-            }`}
-            style={{ position: 'relative' }}
-          >
-            <Header />
-            <Routes />
-            {/* In-app notification display */}
-            <NotificationDisplay />
-            <DriftCharacterWrapper />
-          </div>
-        </NotificationWrapper>
-        </DriftCharacterProvider>
-      </ErrorBoundary>
+            {/* Background effects layer */}
+            {settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none' ? (
+              <ErrorBoundary>
+                <FlowingParticlesBackground effect={settings.appearance.backgroundEffect} />
+              </ErrorBoundary>
+            ) : null}
+            <GlobalBackgroundMusic />
+            
+            {/* Main content */}
+            <div 
+              className={`min-h-screen text-text-primary transition-all duration-300 ${
+                settings?.appearance?.backgroundEffect && settings.appearance.backgroundEffect !== 'none'
+                  ? 'bg-background/70 backdrop-blur-[1px]'
+                  : 'bg-background'
+              }`}
+              style={{ position: 'relative' }}
+            >
+              <Header />
+              <main className="relative">
+                <Routes />
+              </main>
+              <NotificationDisplay />
+              <DriftCharacterWrapper />
+            </div>
+          </NotificationWrapper>
+        </UnifiedAIProvider>
+      </DriftCharacterProvider>
+    </ErrorBoundary>
+  );
+};
+
+const App = () => {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 };
