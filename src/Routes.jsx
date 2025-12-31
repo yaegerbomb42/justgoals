@@ -69,7 +69,10 @@ const Routes = () => {
         {/* Protected routes */}
         <Route path="/goals-dashboard" element={<ProtectedRoute><GoalsDashboard /></ProtectedRoute>} />
         <Route path="/temp-todos" element={<ProtectedRoute><TemporaryTodosPage /></ProtectedRoute>} />
-        <Route path="/ai-assistant-chat-drift" element={<ProtectedRoute><AiAssistantChatDrift /></ProtectedRoute>} />
+        {/* Canonical AI route (unified entrypoint) */}
+        <Route path="/ai" element={<ProtectedRoute><AiAssistantChatDrift /></ProtectedRoute>} />
+        {/* Backward-compatible route */}
+        <Route path="/ai-assistant-chat-drift" element={<ProtectedRoute><Navigate to="/ai" replace /></ProtectedRoute>} />
         <Route path="/focus-mode" element={<ProtectedRoute><FocusMode /></ProtectedRoute>} />
         <Route path="/settings-configuration" element={<ProtectedRoute><SettingsConfiguration /></ProtectedRoute>} />
         <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />

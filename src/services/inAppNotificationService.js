@@ -68,7 +68,7 @@ class InAppNotificationService {
           label: 'View Chat',
           primary: true,
           callback: () => {
-            window.location.href = '/ai-assistant-chat-drift';
+            window.location.href = '/ai';
           }
         }
       ],

@@ -31,6 +31,11 @@ const DriftChat = () => {
   
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const searchParams = new URLSearchParams(location.search);
+  const domainParam = (searchParams.get('domain') || 'general').toLowerCase();
+  const domain = ['general', 'goal-planning', 'habits', 'meals', 'milestones'].includes(domainParam)
+    ? domainParam
+    : 'general';
 
   // Initialize API key from settings
   useEffect(() => {
@@ -171,16 +176,7 @@ const DriftChat = () => {
     return newMessage;
   };
 
-  // Determine persona based on route
-  const getPersona = () => {
-    if (location.pathname.startsWith('/meals')) return 'meal';
-    if (location.pathname.startsWith('/goals-dashboard')) return 'goal';
-    if (location.pathname.startsWith('/daily-milestones')) return 'todo';
-    if (location.pathname.startsWith('/habits')) return 'habit';
-    // Add more as needed
-    return 'general';
-  };
-  const persona = getPersona();
+  const persona = domain;
 
   const processUserMessage = async (message) => {
     setIsLoading(true);
@@ -210,7 +206,7 @@ const DriftChat = () => {
         message,
         context.currentGoals || [],
         context,
-        'drift'
+        domain
       );
 
       addMessage(aiResponse, 'assistant');
@@ -426,7 +422,7 @@ const DriftChat = () => {
     }
   };
 
-  if (!user?.id) {
+  if (!user?.uid) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -446,7 +442,7 @@ const DriftChat = () => {
           <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
           <p className="text-text-secondary mb-4">Please configure your Gemini API key in Settings to use Drift.</p>
           <button
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate('/settings-configuration')}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
           >
             Go to Settings
@@ -464,7 +460,7 @@ const DriftChat = () => {
           <h3 className="text-xl font-semibold text-text-primary mb-2">Invalid API Key</h3>
           <p className="text-text-secondary mb-4">Your Gemini API key appears to be invalid. Please check your settings.</p>
           <button
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate('/settings-configuration')}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
           >
             Update Settings
@@ -489,32 +485,65 @@ const DriftChat = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background max-w-6xl mx-auto">
-      {/* Compact Header */}
-      <div className="bg-surface border-b border-border px-4 py-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <Icon name="MessageCircle" className="w-4 h-4 text-white" />
+    <div className="flex flex-col h-[calc(100vh-0px)] bg-background">
+      <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
+        {/* Unified AI Header */}
+        <div className="bg-surface/80 backdrop-blur border-b border-border px-4 py-3 sticky top-0 z-10">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-elevation">
+                <Icon name="Bot" className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-heading-bold text-text-primary leading-tight">AI Assistant</h1>
+                <p className="text-xs text-text-secondary">
+                  Drift • {domain === 'general' ? 'General' : domain.replace('-', ' ')}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[
+                    { id: 'general', label: 'General', icon: 'Sparkles' },
+                    { id: 'goal-planning', label: 'Goals', icon: 'Target' },
+                    { id: 'milestones', label: 'Milestones', icon: 'CheckSquare' },
+                    { id: 'habits', label: 'Habits', icon: 'Repeat' },
+                    { id: 'meals', label: 'Meals', icon: 'UtensilsCrossed' },
+                  ].map((d) => {
+                    const active = d.id === domain;
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => navigate(`/ai?domain=${encodeURIComponent(d.id)}`)}
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs border transition-colors ${
+                          active
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-surface-700/60 text-text-secondary border-border hover:bg-surface-700 hover:text-text-primary'
+                        }`}
+                      >
+                        <Icon name={d.icon} className="w-3 h-3" />
+                        <span>{d.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-heading-bold text-text-primary">Drift AI Assistant</h1>
-              <p className="text-xs text-text-secondary">Your personal goal companion</p>
+            <div className="flex items-center space-x-2 pt-1">
+              {messages.length > 0 && (
+                <span className="text-xs text-text-secondary px-2 py-1 bg-surface-700 rounded-full">
+                  {messages.length} messages
+                </span>
+              )}
+              {conversationHistory.length > 0 && (
+                <span className="text-xs text-text-secondary px-2 py-1 bg-surface-700 rounded-full">
+                  Memory: {conversationHistory.length}
+                </span>
+              )}
             </div>
-          </div>
-          <div className="flex items-center space-x-1">
-            {messages.length > 0 && (
-              <span className="text-xs text-text-secondary px-2 py-1 bg-surface-700 rounded-full">
-                {messages.length} messages
-              </span>
-            )}
           </div>
         </div>
-      </div>
 
-      {/* Compact Chat Container */}
-      <div className="flex-1 overflow-hidden">
-        <div ref={chatContainerRef} className="h-full overflow-y-auto p-3 space-y-3">
+        {/* Chat Container */}
+        <div className="flex-1 overflow-hidden">
+          <div ref={chatContainerRef} className="h-full overflow-y-auto p-4 space-y-3">
           {messages.length === 0 ? (
             <div>
               <WelcomeScreen onQuickAction={handleQuickAction} />
@@ -562,8 +591,8 @@ const DriftChat = () => {
           )}
           
           <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
 
       {/* Compact Quick Actions */}
       {messages.length > 0 && (
@@ -600,6 +629,7 @@ const DriftChat = () => {
           onClearAllHistory={clearAllHistory}
           hasMessages={messages.length > 0}
         />
+      </div>
       </div>
     </div>
   );

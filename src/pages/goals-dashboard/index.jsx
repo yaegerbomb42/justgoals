@@ -307,7 +307,7 @@ const GoalsDashboard = () => {
 
   const handleFilterChange = (filter) => setActiveFilter(filter);
   const handleSortChange = (sort) => setActiveSort(sort);
-  const handleOpenDrift = () => navigate('/ai-assistant-chat-drift');
+  const handleOpenDrift = () => navigate('/ai');
 
   const safeGoals = Array.isArray(goals) ? goals : [];
 

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import inAppNotificationService from '../services/inAppNotificationService';
 
@@ -14,6 +15,7 @@ export const useDriftCharacter = () => {
 
 export const DriftCharacterProvider = ({ children }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastInteraction, setLastInteraction] = useState(null);
@@ -76,8 +78,8 @@ export const DriftCharacterProvider = ({ children }) => {
     setCharacterMood('excited');
     setHasUnreadMessages(false);
     
-    // Navigate to chat page
-    window.location.href = '/ai-assistant-chat-drift';
+    // Navigate to unified AI hub
+    navigate('/ai');
   };
 
   const closeChat = () => {

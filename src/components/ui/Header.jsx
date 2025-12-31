@@ -41,7 +41,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/auth/login');
+      navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
     }
@@ -57,7 +57,7 @@ const Header = () => {
     { path: '/meals', label: 'Meals', icon: 'UtensilsCrossed' },
     { path: '/journal', label: 'Journal', icon: 'BookOpen' },
     { path: '/analytics-dashboard', label: 'Analytics', icon: 'BarChart3' },
-    { path: '/ai-assistant-chat-drift', label: 'Drift', icon: 'MessageCircle' },
+    { path: '/ai', label: 'AI', icon: 'MessageCircle' },
     { path: '/settings-configuration', label: 'Settings', icon: 'Settings' },
   ];
 

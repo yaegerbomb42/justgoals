@@ -24,11 +24,11 @@ const FloatingActionButton = ({ goalContext }) => {
       show: location.pathname !== '/journal'
     },
     {
-      label: 'Drift AI',
+      label: 'AI Assistant',
       icon: 'Bot',
       color: 'bg-secondary',
-      action: () => navigate('/ai-assistant-chat-drift'),
-      show: location.pathname !== '/ai-assistant-chat-drift'
+      action: () => navigate('/ai'),
+      show: location.pathname !== '/ai'
     },
     {
       label: 'Add Milestone',

@@ -403,11 +403,11 @@ const Journal = () => {
               </Link>
               
               <Link
-                to="/ai-assistant-chat-drift"
+                to="/ai"
                 className="flex flex-col items-center p-4 rounded-lg hover:bg-surface-700 transition-colors"
               >
                 <Icon name="Bot" size={24} className="text-secondary mb-2" />
-                <span className="text-sm text-text-secondary">Chat with Drift</span>
+                <span className="text-sm text-text-secondary">AI Assistant</span>
               </Link>
               
               <Link
