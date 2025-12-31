@@ -1,93 +1,121 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
-
 
 const QuickActions = ({ onCreateGoal, onOpenDrift, onSmartPrioritize, hasGoals = false }) => {
   const quickActionItems = [
     {
-      title: "Create New Goal",
-      description: "Set a new long-term objective",
+      title: "New Goal",
+      description: "Set a new objective",
       icon: "Plus",
-      color: "var(--color-primary)",
+      gradient: "from-primary to-secondary",
+      bgGlow: "primary",
       action: onCreateGoal
     },
     {
-      title: "Daily Milestones",
-      description: "Check today\'s tasks",
+      title: "Daily Tasks",
+      description: "Check today's tasks",
       icon: "CheckSquare",
-      color: "var(--color-accent)",
+      gradient: "from-accent to-emerald-400",
+      bgGlow: "accent",
       link: "/daily-milestones"
     },
     {
-      title: "Chat with Drift",
-      description: "Get AI-powered guidance",
-      icon: "MessageCircle",
-      color: "var(--color-secondary)",
+      title: "Drift AI",
+      description: "Get AI guidance",
+      icon: "Sparkles",
+      gradient: "from-secondary to-pink-500",
+      bgGlow: "secondary",
       action: onOpenDrift
     },
     {
-      title: "Focus Session",
-      description: "Start a focused work session",
-      icon: "Focus",
-      color: "var(--color-warning)",
+      title: "Focus Mode",
+      description: "Deep work session",
+      icon: "Zap",
+      gradient: "from-warning to-orange-400",
+      bgGlow: "warning",
       link: "/focus-mode"
     }
   ];
 
-  // Add smart prioritization if there are goals
   if (hasGoals && onSmartPrioritize) {
     quickActionItems.splice(2, 0, {
-      title: "Smart Priority AI",
-      description: "AI-powered goal prioritization",
+      title: "Smart Priority",
+      description: "AI prioritization",
       icon: "Brain",
-      color: "#8B5CF6", // Purple color directly
+      gradient: "from-violet-500 to-purple-500",
+      bgGlow: "violet",
       action: onSmartPrioritize
     });
   }
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
     <div className="mb-8">
-      <h2 className="text-lg font-heading-medium text-text-primary mb-4">Quick Actions</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-text-primary">Quick Actions</h2>
+        <span className="text-xs text-text-muted">Press ⌘K for AI commands</span>
+      </div>
       
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {quickActionItems.map((item, index) => {
-          const ActionComponent = item.link ? Link : 'button';
-          const actionProps = item.link 
-            ? { to: item.link }
-            : { onClick: item.action, type: 'button' };
+      <motion.div 
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3"
+      >
+        {quickActionItems.map((actionItem, index) => {
+          const ActionComponent = actionItem.link ? Link : 'button';
+          const actionProps = actionItem.link 
+            ? { to: actionItem.link }
+            : { onClick: actionItem.action, type: 'button' };
 
           return (
-            <ActionComponent
-              key={index}
-              {...actionProps}
-              className="group bg-surface rounded-lg p-4 border border-border hover:border-primary/30 transition-all duration-normal hover:shadow-elevation contextual-morph"
-            >
-              <div className="flex flex-col items-center text-center space-y-3">
-                <div 
-                  className="w-12 h-12 rounded-lg flex items-center justify-center transition-transform duration-normal group-hover:scale-110"
-                  style={{ backgroundColor: `${item.color}20` }}
-                >
-                  <Icon 
-                    name={item.icon} 
-                    size={24} 
-                    color={item.color}
-                  />
-                </div>
+            <motion.div key={index} variants={item}>
+              <ActionComponent
+                {...actionProps}
+                className="group relative w-full"
+              >
+                {/* Hover glow effect */}
+                <div className={`absolute -inset-0.5 bg-gradient-to-r ${actionItem.gradient} rounded-2xl blur opacity-0 group-hover:opacity-40 transition-all duration-300`} />
                 
-                <div>
-                  <h3 className="text-sm font-body-medium text-text-primary mb-1">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-text-secondary font-caption">
-                    {item.description}
-                  </p>
+                <div className="relative glass-card-hover p-4 h-full flex flex-col items-center text-center space-y-3">
+                  {/* Icon container */}
+                  <motion.div 
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`w-12 h-12 bg-gradient-to-br ${actionItem.gradient} rounded-xl flex items-center justify-center shadow-lg transform transition-transform`}
+                  >
+                    <Icon name={actionItem.icon} size={22} color="#FFFFFF" />
+                  </motion.div>
+                  
+                  {/* Text */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-text-primary group-hover:text-primary transition-colors">
+                      {actionItem.title}
+                    </h3>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {actionItem.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </ActionComponent>
+              </ActionComponent>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 };

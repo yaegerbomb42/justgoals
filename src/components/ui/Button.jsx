@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import Icon from '../AppIcon';
 
 const Button = React.forwardRef(({
@@ -17,54 +18,115 @@ const Button = React.forwardRef(({
     iconColor = null,
     className = '',
     onClick,
+    glow = false,
     ...rest
 }, ref) => {
-    // Base classes
-    const baseClasses = 'inline-flex items-center justify-center transition-all duration-200 font-medium focus:ring-2 focus:outline-none';
-
-    // Size classes
-    const sizeClasses = {
-        '2xs': 'text-xs py-0.5 px-1.5',
-        xs: 'text-xs py-1 px-2',
-        sm: 'text-sm py-1.5 px-3',
-        md: 'text-base py-2 px-4',
-        lg: 'text-lg py-2.5 px-5',
-        xl: 'text-xl py-3 px-6',
-        '2xl': 'text-2xl py-4 px-8',
+    // Size configurations
+    const sizeConfig = {
+        '2xs': { padding: 'py-1 px-2', text: 'text-xs', icon: 12 },
+        xs: { padding: 'py-1.5 px-2.5', text: 'text-xs', icon: 14 },
+        sm: { padding: 'py-2 px-3', text: 'text-sm', icon: 16 },
+        md: { padding: 'py-2.5 px-4', text: 'text-sm', icon: 18 },
+        lg: { padding: 'py-3 px-5', text: 'text-base', icon: 20 },
+        xl: { padding: 'py-3.5 px-6', text: 'text-lg', icon: 22 },
+        '2xl': { padding: 'py-4 px-8', text: 'text-xl', icon: 24 },
     };
 
-    // Shape classes
-    const shapeClasses = {
-        rounded: 'rounded',
+    // Shape configurations
+    const shapeConfig = {
+        rounded: 'rounded-xl',
         square: 'rounded-none',
         pill: 'rounded-full',
         circle: 'rounded-full aspect-square',
     };
 
-    // Variant classes - enhanced with comprehensive theming
-    const variantClasses = {
-        primary: 'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary/50',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary/50',
-        success: 'bg-success text-success-foreground hover:bg-success/90 focus:ring-success/50',
-        danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive/50',
-        warning: 'bg-warning text-warning-foreground hover:bg-warning/90 focus:ring-warning/50',
-        info: 'bg-accent text-accent-foreground hover:bg-accent/90 focus:ring-accent/50',
-        ghost: 'hover:bg-button-ghost-hover hover:text-primary-foreground focus:ring-ring/50',
-        link: 'bg-transparent text-primary underline hover:text-primary/80 p-0 focus:ring-ring/50',
-        outline: 'border border-button-outline-border bg-background hover:bg-primary hover:text-primary-foreground focus:ring-ring/50',
-        text: 'bg-transparent text-primary hover:bg-muted/10 active:bg-muted/20 focus:ring-ring/50',
-        muted: 'bg-muted text-muted-foreground hover:bg-muted/80 focus:ring-muted/50',
-        card: 'bg-card text-card-foreground hover:bg-card/80 border border-border focus:ring-ring/50',
+    // Variant configurations with modern gradients
+    const variantConfig = {
+        primary: {
+            base: 'bg-gradient-to-r from-primary to-secondary text-white',
+            hover: 'hover:shadow-lg hover:shadow-primary/30',
+            active: 'active:scale-[0.98]',
+            glow: 'shadow-lg shadow-primary/25',
+        },
+        secondary: {
+            base: 'bg-surface-700/50 text-text-primary border border-border/50',
+            hover: 'hover:bg-surface-700 hover:border-border',
+            active: 'active:scale-[0.98]',
+            glow: '',
+        },
+        success: {
+            base: 'bg-gradient-to-r from-success to-emerald-400 text-white',
+            hover: 'hover:shadow-lg hover:shadow-success/30',
+            active: 'active:scale-[0.98]',
+            glow: 'shadow-lg shadow-success/25',
+        },
+        danger: {
+            base: 'bg-gradient-to-r from-error to-rose-500 text-white',
+            hover: 'hover:shadow-lg hover:shadow-error/30',
+            active: 'active:scale-[0.98]',
+            glow: 'shadow-lg shadow-error/25',
+        },
+        warning: {
+            base: 'bg-gradient-to-r from-warning to-orange-400 text-white',
+            hover: 'hover:shadow-lg hover:shadow-warning/30',
+            active: 'active:scale-[0.98]',
+            glow: 'shadow-lg shadow-warning/25',
+        },
+        info: {
+            base: 'bg-gradient-to-r from-accent to-cyan-400 text-white',
+            hover: 'hover:shadow-lg hover:shadow-accent/30',
+            active: 'active:scale-[0.98]',
+            glow: 'shadow-lg shadow-accent/25',
+        },
+        ghost: {
+            base: 'bg-transparent text-text-secondary',
+            hover: 'hover:bg-surface-700/50 hover:text-text-primary',
+            active: 'active:bg-surface-700',
+            glow: '',
+        },
+        link: {
+            base: 'bg-transparent text-primary underline-offset-4',
+            hover: 'hover:underline hover:text-primary/80',
+            active: '',
+            glow: '',
+        },
+        outline: {
+            base: 'bg-transparent text-text-primary border border-border/50',
+            hover: 'hover:bg-primary hover:text-white hover:border-primary',
+            active: 'active:scale-[0.98]',
+            glow: '',
+        },
+        text: {
+            base: 'bg-transparent text-text-secondary',
+            hover: 'hover:text-text-primary hover:bg-surface-700/30',
+            active: 'active:bg-surface-700/50',
+            glow: '',
+        },
+        muted: {
+            base: 'bg-surface-700/30 text-text-secondary border border-border/30',
+            hover: 'hover:bg-surface-700/50 hover:text-text-primary',
+            active: 'active:scale-[0.98]',
+            glow: '',
+        },
+        card: {
+            base: 'bg-surface/60 backdrop-blur-sm text-text-primary border border-border/30',
+            hover: 'hover:bg-surface/80 hover:border-border/50',
+            active: 'active:scale-[0.98]',
+            glow: '',
+        },
+        gradient: {
+            base: 'bg-gradient-to-r from-primary via-secondary to-accent text-white',
+            hover: 'hover:shadow-xl hover:shadow-primary/20',
+            active: 'active:scale-[0.98]',
+            glow: 'shadow-lg shadow-primary/20',
+        },
     };
 
+    const currentSize = sizeConfig[size] || sizeConfig.md;
+    const currentShape = shapeConfig[shape] || shapeConfig.rounded;
+    const currentVariant = variantConfig[variant] || variantConfig.primary;
 
-    // Width classes
-    const widthClasses = fullWidth ? 'w-full' : '';
-
-    // Disabled classes
-    const disabledClasses = disabled ? 'cursor-not-allowed opacity-60' : '';
-
-    // Loading state
+    // Loading spinner
     const loadingContent = loading ? (
         <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -75,28 +137,14 @@ const Button = React.forwardRef(({
     // Icon rendering
     const renderIcon = () => {
         if (iconName) {
-            // Use AppIcon component when iconName is provided
-            const iconSizeMap = {
-                '2xs': 12,
-                xs: 14,
-                sm: 16,
-                md: 18,
-                lg: 20,
-                xl: 22,
-                '2xl': 24,
-            };
-
-            const calculatedSize = iconSize || iconSizeMap[size] || 18;
-
+            const calculatedSize = iconSize || currentSize.icon;
             return (
-                <span style={{ color: iconColor || 'currentColor' }}>
-                    <Icon
-                        name={iconName}
-                        size={calculatedSize}
-                        className={`${children ? (iconPosition === 'left' ? 'mr-2' : 'ml-2') : ''}`}
-                    />
-                </span>
-
+                <Icon
+                    name={iconName}
+                    size={calculatedSize}
+                    color={iconColor || 'currentColor'}
+                    className={children ? (iconPosition === 'left' ? 'mr-2' : 'ml-2') : ''}
+                />
             );
         }
 
@@ -107,32 +155,40 @@ const Button = React.forwardRef(({
         });
     };
 
-    // Combine all classes
     const classes = `
-                    ${baseClasses}
-                    ${sizeClasses[size] || sizeClasses.md}
-                    ${shapeClasses[shape] || shapeClasses.rounded}
-                    ${variantClasses[variant] || variantClasses.primary}
-                    ${widthClasses}
-                    ${disabledClasses}
-                    ${className}
-                    `;
+        inline-flex items-center justify-center font-medium transition-all duration-200
+        focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background
+        ${currentSize.padding}
+        ${currentSize.text}
+        ${currentShape}
+        ${currentVariant.base}
+        ${currentVariant.hover}
+        ${currentVariant.active}
+        ${glow ? currentVariant.glow : ''}
+        ${fullWidth ? 'w-full' : ''}
+        ${disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
+        ${className}
+    `.trim().replace(/\s+/g, ' ');
 
     return (
-        <button
+        <motion.button
             ref={ref}
             type={type}
             className={classes}
             disabled={disabled || loading}
             onClick={onClick}
+            whileHover={!disabled ? { scale: 1.02 } : {}}
+            whileTap={!disabled ? { scale: 0.98 } : {}}
             {...rest}
         >
             {loading && loadingContent}
             {(icon || iconName) && iconPosition === 'left' && renderIcon()}
             {children}
             {(icon || iconName) && iconPosition === 'right' && renderIcon()}
-        </button>
+        </motion.button>
     );
 });
+
+Button.displayName = 'Button';
 
 export default Button;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -17,6 +18,7 @@ const SignUpPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,121 +35,215 @@ const SignUpPage = () => {
       setError('Password must be at least 6 characters long.');
       return;
     }
+    setIsLoading(true);
     try {
       await signup(email, password, name);
       navigate('/goals-dashboard');
     } catch (err) {
       setError(err.message || 'Failed to sign up. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const onGoogleLogin = async () => {
+    setIsLoading(true);
     try {
       await handleGoogleSignIn();
       navigate('/goals-dashboard');
     } catch (err) {
       setError('Google Sign-Up failed. Please try again or use email/password.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const benefits = [
+    { icon: 'Target', title: 'Goal Tracking', desc: 'Set SMART goals and track progress' },
+    { icon: 'Sparkles', title: 'AI Assistant', desc: 'Get personalized guidance from Drift' },
+    { icon: 'Repeat', title: 'Habit Builder', desc: 'Build lasting positive habits' },
+    { icon: 'Zap', title: 'Focus Mode', desc: 'Deep work sessions with timer' },
+  ];
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-surface rounded-xl border border-border shadow-xl p-8">
-        <div className="text-center mb-8">
-          <Icon name="UserPlus" size={48} className="text-primary mx-auto mb-3" />
-          <h1 className="text-3xl font-heading-bold text-text-primary">Create Your Account</h1>
-          <p className="text-text-secondary">Join Drift and start achieving your goals.</p>
-        </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Left Panel - Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md"
+        >
+          <div className="glass-card p-8">
+            {/* Mobile logo */}
+            <div className="lg:hidden flex items-center justify-center space-x-3 mb-8">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary via-secondary to-accent rounded-xl flex items-center justify-center shadow-lg">
+                <Icon name="Target" size={24} className="text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-text-primary">
+                Just<span className="gradient-text">Goals</span>
+              </h1>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="name" className="block text-sm font-body-medium text-text-primary mb-1">Full Name</label>
-            <Input
-              type="text"
-              id="name"
-              placeholder="Your Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-body-medium text-text-primary mb-1">Email Address</label>
-            <Input
-              type="email"
-              id="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-body-medium text-text-primary mb-1">Password</label>
-            <Input
-              type="password"
-              id="password"
-              placeholder="Create a strong password (min. 6 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-body-medium text-text-primary mb-1">Confirm Password</label>
-            <Input
-              type="password"
-              id="confirmPassword"
-              placeholder="Re-enter your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full"
-              required
-            />
-          </div>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-text-primary mb-2">Create your account</h2>
+              <p className="text-text-secondary">Start your journey to success</p>
+            </div>
 
-          {error && <p className="text-sm text-error text-center">{error}</p>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                type="text"
+                label="Full Name"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                leftIcon="User"
+                required
+              />
+              
+              <Input
+                type="email"
+                label="Email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                leftIcon="Mail"
+                required
+              />
+              
+              <Input
+                type="password"
+                label="Password"
+                placeholder="Create a strong password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                leftIcon="Lock"
+                hint="At least 6 characters"
+                required
+              />
+              
+              <Input
+                type="password"
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                leftIcon="Shield"
+                required
+              />
 
-          <Button type="submit" variant="primary" className="w-full py-3 text-base" iconName="UserPlus" iconPosition="left">
-            Create Account
-          </Button>
-        </form>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-error/10 border border-error/30 rounded-xl flex items-center space-x-2"
+                >
+                  <Icon name="AlertCircle" size={16} className="text-error" />
+                  <span className="text-sm text-error">{error}</span>
+                </motion.div>
+              )}
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-surface text-text-secondary">Or sign up with</span>
-          </div>
-        </div>
+              <Button 
+                type="submit" 
+                variant="primary" 
+                fullWidth 
+                size="lg"
+                loading={isLoading}
+                iconName="UserPlus" 
+                iconPosition="right"
+                glow
+              >
+                Create Account
+              </Button>
+            </form>
 
-        {isGoogleClientConfigured ? (
-          <div className="flex justify-center">
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/50"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="px-3 bg-surface text-sm text-text-muted">or sign up with</span>
+              </div>
+            </div>
+
             <Button
-              variant="outline"
-              className="w-full py-3 text-base"
-              iconName="Google"
+              variant="secondary"
+              fullWidth
+              size="lg"
               onClick={onGoogleLogin}
+              disabled={!isGoogleClientConfigured || isLoading}
+              className="mb-6"
             >
-              Sign Up with Google
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              {isGoogleClientConfigured ? 'Continue with Google' : 'Google (Not Configured)'}
             </Button>
-          </div>
-        ) : (
-          <Button variant="outline" className="w-full py-3 text-base" iconName="Google" disabled>
-            Sign Up with Google (Not Configured)
-          </Button>
-        )}
 
-        <p className="mt-8 text-center text-sm text-text-secondary">
-          Already have an account?{' '}
-          <Link to="/login" className="font-body-medium text-primary hover:underline">
-            Sign In
-          </Link>
-        </p>
+            <p className="text-center text-sm text-text-secondary">
+              Already have an account?{' '}
+              <Link to="/login" className="font-medium text-primary hover:text-primary/80 transition-colors">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Right Panel - Benefits */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-gradient-to-bl from-secondary/20 via-primary/10 to-accent/20" />
+        <div className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-secondary/30 to-primary/20 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-tr from-primary/30 to-accent/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
+        
+        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary via-secondary to-accent rounded-xl flex items-center justify-center shadow-xl">
+                <Icon name="Target" size={28} className="text-white" />
+              </div>
+              <h1 className="text-3xl font-bold text-text-primary">
+                Just<span className="gradient-text">Goals</span>
+              </h1>
+            </div>
+            
+            <h2 className="text-4xl xl:text-5xl font-bold text-text-primary mb-4 leading-tight">
+              Start achieving<br />
+              <span className="gradient-text">more today</span>
+            </h2>
+            
+            <p className="text-lg text-text-secondary mb-10 max-w-md">
+              Join thousands of achievers who've transformed their goals into reality.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {benefits.map((benefit, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + index * 0.1 }}
+                  className="card-stat p-4"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg flex items-center justify-center mb-3">
+                    <Icon name={benefit.icon} size={20} className="text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-text-primary mb-1">{benefit.title}</h3>
+                  <p className="text-xs text-text-muted">{benefit.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
