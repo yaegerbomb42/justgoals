@@ -5,6 +5,9 @@ import analyticsService from '../../services/analyticsService';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 import AchievementBadge from '../../components/ui/AchievementBadge';
+import Page from '../../components/ui/Page';
+import PageHeader from '../../components/ui/PageHeader';
+import TabBar from '../../components/ui/TabBar';
 import { getUserId, getFocusSessionStats, getUserStreakData } from '../../utils/userUtils';
 
 // Analytics Components
@@ -410,89 +413,54 @@ const AnalyticsDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="pt-20 pb-24 md:pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Demo Banner for unauthenticated users */}
-          {!isAuthenticated && (
-            <div className="bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 rounded-lg p-4 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Icon name="Eye" size={20} className="text-primary" />
-                  <div>
-                    <h3 className="text-sm font-heading-semibold text-primary">Demo Mode</h3>
-                    <p className="text-xs text-text-secondary">You're viewing demo analytics data. Sign in to see your real data.</p>
-                  </div>
-                </div>
-                <Button size="sm" onClick={() => window.location.href = '/login'}>
-                  Sign In
-                </Button>
+    <Page>
+      {/* Demo Banner for unauthenticated users */}
+      {!isAuthenticated && (
+        <div className="bg-gradient-to-r from-primary/15 to-accent/15 border border-primary/30 rounded-xl p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Icon name="Eye" size={20} className="text-primary" />
+              <div>
+                <h3 className="text-sm font-heading-semibold text-primary">Demo Mode</h3>
+                <p className="text-xs text-text-secondary">You're viewing demo analytics data. Sign in to see your real data.</p>
               </div>
             </div>
-          )}
-
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl font-heading-bold text-text-primary">Analytics Dashboard</h1>
-              <div className="flex items-center space-x-4">
-                <select
-                  value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="px-3 py-2 bg-surface border border-border rounded-lg text-sm"
-                >
-                  <option value="week">Last Week</option>
-                  <option value="month">Last Month</option>
-                  <option value="quarter">Last Quarter</option>
-                  <option value="year">Last Year</option>
-                </select>
-              </div>
-            </div>
+            <Button size="sm" onClick={() => window.location.href = '/login'}>
+              Sign In
+            </Button>
           </div>
+        </div>
+      )}
 
-          {/* Tab Navigation */}
-          <div
-            className="flex flex-wrap gap-2 mb-6"
-            role="tablist"
-            aria-label="Analytics Dashboard Tabs"
-            onKeyDown={e => {
-              if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                e.preventDefault();
-                const idx = tabs.findIndex(tab => tab.id === activeTab);
-                let nextIdx = e.key === 'ArrowLeft' ? idx - 1 : idx + 1;
-                if (nextIdx < 0) nextIdx = tabs.length - 1;
-                if (nextIdx >= tabs.length) nextIdx = 0;
-                setActiveTab(tabs[nextIdx].id);
-                // Move focus to the new tab
-                document.getElementById(`dashboard-tab-${tabs[nextIdx].id}`)?.focus();
-              }
-            }}
+      <PageHeader
+        icon="BarChart3"
+        title="Analytics Dashboard"
+        subtitle="Trends, predictions, and patterns across your goals and habits"
+        actions={(
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
           >
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                id={`dashboard-tab-${tab.id}`}
-                onClick={() => setActiveTab(tab.id)}
-                className={
-                  `flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-body-medium transition-colors
-                  ${activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                  }`
-                }
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={`dashboard-tabpanel-${tab.id}`}
-                tabIndex={activeTab === tab.id ? 0 : -1}
-              >
-                <Icon name={tab.icon} size={16} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
+            <option value="week">Last Week</option>
+            <option value="month">Last Month</option>
+            <option value="quarter">Last Quarter</option>
+            <option value="year">Last Year</option>
+          </select>
+        )}
+      />
 
-          {/* Tab Content */}
-          <div className="space-y-6">
+      {/* Tab Navigation */}
+      <TabBar
+        tabs={tabs}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        variant="pill"
+        className="mb-6"
+      />
+
+      {/* Tab Content */}
+      <div className="space-y-6">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -565,10 +533,8 @@ const AnalyticsDashboard = () => {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </Page>
   );
 };
 

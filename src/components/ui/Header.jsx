@@ -56,7 +56,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/auth/login');
+      navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
     }

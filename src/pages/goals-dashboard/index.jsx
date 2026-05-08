@@ -12,28 +12,35 @@ import WelcomeHero from './components/WelcomeHero';
 import QuickActions from './components/QuickActions';
 import FilterSortControls from './components/FilterSortControls';
 import GoalCard from './components/GoalCard';
-import EmptyState from './components/EmptyState';
+import DashboardEmptyState from './components/EmptyState';
 import Icon from '../../components/AppIcon';
+import Page from '../../components/ui/Page';
+import Button from '../../components/ui/Button';
+import SharedEmptyState from '../../components/ui/EmptyState';
+import Modal from '../../components/ui/Modal';
 import firestoreService from '../../services/firestoreService';
 
 // Onboarding Modal Component
 function OnboardingModal({ open, onClose }) {
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-surface rounded-xl shadow-lg p-8 max-w-lg w-full relative">
-        <button className="absolute top-4 right-4 text-xl" onClick={onClose}>&times;</button>
-        <h2 className="text-2xl font-heading-bold mb-2">Welcome to Yaeger's Goals!</h2>
-        <p className="mb-4 text-text-secondary">Here's how to get started and make the most of your app:</p>
-        <ul className="list-disc pl-6 mb-4 text-text-primary">
-          <li><b>Install:</b> Just double-click the installer for Mac or Windows. No extra setup needed.</li>
-          <li><b>Getting Started:</b> Create your first goal to unlock achievements and analytics. Explore Focus Mode, Journal, and AI Assistant for more features.</li>
-          <li><b>What's New:</b> Enjoy a native desktop experience, auto-updates, and enhanced security with code signing.</li>
-        </ul>
-        <p className="text-xs text-text-secondary">You can always revisit this screen from the dashboard menu.</p>
-        <button className="mt-6 px-4 py-2 bg-primary text-white rounded" onClick={onClose}>Get Started</button>
-      </div>
-    </div>
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title="Welcome to JustGoals!"
+      icon="Sparkles"
+      description="A quick tour of what you can do here."
+      size="lg"
+      footer={(
+        <Button variant="primary" onClick={onClose}>Get Started</Button>
+      )}
+    >
+      <ul className="list-disc pl-5 space-y-2 text-sm text-text-primary">
+        <li><span className="font-medium">Install:</span> Double-click the installer for Mac or Windows. No extra setup needed.</li>
+        <li><span className="font-medium">Getting started:</span> Create your first goal to unlock achievements and analytics. Explore Focus Mode, Journal, and the Drift AI assistant for more features.</li>
+        <li><span className="font-medium">What's new:</span> A native desktop experience, auto-updates, and enhanced security with code signing.</li>
+      </ul>
+      <p className="mt-4 text-xs text-text-muted">You can always revisit this screen from the dashboard menu.</p>
+    </Modal>
   );
 }
 
@@ -315,67 +322,79 @@ const GoalsDashboard = () => {
   // Always render the main dashboard layout
 
   return (
-    <div className="min-h-screen bg-background">
-      {showOnboarding && <OnboardingModal open={showOnboarding} onClose={handleDismissOnboarding} />}
+    <Page>
+      <OnboardingModal open={showOnboarding} onClose={handleDismissOnboarding} />
       {onboardingError && (
-        <div className="bg-error/10 border border-error/20 text-error text-center p-4 mb-4 rounded">
+        <div className="bg-error/10 border border-error/30 text-error text-center p-4 mb-4 rounded-xl">
           <strong>{onboardingError}</strong>
         </div>
       )}
       {updateStatus && (
-        <div className="bg-info text-info-content px-4 py-2 text-center">
+        <div className="bg-info/10 text-info border border-info/30 px-4 py-2 text-center mb-4 rounded-xl">
           {updateStatus}
         </div>
       )}
-      <main className="pt-20 pb-24 md:pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Welcome Hero Section - always show */}
-          <WelcomeHero
-            userName={displayUserStats.name}
-            userId={user?.id}
-            overallProgress={0} // If you have this value, pass it
-            totalGoals={displayUserStats.totalGoals}
-            completedGoals={displayUserStats.completedGoals}
-            streakDays={displayUserStats.streakDays}
-          />
-          {/* Quick Actions - always show */}
-          <QuickActions
-            onCreateGoal={handleCreateGoal}
-            onOpenDrift={handleOpenDrift}
-            onSmartPrioritize={handleSmartPrioritization}
-            hasGoals={safeGoals.length > 0}
-          />
-          {/* Filter and Sort Controls - always show */}
-          <FilterSortControls
-            onFilterChange={handleFilterChange}
-            onSortChange={handleSortChange}
-            activeFilter={activeFilter}
-            activeSort={activeSort}
-          />
-          {/* Goals Grid or Empty State */}
-          {Array.isArray(filteredGoals) && filteredGoals.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGoals.map((goal) => (
-                <GoalCard
-                  key={goal.id}
-                  goal={goal}
-                  onGoalUpdate={handleGoalUpdate}
-                  onGoalDelete={handleDeleteGoal}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <h1 className="text-2xl font-heading-bold text-text-primary mb-4">No Goals Yet</h1>
-              <p className="text-text-secondary mb-8">Start by creating your first goal to unlock achievements and progress tracking.</p>
-              <button onClick={handleCreateGoal} className="btn btn-primary">Create Goal</button>
-            </div>
-          )}
+
+      {/* Welcome Hero Section */}
+      <WelcomeHero
+        userName={displayUserStats.name}
+        userId={user?.id}
+        overallProgress={0}
+        totalGoals={displayUserStats.totalGoals}
+        completedGoals={displayUserStats.completedGoals}
+        streakDays={displayUserStats.streakDays}
+      />
+
+      {/* Quick Actions */}
+      <QuickActions
+        onCreateGoal={handleCreateGoal}
+        onOpenDrift={handleOpenDrift}
+        onSmartPrioritize={handleSmartPrioritization}
+        hasGoals={safeGoals.length > 0}
+      />
+
+      {/* Filter and Sort Controls */}
+      <FilterSortControls
+        onFilterChange={handleFilterChange}
+        onSortChange={handleSortChange}
+        activeFilter={activeFilter}
+        activeSort={activeSort}
+      />
+
+      {/* Goals Grid or Empty State */}
+      {Array.isArray(filteredGoals) && filteredGoals.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {filteredGoals.map((goal) => (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              onGoalUpdate={handleGoalUpdate}
+              onGoalDelete={handleDeleteGoal}
+            />
+          ))}
         </div>
-      </main>
+      ) : (
+        <SharedEmptyState
+          icon="Target"
+          title="No goals yet"
+          description="Start by creating your first goal to unlock achievements and progress tracking."
+          action={(
+            <Button
+              variant="primary"
+              onClick={handleCreateGoal}
+              iconName="Plus"
+              iconPosition="left"
+            >
+              Create Goal
+            </Button>
+          )}
+          size="lg"
+        />
+      )}
+
       {/* Floating Action Button */}
       <FloatingActionButton />
-      
+
       {/* Smart Priority Manager Modal */}
       {showSmartPriority && (
         <SmartPriorityManager
@@ -385,7 +404,7 @@ const GoalsDashboard = () => {
           userContext={getUserContext()}
         />
       )}
-    </div>
+    </Page>
   );
 };
 

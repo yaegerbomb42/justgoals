@@ -6,6 +6,10 @@ import { calculateUserStreak } from '../../utils/goalUtils'; // Import streak ca
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
+import Page from '../../components/ui/Page';
+import PageHeader from '../../components/ui/PageHeader';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 
 // Import all components
 import MilestoneCard from './components/MilestoneCard';
@@ -305,12 +309,15 @@ const Progress = () => {
   const safeActiveProgressData = Array.isArray(activeProgressData) ? activeProgressData : [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="pt-16 pb-20 md:pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Main Content */}
-            <div className="flex-1 space-y-6">
+    <Page>
+      <PageHeader
+        icon="TrendingUp"
+        title="Progress"
+        subtitle="Track milestones and visualize your journey toward each goal"
+      />
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Main Content */}
+        <div className="flex-1 space-y-6">
               {/* Date Header */}
               <DateHeader
                 selectedDate={selectedDate}
@@ -335,7 +342,7 @@ const Progress = () => {
               />
 
               {/* Toggle between AI and Manual Mode */}
-              <div className="flex items-center justify-between p-4 bg-surface rounded-lg border border-border">
+              <div className="flex items-center justify-between p-4 bg-surface rounded-xl border border-border">
                 <div className="flex items-center space-x-3">
                   <Icon name="Bot" size={20} className="text-primary" />
                   <div>
@@ -389,28 +396,24 @@ const Progress = () => {
                 )}
 
                 {safeActiveProgressData.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-surface-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Icon name="Target" size={24} className="text-text-secondary" />
-                    </div>
-                    <h3 className="text-lg font-heading-medium text-text-primary mb-2">
-                      {useAIJourney ? 'Generate Your AI Progress Journey' : 'Start Your Progress Journey'}
-                    </h3>
-                    <p className="text-text-secondary mb-4">
-                      {useAIJourney 
-                        ? 'Let AI analyze your patterns and create personalized milestones'
-                        : 'Create progression marks to track your journey toward your goals'
-                      }
-                    </p>
-                    <Button
-                      variant="primary"
-                      onClick={() => useAIJourney ? null : setIsAddModalOpen(true)}
-                      iconName={useAIJourney ? "Bot" : "Plus"}
-                      iconPosition="left"
-                    >
-                      {useAIJourney ? 'AI will auto-generate when you select a goal' : 'Add Progress Step'}
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon="Target"
+                    title={useAIJourney ? 'Generate Your AI Progress Journey' : 'Start Your Progress Journey'}
+                    description={useAIJourney
+                      ? 'Let AI analyze your patterns and create personalized milestones.'
+                      : 'Create progression marks to track your journey toward your goals.'}
+                    action={(
+                      <Button
+                        variant="primary"
+                        onClick={() => useAIJourney ? null : setIsAddModalOpen(true)}
+                        iconName={useAIJourney ? 'Bot' : 'Plus'}
+                        iconPosition="left"
+                      >
+                        {useAIJourney ? 'AI will auto-generate when you select a goal' : 'Add Progress Step'}
+                      </Button>
+                    )}
+                    size="md"
+                  />
                 ) : (
                   <div className="space-y-3">
                     {safeActiveProgressData.map((milestone) => (
@@ -432,12 +435,12 @@ const Progress = () => {
               </div>
 
               {/* Quick Actions */}
-              <div className="bg-surface rounded-lg border border-border p-4">
+              <Card padding="md">
                 <h3 className="font-heading-medium text-text-primary mb-3">Quick Actions</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <Link
                     to="/focus-mode"
-                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700 transition-colors duration-fast"
+                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700/40 transition-colors duration-fast"
                   >
                     <Icon name="Focus" size={20} className="text-primary mb-2" />
                     <span className="text-xs font-caption text-text-secondary">Focus Mode</span>
@@ -445,7 +448,7 @@ const Progress = () => {
                   
                   <Link
                     to="/goals-dashboard"
-                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700 transition-colors duration-fast"
+                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700/40 transition-colors duration-fast"
                   >
                     <Icon name="Target" size={20} className="text-accent mb-2" />
                     <span className="text-xs font-caption text-text-secondary">Goals</span>
@@ -453,7 +456,7 @@ const Progress = () => {
                   
                   <button
                     onClick={() => setIsAIExpanded(true)}
-                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700 transition-colors duration-fast"
+                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700/40 transition-colors duration-fast"
                   >
                     <Icon name="Bot" size={20} className="text-secondary mb-2" />
                     <span className="text-xs font-caption text-text-secondary">
@@ -463,26 +466,24 @@ const Progress = () => {
                   
                   <Link
                     to="/settings-configuration"
-                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700 transition-colors duration-fast"
+                    className="flex flex-col items-center p-3 rounded-lg hover:bg-surface-700/40 transition-colors duration-fast"
                   >
                     <Icon name="Settings" size={20} className="text-warning mb-2" />
                     <span className="text-xs font-caption text-text-secondary">Settings</span>
                   </Link>
                 </div>
-              </div>
-            </div>
+              </Card>
+        </div>
 
-            {/* Progress AI Assistant Panel - Desktop */}
-            <div className="hidden lg:block">
-              <ProgressAIAssistant
-                isExpanded={isAIExpanded}
-                onToggle={() => setIsAIExpanded(!isAIExpanded)}
-                selectedGoal={selectedGoal}
-                progressMarks={safeActiveProgressData}
-                onCreateProgressPath={handleCreateProgressPath}
-              />
-            </div>
-          </div>
+        {/* Progress AI Assistant Panel - Desktop */}
+        <div className="hidden lg:block">
+          <ProgressAIAssistant
+            isExpanded={isAIExpanded}
+            onToggle={() => setIsAIExpanded(!isAIExpanded)}
+            selectedGoal={selectedGoal}
+            progressMarks={safeActiveProgressData}
+            onCreateProgressPath={handleCreateProgressPath}
+          />
         </div>
       </div>
 
@@ -520,7 +521,7 @@ const Progress = () => {
         totalMilestones={totalCount}
         onSaveReflection={handleSaveReflection}
       />
-    </div>
+    </Page>
   );
 };
 
