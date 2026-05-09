@@ -8,6 +8,9 @@ import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
 import TodoItem from '../../components/ui/TodoItem';
 import CelebrationEffect from '../../components/ui/CelebrationEffect';
+import Page from '../../components/ui/Page';
+import PageHeader from '../../components/ui/PageHeader';
+import EmptyState from '../../components/ui/EmptyState';
 
 const TemporaryTodosPage = () => {
   const { user, isAuthenticated } = useAuth();
@@ -211,54 +214,46 @@ const TemporaryTodosPage = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-heading-bold text-text-primary mb-4">
-            Please sign in to access Temporary Todos
-          </h2>
-        </div>
-      </div>
+      <Page width="md">
+        <EmptyState
+          icon="LogIn"
+          title="Sign in required"
+          description="Please sign in to access your Quick Todos."
+          size="lg"
+        />
+      </Page>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-surface/30">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between"
-          >
-            <div>
-              <h1 className="text-3xl font-heading-bold text-text-primary mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Quick Todos ⚡
-              </h1>
-              <p className="text-text-secondary">
-                Capture quick thoughts and let Drift AI help prioritize what matters most
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setShowArchive(!showArchive)}
-                variant="secondary"
-                className="flex items-center gap-2 hover:scale-105 transition-transform"
-              >
-                <Icon name="Archive" className="w-4 h-4" />
-                {showArchive ? 'Hide Archive' : 'Show Archive'}
-              </Button>
-              <Button
-                onClick={() => setShowAIAssistant(!showAIAssistant)}
-                variant="primary"
-                className="flex items-center gap-2 hover:scale-105 transition-transform bg-gradient-to-r from-primary to-secondary"
-              >
-                <Icon name="Zap" className="w-4 h-4" />
-                Drift AI
-              </Button>
-            </div>
-          </motion.div>
-        </div>
+    <Page width="lg" background="gradient">
+      <PageHeader
+        icon="Zap"
+        title="Quick Todos"
+        subtitle="Capture quick thoughts and let Drift AI help prioritize what matters most"
+        actions={(
+          <>
+            <Button
+              onClick={() => setShowArchive(!showArchive)}
+              variant="outline"
+              size="sm"
+              iconName="Archive"
+              iconPosition="left"
+            >
+              {showArchive ? 'Hide Archive' : 'Show Archive'}
+            </Button>
+            <Button
+              onClick={() => setShowAIAssistant(!showAIAssistant)}
+              variant="primary"
+              size="sm"
+              iconName="Zap"
+              iconPosition="left"
+            >
+              Drift AI
+            </Button>
+          </>
+        )}
+      />
 
         {/* Add Todo Form */}
         <motion.div
@@ -477,7 +472,6 @@ const TemporaryTodosPage = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
 
       {/* Celebration Effect */}
       <CelebrationEffect 
@@ -587,7 +581,7 @@ const TemporaryTodosPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </Page>
   );
 };
 

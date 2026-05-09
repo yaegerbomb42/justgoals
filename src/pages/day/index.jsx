@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
+import Page from '../../components/ui/Page';
+import PageHeader from '../../components/ui/PageHeader';
+import EmptyState from '../../components/ui/EmptyState';
+import Modal from '../../components/ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { getGoals } from '../../utils/goalUtils';
 import { geminiService } from '../../services/geminiService';
@@ -35,35 +39,37 @@ const AddEventModal = ({ isOpen, onClose, onAdd }) => {
     onClose();
   };
 
-  if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-surface rounded-xl shadow-lg p-6 w-full max-w-md relative">
-        <button className="absolute top-3 right-3 text-xl" onClick={onClose}>&times;</button>
-        <h2 className="text-xl font-heading-bold mb-4">Add Event</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input name="title" value={form.title} onChange={handleChange} className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Time</label>
-            <input name="time" value={form.time} onChange={handleChange} type="time" className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Category</label>
-            <input name="category" value={form.category} onChange={handleChange} className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" placeholder="(Optional)" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea name="description" value={form.description} onChange={handleChange} className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary" rows={2} placeholder="(Optional)" />
-          </div>
-          <div className="flex justify-end">
-            <Button type="submit" variant="primary">Add Event</Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      icon="Calendar"
+      title="Add Event"
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Title</label>
+          <input name="title" value={form.title} onChange={handleChange} className="w-full px-3 py-2 rounded-lg border border-border bg-surface-700/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50" required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Time</label>
+          <input name="time" value={form.time} onChange={handleChange} type="time" className="w-full px-3 py-2 rounded-lg border border-border bg-surface-700/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50" required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Category</label>
+          <input name="category" value={form.category} onChange={handleChange} className="w-full px-3 py-2 rounded-lg border border-border bg-surface-700/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50" placeholder="(Optional)" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Description</label>
+          <textarea name="description" value={form.description} onChange={handleChange} className="w-full px-3 py-2 rounded-lg border border-border bg-surface-700/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50" rows={2} placeholder="(Optional)" />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Add Event</Button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 
@@ -79,58 +85,59 @@ const PreferencesModal = ({ isOpen, onClose, eventCount, setEventCount, novelty,
     onClose();
   };
 
-  if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-surface rounded-xl shadow-lg p-6 w-full max-w-md relative">
-        <button className="absolute top-3 right-3 text-xl" onClick={onClose}>&times;</button>
-        <h2 className="text-xl font-heading-bold mb-4">Preferences</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Number of Events</label>
-            <select
-              value={eventCount}
-              onChange={e => setEventCount(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
-            >
-              {[5, 8, 11, 14, 18, 23].map(val => (
-                <option key={val} value={val}>{val} events</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Novelty Level</label>
-            <select
-              value={novelty}
-              onChange={e => setNovelty(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
-            >
-              <option value="low">Low Novelty</option>
-              <option value="balanced">Balanced</option>
-              <option value="high">High Novelty</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Ask Drift for Help</label>
-            <textarea
-              value={driftPrompt}
-              onChange={e => setDriftPrompt(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-border bg-surface-700 text-text-primary"
-              rows={2}
-              placeholder="Ask Drift to help plan your day..."
-            />
-            <Button
-              onClick={handleDriftPlan}
-              loading={isDriftLoading}
-              iconName="Bot"
-              className="mt-2"
-            >
-              Ask Drift
-            </Button>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      icon="Settings"
+      title="Preferences"
+      size="md"
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Number of Events</label>
+          <select
+            value={eventCount}
+            onChange={e => setEventCount(Number(e.target.value))}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-surface-700/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
+          >
+            {[5, 8, 11, 14, 18, 23].map(val => (
+              <option key={val} value={val}>{val} events</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Novelty Level</label>
+          <select
+            value={novelty}
+            onChange={e => setNovelty(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-surface-700/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
+          >
+            <option value="low">Low Novelty</option>
+            <option value="balanced">Balanced</option>
+            <option value="high">High Novelty</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Ask Drift for Help</label>
+          <textarea
+            value={driftPrompt}
+            onChange={e => setDriftPrompt(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-surface-700/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
+            rows={2}
+            placeholder="Ask Drift to help plan your day..."
+          />
+          <Button
+            onClick={handleDriftPlan}
+            loading={isDriftLoading}
+            iconName="Bot"
+            className="mt-2"
+          >
+            Ask Drift
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -443,7 +450,7 @@ const DayPlanner = () => {
       return;
     }
 
-    setIsDriftLoading(true);
+    setIsGenerating(true);
     try {
       // Create a more specific prompt for day planning
       const enhancedPrompt = `Create a daily schedule for: "${prompt}"
@@ -490,7 +497,6 @@ Focus on realistic timing and achievable goals. Return ONLY the JSON array.`;
             
             setDayPlan(processedPlan);
             savePlan(processedPlan);
-            setDriftPrompt(''); // Clear the input
             return;
           }
         } catch (parseError) {
@@ -505,7 +511,7 @@ Focus on realistic timing and achievable goals. Return ONLY the JSON array.`;
       console.error('Drift planning error:', error);
       alert('Failed to get a plan from Drift. Please check your API key and try again.');
     } finally {
-      setIsDriftLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -525,43 +531,53 @@ Focus on realistic timing and achievable goals. Return ONLY the JSON array.`;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-text-secondary">Loading Day Planner...</p>
-          </div>
+      <Page width="lg">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
+          <p className="text-text-secondary">Loading Day Planner...</p>
         </div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-2 pt-24 max-w-4xl">
-        {/* Google Calendar Sync Button */}
-        <div className="flex justify-end mb-2">
-          <div className="flex items-center space-x-2">
+    <Page width="lg">
+      <PageHeader
+        icon="Calendar"
+        title="Day"
+        subtitle="Plan your day with AI-powered scheduling"
+        actions={(
+          <>
             <Button
               variant="outline"
               iconName="Calendar"
               onClick={handleGoogleLink}
+              size="sm"
             >
-              Link Google Calendar
+              Link Calendar
             </Button>
             <Button
-              variant="ghost"
-              iconName="X"
-              onClick={handleSkipGoogleCalendar}
-              className="text-text-secondary hover:text-text-primary"
+              variant="outline"
+              iconName="Settings"
+              onClick={() => setShowPreferences(true)}
+              size="sm"
             >
-              Skip
+              Preferences
             </Button>
-          </div>
-        </div>
-        {syncStatus && (
-          <div className="text-center text-sm text-accent mb-2">{syncStatus}</div>
+            <Button
+              variant="primary"
+              iconName="Plus"
+              onClick={() => setShowAddModal(true)}
+              size="sm"
+            >
+              Add Event
+            </Button>
+          </>
         )}
+      />
+      {syncStatus && (
+        <div className="text-center text-sm text-accent mb-4">{syncStatus}</div>
+      )}
         {/* Dopamine Confetti Celebration */}
         <AnimatePresence>
           {showConfetti && (
@@ -605,73 +621,47 @@ Focus on realistic timing and achievable goals. Return ONLY the JSON array.`;
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="flex flex-col items-center text-center mb-6">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-primary drop-shadow mb-2">Day</h1>
-          <p className="text-lg text-text-secondary font-medium mb-2">Plan your day with AI-powered scheduling</p>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-          <div></div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary"
-            />
-            <Button
-              variant="outline"
-              iconName="Settings"
-              onClick={() => setShowPreferences(true)}
-              className="ml-1"
-            >
-              Preferences
-            </Button>
-            {isConnected ? (
-              <Button
-                onClick={generateDailyPlan}
-                loading={isGenerating}
-                iconName="Calendar"
-                iconPosition="left"
-              >
-                Generate Plan
-              </Button>
-            ) : (
-              <div className="text-error text-sm">API key required</div>
-            )}
-            <Button
-              variant="outline"
-              iconName="Plus"
-              onClick={() => setShowAddModal(true)}
-              className="ml-1"
-            >
-              Add Event
-            </Button>
-          </div>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
+        />
+        {isConnected ? (
+          <Button
+            onClick={generateDailyPlan}
+            loading={isGenerating}
+            iconName="Sparkles"
+            iconPosition="left"
+          >
+            Generate Plan
+          </Button>
+        ) : (
+          <div className="text-error text-sm">API key required</div>
+        )}
+      </div>
 
-        {!settings.geminiApiKey ? (
-          <div className="text-center py-12">
-            <Icon name="Calendar" className="w-16 h-16 mx-auto text-text-muted mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">API Key Required</h3>
-            <p className="text-text-secondary">
-              Please configure your Gemini API key in Settings to generate daily plans.
-            </p>
-          </div>
-        ) : !isConnected ? (
-          <div className="text-center py-12">
-            <Icon name="AlertCircle" className="w-16 h-16 mx-auto text-error mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">Connection Failed</h3>
-            <p className="text-text-secondary">
-              Unable to connect to Gemini API. Please check your API key in Settings.
-            </p>
-          </div>
-        ) : dayPlan.length === 0 ? (
-          <div className="text-center py-12">
-            <Icon name="Calendar" className="w-16 h-16 mx-auto text-text-muted mb-4" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">No Plan Generated</h3>
-            <p className="text-text-secondary mb-6">
-              Generate an AI-powered daily plan based on your goals and preferences.
-            </p>
+      {!settings.geminiApiKey ? (
+        <EmptyState
+          icon="Key"
+          title="API Key Required"
+          description="Please configure your Gemini API key in Settings to generate daily plans."
+          size="lg"
+        />
+      ) : !isConnected ? (
+        <EmptyState
+          icon="AlertCircle"
+          title="Connection Failed"
+          description="Unable to connect to Gemini API. Please check your API key in Settings."
+          size="lg"
+        />
+      ) : dayPlan.length === 0 ? (
+        <EmptyState
+          icon="Calendar"
+          title="No Plan Generated"
+          description="Generate an AI-powered daily plan based on your goals and preferences."
+          action={(
             <Button
               onClick={generateDailyPlan}
               loading={isGenerating}
@@ -680,8 +670,10 @@ Focus on realistic timing and achievable goals. Return ONLY the JSON array.`;
             >
               Generate Daily Plan
             </Button>
-          </div>
-        ) : (
+          )}
+          size="lg"
+        />
+      ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-heading-semibold text-text-primary">
@@ -763,10 +755,36 @@ Focus on realistic timing and achievable goals. Return ONLY the JSON array.`;
             </div>
           </div>
         )}
-      </div>
 
       <FloatingActionButton />
-    </div>
+
+      <AddEventModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={(event) => {
+          // Map AddEventModal form { title, time, category, description, completed } to dayPlan item
+          addManualEvent({
+            id: Date.now(),
+            title: event.title,
+            time: event.time,
+            category: event.category,
+            description: event.description,
+            completed: false,
+            createdAt: new Date().toISOString(),
+          });
+        }}
+      />
+
+      <PreferencesModal
+        isOpen={showPreferences}
+        onClose={() => setShowPreferences(false)}
+        eventCount={eventCount}
+        setEventCount={setEventCount}
+        novelty={novelty}
+        setNovelty={setNovelty}
+        onDriftPlan={handleDriftPlan}
+      />
+    </Page>
   );
 };
 

@@ -3,7 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useAchievements } from '../../context/AchievementContext';
 import Icon from '../../components/ui/Icon';
 import Button from '../../components/ui/Button';
+import Page from '../../components/ui/Page';
+import PageHeader from '../../components/ui/PageHeader';
+import EmptyState from '../../components/ui/EmptyState';
 import AddHabitModal from '../../components/AddHabitModal';
+import CreativeHabitsTree from '../../components/CreativeHabitsTree';
 import HabitsAIAssistant from './components/AIAssistantPanel';
 import habitService from '../../services/habitService';
 
@@ -224,35 +228,32 @@ const HabitsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Icon name="Loader" className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+      <Page>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Icon name="Loader" className="w-8 h-8 animate-spin mb-3 text-primary" />
           <p className="text-text-secondary">Loading habits...</p>
         </div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-heading-bold text-text-primary mb-2">Habits</h1>
-            <p className="text-text-secondary">Build lasting habits with unified tree tracking</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            
+    <Page width="lg">
+      <PageHeader
+        icon="Repeat"
+        title="Habits"
+        subtitle="Build lasting habits with unified tree tracking"
+        actions={(
+          <>
             <Button
               onClick={() => setShowAIAssistant(!showAIAssistant)}
               variant="secondary"
               size="sm"
+              iconName="Bot"
+              iconPosition="left"
             >
-              <Icon name="Bot" size={16} className="mr-1" />
               AI Assistant
             </Button>
-            
             <Button
               onClick={() => setShowAddModal(true)}
               iconName="Plus"
@@ -260,17 +261,17 @@ const HabitsPage = () => {
             >
               Add Habit
             </Button>
-          </div>
-        </div>
+          </>
+        )}
+      />
 
-        {/* Main Content Area */}
-        {habits.length === 0 ? (
-          <div className="text-center py-12">
-            <Icon name="Target" className="w-16 h-16 mx-auto mb-4 text-text-secondary" />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">No habits yet</h3>
-            <p className="text-text-secondary mb-6">
-              Start building positive habits with our unified tree tracking system
-            </p>
+      {/* Main Content Area */}
+      {habits.length === 0 ? (
+        <EmptyState
+          icon="Repeat"
+          title="No habits yet"
+          description="Start building positive habits with our unified tree tracking system."
+          action={(
             <Button
               onClick={() => setShowAddModal(true)}
               iconName="Plus"
@@ -278,17 +279,18 @@ const HabitsPage = () => {
             >
               Create Your First Habit
             </Button>
-          </div>
-        ) : (
-          /* Creative Tree Visualization */
-          <CreativeHabitsTree 
-            habits={habits}
-            onCheckIn={handleCheckIn}
-            onEditHabit={handleEditHabit}
-            onDeleteHabit={handleDeleteHabit}
-          />
-        )}
-      </div>
+          )}
+          size="lg"
+        />
+      ) : (
+        /* Creative Tree Visualization */
+        <CreativeHabitsTree
+          habits={habits}
+          onCheckIn={handleCheckIn}
+          onEditHabit={handleEditHabit}
+          onDeleteHabit={handleDeleteHabit}
+        />
+      )}
 
       {/* Add Habit Modal */}
       {showAddModal && (
@@ -322,7 +324,7 @@ const HabitsPage = () => {
         onUpdateHabit={handleUpdateHabit}
         onDeleteHabit={handleDeleteHabit}
       />
-    </div>
+    </Page>
   );
 };
 

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import Icon from '../../components/ui/Icon';
+import Page from '../../components/ui/Page';
+import PageHeader from '../../components/ui/PageHeader';
+import Card from '../../components/ui/Card';
 import ProfileSection from './components/ProfileSection';
 import ApiKeySection from './components/ApiKeySection';
 import NotificationSection from './components/NotificationSection';
@@ -50,109 +53,107 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-200" style={{ scrollBehavior: 'smooth' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header - Fixed height to prevent shift */}
-        <div className="mb-8 min-h-[80px]">
-          <h1 className="text-3xl font-heading-bold text-text-primary mb-2 transition-colors duration-200">Settings</h1>
-          <p className="text-text-secondary transition-colors duration-200">Customize your JustGoals experience</p>
-        </div>
+    <Page>
+      <PageHeader
+        icon="Settings"
+        title="Settings"
+        subtitle="Customize your JustGoals experience"
+      />
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar Navigation */}
-          <div className={`lg:w-64 ${isMobile ? 'order-2' : 'order-1'}`}>
-            <div className="bg-surface rounded-lg border border-border p-4 transition-colors duration-200">
-              <h2 className="text-lg font-heading-semibold text-text-primary mb-4 transition-colors duration-200">Categories</h2>
-              
-              {isMobile ? (
-                // Mobile: Horizontal scrollable tabs
-                <div
-                  className="flex space-x-2 overflow-x-auto pb-2"
-                  role="tablist"
-                  aria-label="Settings Categories"
-                  onKeyDown={e => {
-                    if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
-                      e.preventDefault();
-                      const idx = sections.findIndex(s => s.id === activeSection);
-                      let nextIdx = e.key === "ArrowLeft" ? idx - 1 : idx + 1;
-                      if (nextIdx < 0) nextIdx = sections.length - 1;
-                      if (nextIdx >= sections.length) nextIdx = 0;
-                      setActiveSection(sections[nextIdx].id);
-                      document.getElementById(`settings-tab-${sections[nextIdx].id}`)?.focus();
-                    }
-                  }}
-                >
-                  {sections.map((section) => (
-                    <button
-                      key={section.id}
-                      id={`settings-tab-${section.id}`}
-                      onClick={() => setActiveSection(section.id)}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all duration-200 ${
-                        activeSection === section.id
-                          ? 'bg-primary text-white shadow-lg'
-                          : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                      }`}
-                      role="tab"
-                      aria-selected={activeSection === section.id}
-                      aria-controls={`settings-tabpanel-${section.id}`}
-                      tabIndex={activeSection === section.id ? 0 : -1}
-                    >
-                      <Icon name={section.icon} className="w-4 h-4" />
-                      <span className="text-sm font-medium">{section.label}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                // Desktop: Vertical sidebar
-                <nav
-                  className="space-y-1"
-                  role="tablist"
-                  aria-label="Settings Categories"
-                  onKeyDown={e => {
-                    if (["ArrowUp", "ArrowDown"].includes(e.key)) {
-                      e.preventDefault();
-                      const idx = sections.findIndex(s => s.id === activeSection);
-                      let nextIdx = e.key === "ArrowUp" ? idx - 1 : idx + 1;
-                      if (nextIdx < 0) nextIdx = sections.length - 1;
-                      if (nextIdx >= sections.length) nextIdx = 0;
-                      setActiveSection(sections[nextIdx].id);
-                      document.getElementById(`settings-tab-${sections[nextIdx].id}`)?.focus();
-                    }
-                  }}
-                >
-                  {sections.map((section) => (
-                    <button
-                      key={section.id}
-                      id={`settings-tab-${section.id}`}
-                      onClick={() => setActiveSection(section.id)}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg whitespace-nowrap transition-all duration-200 ${
-                        activeSection === section.id
-                          ? 'bg-primary text-white shadow-lg'
-                          : 'text-text-secondary hover:text-text-primary hover:bg-surface-700'
-                      }`}
-                      role="tab"
-                      aria-selected={activeSection === section.id}
-                      aria-controls={`settings-tabpanel-${section.id}`}
-                      tabIndex={activeSection === section.id ? 0 : -1}
-                    >
-                      <Icon name={section.icon} className="w-4 h-4" />
-                      <span className="text-sm font-medium">{section.label}</span>
-                    </button>
-                  ))}
-                </nav>
-              )}
-            </div>
-          </div>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Sidebar Navigation */}
+        <aside className={`lg:w-60 flex-shrink-0 ${isMobile ? 'order-2' : 'order-1'}`}>
+          <Card padding="md">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3 px-1">
+              Categories
+            </h2>
 
-          {/* Main Content - Enhanced stabilization */}
-          <div className="flex-1 min-h-[600px] transition-all duration-200" style={{ contain: 'layout' }}>
-            <div className="min-h-full">
-              {renderSection()}
-            </div>
-          </div>
-        </div>
+            {isMobile ? (
+              // Mobile: Horizontal scrollable tabs
+              <div
+                className="flex space-x-2 overflow-x-auto pb-2"
+                role="tablist"
+                aria-label="Settings Categories"
+                onKeyDown={(e) => {
+                  if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+                    e.preventDefault();
+                    const idx = sections.findIndex((s) => s.id === activeSection);
+                    let nextIdx = e.key === "ArrowLeft" ? idx - 1 : idx + 1;
+                    if (nextIdx < 0) nextIdx = sections.length - 1;
+                    if (nextIdx >= sections.length) nextIdx = 0;
+                    setActiveSection(sections[nextIdx].id);
+                    document.getElementById(`settings-tab-${sections[nextIdx].id}`)?.focus();
+                  }
+                }}
+              >
+                {sections.map((section) => (
+                  <button
+                    key={section.id}
+                    id={`settings-tab-${section.id}`}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all duration-200 ${
+                      activeSection === section.id
+                        ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md shadow-primary/20'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/40'
+                    }`}
+                    role="tab"
+                    aria-selected={activeSection === section.id}
+                    aria-controls={`settings-tabpanel-${section.id}`}
+                    tabIndex={activeSection === section.id ? 0 : -1}
+                  >
+                    <Icon name={section.icon} className="w-4 h-4" />
+                    <span>{section.label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              // Desktop: Vertical sidebar
+              <nav
+                className="space-y-1"
+                role="tablist"
+                aria-label="Settings Categories"
+                onKeyDown={(e) => {
+                  if (["ArrowUp", "ArrowDown"].includes(e.key)) {
+                    e.preventDefault();
+                    const idx = sections.findIndex((s) => s.id === activeSection);
+                    let nextIdx = e.key === "ArrowUp" ? idx - 1 : idx + 1;
+                    if (nextIdx < 0) nextIdx = sections.length - 1;
+                    if (nextIdx >= sections.length) nextIdx = 0;
+                    setActiveSection(sections[nextIdx].id);
+                    document.getElementById(`settings-tab-${sections[nextIdx].id}`)?.focus();
+                  }
+                }}
+              >
+                {sections.map((section) => (
+                  <button
+                    key={section.id}
+                    id={`settings-tab-${section.id}`}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      activeSection === section.id
+                        ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md shadow-primary/20'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/40'
+                    }`}
+                    role="tab"
+                    aria-selected={activeSection === section.id}
+                    aria-controls={`settings-tabpanel-${section.id}`}
+                    tabIndex={activeSection === section.id ? 0 : -1}
+                  >
+                    <Icon name={section.icon} className="w-4 h-4" />
+                    <span>{section.label}</span>
+                  </button>
+                ))}
+              </nav>
+            )}
+          </Card>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 min-h-[600px] transition-all duration-200" style={{ contain: 'layout' }}>
+          <div className="min-h-full">{renderSection()}</div>
+        </main>
       </div>
-    </div>
+    </Page>
   );
 };
 

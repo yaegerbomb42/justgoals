@@ -6,6 +6,11 @@ import * as entityService from '../../services/entityManagementService'; // Impo
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
+import Page from '../../components/ui/Page';
+import PageHeader from '../../components/ui/PageHeader';
+import StatCard from '../../components/ui/StatCard';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import JournalEntry from './components/JournalEntry';
 import JournalEditor from './components/JournalEditor';
 import AIInsightsPanel from './components/AIInsightsPanel';
@@ -220,207 +225,164 @@ const Journal = () => {
   const safeFilteredEntries = Array.isArray(filteredEntries) ? filteredEntries : [];
   const safeGoals = Array.isArray(goals) ? goals : [];
 
+  const thisMonthCount = safeEntries.filter(entry => {
+    const entryDate = new Date(entry.date);
+    const now = new Date();
+    return entryDate.getMonth() === now.getMonth() &&
+      entryDate.getFullYear() === now.getFullYear();
+  }).length;
+
   return (
-    <div className="min-h-screen bg-background">
-      
-      <main className="pt-20 pb-24 md:pb-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+    <Page width="lg">
+      <PageHeader
+        icon="BookOpen"
+        title="Daily Journal"
+        subtitle="Reflect on your progress, thoughts, and experiences"
+        actions={(
+          <>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20">
+              <Icon name="Flame" size={16} className="text-warning" />
+              <span className="text-sm font-medium text-text-primary">
+                {streakDays} day streak
+              </span>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => setIsEditorOpen(true)}
+              iconName="Plus"
+              iconPosition="left"
+            >
+              New Entry
+            </Button>
+          </>
+        )}
+      />
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <StatCard
+          icon="BookOpen"
+          label="Total Entries"
+          value={safeEntries.length}
+          tone="primary"
+        />
+        <StatCard
+          icon="Calendar"
+          label="This Month"
+          value={thisMonthCount}
+          tone="accent"
+        />
+        <StatCard
+          icon="Smile"
+          label="Avg Mood"
+          value={safeEntries.length > 0 ? getMoodEmoji(safeEntries[0]?.mood || 'okay') : '😐'}
+          tone="secondary"
+        />
+        <Card padding="md" className="flex items-center">
+          <Button
+            variant="ghost"
+            onClick={handleGenerateInsights}
+            disabled={safeEntries.length === 0 || isLoadingInsights}
+            loading={isLoadingInsights}
+            iconName="Brain"
+            iconPosition="left"
+            className="w-full justify-start"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-3xl font-heading-bold text-text-primary mb-2">
-                  Daily Journal
-                </h1>
-                <p className="text-text-secondary">
-                  Reflect on your progress, thoughts, and experiences
-                </p>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                {/* Streak Counter */}
-                <motion.div
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg px-4 py-2 border border-primary/30"
-                >
-                  <Icon name="Flame" size={16} className="text-warning" />
-                  <span className="text-sm font-medium text-text-primary">
-                    {streakDays} day streak
-                  </span>
-                </motion.div>
-                
-                <Button
-                  variant="primary"
-                  onClick={() => setIsEditorOpen(true)}
-                  iconName="Plus"
-                  iconPosition="left"
-                  className="shadow-lg hover:shadow-xl transition-shadow"
-                >
-                  New Entry
-                </Button>
-              </div>
-            </div>
+            AI Insights
+          </Button>
+        </Card>
+      </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-surface rounded-lg p-4 border border-border"
-              >
-                <div className="flex items-center space-x-2">
-                  <Icon name="BookOpen" size={20} className="text-primary" />
-                  <span className="text-sm text-text-secondary">Total Entries</span>
-                </div>
-                <div className="text-2xl font-heading-semibold text-text-primary mt-1">
-                  {safeEntries.length}
-                </div>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="bg-surface rounded-lg p-4 border border-border"
-              >
-                <div className="flex items-center space-x-2">
-                  <Icon name="Calendar" size={20} className="text-accent" />
-                  <span className="text-sm text-text-secondary">This Month</span>
-                </div>
-                <div className="text-2xl font-heading-semibold text-text-primary mt-1">
-                  {safeEntries.filter(entry => {
-                    const entryDate = new Date(entry.date);
-                    const now = new Date();
-                    return entryDate.getMonth() === now.getMonth() && 
-                           entryDate.getFullYear() === now.getFullYear();
-                  }).length}
-                </div>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-surface rounded-lg p-4 border border-border"
-              >
-                <div className="flex items-center space-x-2">
-                  <Icon name="Smile" size={20} className="text-secondary" />
-                  <span className="text-sm text-text-secondary">Avg Mood</span>
-                </div>
-                <div className="text-2xl font-heading-semibold text-text-primary mt-1">
-                  {safeEntries.length > 0 ? getMoodEmoji(safeEntries[0]?.mood || 'okay') : '😐'}
-                </div>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-surface rounded-lg p-4 border border-border"
-              >
-                <Button
-                  variant="ghost"
-                  onClick={handleGenerateInsights}
-                  disabled={safeEntries.length === 0 || isLoadingInsights}
-                  loading={isLoadingInsights}
-                  iconName="Brain"
-                  iconPosition="left"
-                  className="w-full justify-start"
-                >
-                  AI Insights
-                </Button>
-              </motion.div>
-            </div>
-          </motion.div>
+      {/* Search and Filter */}
+      <SearchFilter
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        selectedMood={selectedMood}
+        onMoodChange={setSelectedMood}
+        selectedGoal={selectedGoal}
+        onGoalChange={setSelectedGoal}
+        goals={safeGoals}
+      />
 
-          {/* Search and Filter */}
-          <SearchFilter
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedMood={selectedMood}
-            onMoodChange={setSelectedMood}
-            selectedGoal={selectedGoal}
-            onGoalChange={setSelectedGoal}
-            goals={safeGoals}
-          />
-
-          {/* Journal Entries */}
-          {error && (
-            <div className="p-4 bg-error/10 border border-error/20 rounded text-error text-center mb-4">{error}</div>
-          )}
-          {safeFilteredEntries.length > 0 ? (
-            <AnimatePresence mode="wait">
-              {safeFilteredEntries.map((entry, index) => (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <JournalEntry
-                    entry={entry}
-                    onEdit={handleEditEntry}
-                    onDelete={handleDeleteEntry}
-                    goals={safeGoals}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          ) : (
-            <div className="text-center py-8 text-text-secondary">
-              <Icon name="BookOpen" size={48} className="mx-auto mb-4 opacity-50" />
-              <p>No journal entries found. Start by adding a new entry!</p>
-            </div>
-          )}
-
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8 bg-surface rounded-lg border border-border p-6"
-          >
-            <h3 className="font-heading-medium text-text-primary mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link
-                to="/goals-dashboard"
-                className="flex flex-col items-center p-4 rounded-lg hover:bg-surface-700 transition-colors"
+      {/* Journal Entries */}
+      {error && (
+        <div className="p-4 bg-error/10 border border-error/20 rounded-xl text-error text-center mb-4">{error}</div>
+      )}
+      {safeFilteredEntries.length > 0 ? (
+        <div className="space-y-4">
+          <AnimatePresence mode="wait">
+            {safeFilteredEntries.map((entry, index) => (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
               >
-                <Icon name="Target" size={24} className="text-primary mb-2" />
-                <span className="text-sm text-text-secondary">Goals</span>
-              </Link>
-              
-              <Link
-                to="/focus-mode"
-                className="flex flex-col items-center p-4 rounded-lg hover:bg-surface-700 transition-colors"
-              >
-                <Icon name="Focus" size={24} className="text-accent mb-2" />
-                <span className="text-sm text-text-secondary">Focus Mode</span>
-              </Link>
-              
-              <Link
-                to="/ai-assistant-chat-drift"
-                className="flex flex-col items-center p-4 rounded-lg hover:bg-surface-700 transition-colors"
-              >
-                <Icon name="Bot" size={24} className="text-secondary mb-2" />
-                <span className="text-sm text-text-secondary">Chat with Drift</span>
-              </Link>
-              
-              <Link
-                to="/daily-milestones"
-                className="flex flex-col items-center p-4 rounded-lg hover:bg-surface-700 transition-colors"
-              >
-                <Icon name="CheckSquare" size={24} className="text-warning mb-2" />
-                <span className="text-sm text-text-secondary">Milestones</span>
-              </Link>
-            </div>
-          </motion.div>
+                <JournalEntry
+                  entry={entry}
+                  onEdit={handleEditEntry}
+                  onDelete={handleDeleteEntry}
+                  goals={safeGoals}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
-      </main>
+      ) : (
+        <EmptyState
+          icon="BookOpen"
+          title="No journal entries found"
+          description="Start by adding a new entry to capture your day."
+          action={(
+            <Button
+              variant="primary"
+              onClick={() => setIsEditorOpen(true)}
+              iconName="Plus"
+              iconPosition="left"
+            >
+              New Entry
+            </Button>
+          )}
+        />
+      )}
+
+      {/* Quick Actions */}
+      <Card padding="lg" className="mt-8">
+        <h3 className="font-heading-medium text-text-primary mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Link
+            to="/goals-dashboard"
+            className="flex flex-col items-center p-4 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+          >
+            <Icon name="Target" size={24} className="text-primary mb-2" />
+            <span className="text-sm text-text-secondary">Goals</span>
+          </Link>
+
+          <Link
+            to="/focus-mode"
+            className="flex flex-col items-center p-4 rounded-xl border border-border hover:border-accent/40 hover:bg-accent/5 transition-all"
+          >
+            <Icon name="Zap" size={24} className="text-accent mb-2" />
+            <span className="text-sm text-text-secondary">Focus Mode</span>
+          </Link>
+
+          <Link
+            to="/ai-assistant-chat-drift"
+            className="flex flex-col items-center p-4 rounded-xl border border-border hover:border-secondary/40 hover:bg-secondary/5 transition-all"
+          >
+            <Icon name="Bot" size={24} className="text-secondary mb-2" />
+            <span className="text-sm text-text-secondary">Chat with Drift</span>
+          </Link>
+
+          <Link
+            to="/progress"
+            className="flex flex-col items-center p-4 rounded-xl border border-border hover:border-warning/40 hover:bg-warning/5 transition-all"
+          >
+            <Icon name="CheckSquare" size={24} className="text-warning mb-2" />
+            <span className="text-sm text-text-secondary">Milestones</span>
+          </Link>
+        </div>
+      </Card>
 
       {/* Floating Action Button */}
       <FloatingActionButton />
@@ -444,7 +406,7 @@ const Journal = () => {
         insights={aiInsights}
         isLoading={isLoadingInsights}
       />
-    </div>
+    </Page>
   );
 };
 

@@ -9,6 +9,9 @@ import { geminiService } from '../../services/geminiService';
 import contextAggregationService from '../../services/contextAggregationService';
 import firestoreService from '../../services/firestoreService';
 import Icon from '../../components/ui/Icon';
+import Button from '../../components/ui/Button';
+import Page from '../../components/ui/Page';
+import EmptyState from '../../components/ui/EmptyState';
 import MessageBubble from './components/MessageBubble';
 import MessageInput from './components/MessageInput';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -282,60 +285,57 @@ const DriftChat = () => {
   // Loading/Error States
   if (!user?.id) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="glass-card p-8 text-center max-w-md">
-          <div className="w-16 h-16 bg-error/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Icon name="AlertCircle" className="w-8 h-8 text-error" />
-          </div>
-          <h3 className="text-xl font-bold text-text-primary mb-2">Sign In Required</h3>
-          <p className="text-text-secondary mb-4">Please sign in to chat with Drift.</p>
-          <button onClick={() => navigate('/login')} className="btn-primary">
-            Sign In
-          </button>
-        </div>
-      </div>
+      <Page width="sm">
+        <EmptyState
+          icon="AlertCircle"
+          title="Sign In Required"
+          description="Please sign in to chat with Drift."
+          action={(
+            <Button variant="primary" onClick={() => navigate('/login')}>Sign In</Button>
+          )}
+          size="lg"
+        />
+      </Page>
     );
   }
 
   if (!settings?.geminiApiKey) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="glass-card p-8 text-center max-w-md">
-          <div className="w-16 h-16 bg-warning/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Icon name="Key" className="w-8 h-8 text-warning" />
-          </div>
-          <h3 className="text-xl font-bold text-text-primary mb-2">API Key Required</h3>
-          <p className="text-text-secondary mb-4">Configure your Gemini API key in Settings to use Drift.</p>
-          <button onClick={() => navigate('/settings-configuration')} className="btn-primary">
-            Go to Settings
-          </button>
-        </div>
-      </div>
+      <Page width="sm">
+        <EmptyState
+          icon="Key"
+          title="API Key Required"
+          description="Configure your Gemini API key in Settings to use Drift."
+          action={(
+            <Button variant="primary" onClick={() => navigate('/settings-configuration')}>Go to Settings</Button>
+          )}
+          size="lg"
+        />
+      </Page>
     );
   }
 
   if (apiKeyStatus === 'invalid') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="glass-card p-8 text-center max-w-md">
-          <div className="w-16 h-16 bg-error/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Icon name="AlertCircle" className="w-8 h-8 text-error" />
-          </div>
-          <h3 className="text-xl font-bold text-text-primary mb-2">Invalid API Key</h3>
-          <p className="text-text-secondary mb-4">Your Gemini API key appears to be invalid.</p>
-          <button onClick={() => navigate('/settings-configuration')} className="btn-primary">
-            Update Settings
-          </button>
-        </div>
-      </div>
+      <Page width="sm">
+        <EmptyState
+          icon="AlertCircle"
+          title="Invalid API Key"
+          description="Your Gemini API key appears to be invalid."
+          action={(
+            <Button variant="primary" onClick={() => navigate('/settings-configuration')}>Update Settings</Button>
+          )}
+          size="lg"
+        />
+      </Page>
     );
   }
 
   if (apiKeyStatus === 'checking') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-16 h-16 mx-auto mb-4">
+      <Page width="sm">
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="relative w-16 h-16 mb-4">
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent rounded-2xl blur-lg opacity-50 animate-pulse" />
             <div className="relative w-16 h-16 bg-gradient-to-br from-primary via-secondary to-accent rounded-2xl flex items-center justify-center">
               <Icon name="Sparkles" className="w-8 h-8 text-white animate-pulse" />
@@ -344,7 +344,7 @@ const DriftChat = () => {
           <h3 className="text-lg font-bold text-text-primary mb-2">Initializing Drift</h3>
           <p className="text-text-secondary">Connecting to AI services...</p>
         </div>
-      </div>
+      </Page>
     );
   }
 
